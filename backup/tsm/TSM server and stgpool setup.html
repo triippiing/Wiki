@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TSM Storage Architecture — SSD + COS Tiered Pools</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--purple);
+    box-shadow: 0 0 8px var(--purple);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-purple {
+    color: var(--purple);
+    border-color: rgba(167,139,250,.4);
+    background: rgba(167,139,250,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 28px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.cool { color: var(--purple); }
+
+  /* ── tier diagram ── */
+  .tier-diagram {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 32px;
+    animation: fadeUp .4s .05s ease both;
+    opacity: 0;
+  }
+
+  @media (max-width: 720px) {
+    .tier-diagram { grid-template-columns: 1fr; }
+  }
+
+  .tier-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .tier-header {
+    padding: 10px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .tier-header .tier-h-cap {
+    font-weight: 400;
+    color: var(--text-dim);
+    letter-spacing: .04em;
+  }
+
+  .tier-header.os-h  { color: var(--text-dim); background: rgba(255,255,255,.018); }
+  .tier-header.ssd-h { color: var(--cyan); background: rgba(88,201,232,.06); }
+  .tier-header.cos-h { color: var(--purple); background: rgba(167,139,250,.06); }
+
+  .tier-component {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .tier-component:last-child { border-bottom: none; }
+
+  .tier-name { color: var(--text); }
+  .tier-name code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-hi);
+    background: rgba(255,255,255,.06);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+  .tier-size {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .tier-flow {
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    margin: -16px 0 32px;
+    letter-spacing: .04em;
+  }
+
+  .tier-flow .arrow {
+    color: var(--purple);
+    font-weight: 600;
+    margin: 0 6px;
+  }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-plan    { border-left-color: var(--cyan); }
+  .step.ph-fs      { border-left-color: var(--cyan); }
+  .step.ph-dcp     { border-left-color: var(--cyan); }
+  .step.ph-ccp     { border-left-color: var(--purple); }
+  .step.ph-tier    { border-left-color: var(--amber); }
+  .step.ph-db      { border-left-color: var(--amber); }
+  .step.ph-policy  { border-left-color: var(--green); }
+  .step.ph-verify  { border-left-color: var(--green); }
+
+  .step:nth-child(1) { animation-delay: .04s; }
+  .step:nth-child(2) { animation-delay: .08s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+  .tag-build    { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* ── reference table ── */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .ref-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 7px 12px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .ref-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+  }
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  /* ── summary table ── */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) { font-size: 12px; color: var(--text); }
+  .summary-table td:last-child { font-size: 12px; color: var(--text-dim); }
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>TSM Storage Architecture — SSD + COS Tiered Pools</h1>
+  <div class="header-badges">
+    <span class="badge badge-purple">MULTI-CUSTOMER</span>
+    <span class="badge">DCP + CCP + TIER</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">SP Server</div><div class="meta-val">Linux</div></div>
+    <div class="meta-cell"><div class="meta-label">OS Disks</div><div class="meta-val">3 × 200GB</div></div>
+    <div class="meta-cell"><div class="meta-label">Hot tier</div><div class="meta-val info">V7000 — 20×20TB SSD</div></div>
+    <div class="meta-cell"><div class="meta-label">Cold tier</div><div class="meta-val cool">IBM COS</div></div>
+    <div class="meta-cell"><div class="meta-label">Hot pool</div><div class="meta-val">DCPOOL_PRIMARY</div></div>
+    <div class="meta-cell"><div class="meta-label">Cold pool</div><div class="meta-val">CCPOOL_ARCHIVE</div></div>
+    <div class="meta-cell"><div class="meta-label">Tier age</div><div class="meta-val warn">30 days</div></div>
+    <div class="meta-cell"><div class="meta-label">Tenancy</div><div class="meta-val ok">Shared, multi-customer</div></div>
+  </div>
+
+  <!-- Tier diagram -->
+  <div class="tier-diagram">
+    <div class="tier-col">
+      <div class="tier-header os-h"><span>OS Tier</span><span class="tier-h-cap">3 × 200GB</span></div>
+      <div class="tier-component"><span class="tier-name">/ root mirror (RAID1)</span><span class="tier-size">~180GB</span></div>
+      <div class="tier-component"><span class="tier-name">SP binaries  <code>/opt/tivoli</code></span><span class="tier-size">~30GB</span></div>
+      <div class="tier-component"><span class="tier-name">Instance dir  <code>/sp/inst1</code></span><span class="tier-size">~5GB</span></div>
+      <div class="tier-component"><span class="tier-name">/var, /tmp, swap</span><span class="tier-size">remainder</span></div>
+    </div>
+
+    <div class="tier-col">
+      <div class="tier-header ssd-h"><span>SSD Tier — V7000</span><span class="tier-h-cap">~280TB usable</span></div>
+      <div class="tier-component"><span class="tier-name">SP DB  <code>/sp/db/db00{1..4}</code></span><span class="tier-size">4 × 1TB</span></div>
+      <div class="tier-component"><span class="tier-name">Active log  <code>/sp/actlog</code></span><span class="tier-size">256GB</span></div>
+      <div class="tier-component"><span class="tier-name">Archive log  <code>/sp/archlog</code></span><span class="tier-size">1TB</span></div>
+      <div class="tier-component"><span class="tier-name">Archive failover</span><span class="tier-size">256GB</span></div>
+      <div class="tier-component"><span class="tier-name">DB backup target</span><span class="tier-size">4TB</span></div>
+      <div class="tier-component"><span class="tier-name"><code>DCPOOL_PRIMARY</code> dirs</span><span class="tier-size">~270TB</span></div>
+    </div>
+
+    <div class="tier-col">
+      <div class="tier-header cos-h"><span>COS Tier</span><span class="tier-h-cap">cloud object store</span></div>
+      <div class="tier-component"><span class="tier-name"><code>CCPOOL_ARCHIVE</code> bucket</span><span class="tier-size">scalable</span></div>
+      <div class="tier-component"><span class="tier-name">DB backup off-site bucket</span><span class="tier-size">scalable</span></div>
+      <div class="tier-component" style="color:var(--text-dim)"><span class="tier-name">Aged data — &gt;30 days</span><span class="tier-size">via STGRULE</span></div>
+      <div class="tier-component" style="color:var(--text-dim)"><span class="tier-name">DR-site DB backup</span><span class="tier-size">daily</span></div>
+    </div>
+  </div>
+
+  <div class="tier-flow">
+    Client → <span class="arrow">DCPOOL_PRIMARY</span> (ingest, dedup, &lt;30d) → <span class="arrow">CCPOOL_ARCHIVE</span> (aged data, transparent restore)
+  </div>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Capacity Plan &amp; Sizing Rationale</div>
+  <div class="steps">
+    <div class="step ph-plan open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Confirm V7000 layout, calculate SP DB sizing, define LUN map</span>
+        <span class="step-tag tag-info">PLAN</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="cmd-section">V7000 raw → usable calculation</span>
+<span class="c"># 20 × 20TB = 400TB raw. Recommended layout for SP/SP all-flash:</span>
+<span class="c">#   - Single Distributed RAID6 (DRAID6) array</span>
+<span class="c">#   - 2 distributed spare drives (rebuild target across all members)</span>
+<span class="c">#   - 16 data + 2 parity = ~73% efficiency</span>
+<span class="c"># Usable ~ 400TB × 0.72 = ~285TB</span>
+
+<span class="c"># From V7000 CLI (svctask), confirm or build:</span>
+<span class="kw">lsmdiskgrp</span>                              <span class="c"># existing pools</span>
+<span class="kw">lsdrive</span> <span class="flag">-filtervalue</span> use=candidate    <span class="c"># spare drives available</span>
+
+<span class="c"># If building new — typical command shape (verify on your V7000 firmware):</span>
+<span class="c">#   mkmdiskgrp -name MDG_SP_SSD -ext 1024 -datareduction yes</span>
+<span class="c">#   mkdistributedarray -mdiskgrp MDG_SP_SSD -driveclass &lt;cls&gt; \</span>
+<span class="c">#                       -drivecount 20 -level raid6 -stripewidth 16 \</span>
+<span class="c">#                       -rebuildareas 2</span>
+
+<span class="cmd-section">SP DB sizing — rule of thumb</span>
+<span class="c"># Modern SP DB grows to ~3-5% of unique stored data after dedup.</span>
+<span class="c"># If projected steady-state unique data on SSD = 80TB:</span>
+<span class="c">#   DB target  = 80TB × 0.04 = ~3.2TB</span>
+<span class="c">#   Plus 50% headroom for growth = 4-5TB DB allocation.</span>
+<span class="c"># IBM recommends 4-8 DB volumes (parallel I/O), equal sized.</span>
+
+<span class="cmd-section">SSD allocation map (proposed)</span>
+<span class="c">#   Component               LUNs     Total      Filesystem</span>
+<span class="c">#   --------------------  --------  --------  --------------------</span>
+<span class="c">#   SP DB                  4 × 1TB   4.0 TB    /sp/db/db00{1..4}</span>
+<span class="c">#   Active log             1 × 256G  256 GB    /sp/actlog</span>
+<span class="c">#   Archive log            1 × 1TB   1.0 TB    /sp/archlog</span>
+<span class="c">#   Archive failover       1 × 256G  256 GB    /sp/archfail</span>
+<span class="c">#   DB backup target       1 × 4TB   4.0 TB    /sp/dbbackup</span>
+<span class="c">#   DCPOOL_PRIMARY dirs    16 × 17TB ~272 TB   /sp/dcpool/dir{01..16}</span>
+<span class="c">#                                   ─────────</span>
+<span class="c">#                                   ~281 TB total</span>
+
+<span class="cmd-section">COS prerequisites — gather before Phase 4</span>
+<span class="c"># From the COS portal, capture for the SP service credential:</span>
+<span class="c">#   - Endpoint URL          (e.g. https://s3.eu-gb.cloud-object-storage.appdomain.cloud)</span>
+<span class="c">#   - HMAC access key       (32-char alphanumeric)</span>
+<span class="c">#   - HMAC secret key       (64-char alphanumeric)</span>
+<span class="c">#   - Bucket name (archive) (e.g. sp-archive-prod-eu)</span>
+<span class="c">#   - Bucket name (db bak)  (e.g. sp-dbbackup-prod-eu)</span>
+<span class="c"># IMPORTANT: bucket must support HMAC creds (S3 protocol), NOT IAM-only.</span></div>
+        <p class="note note-info"><strong>Why DRAID6 over classic RAID6:</strong> on all-flash V7000, distributed RAID rebuilds spread the rebuild I/O across every drive in the array rather than hammering a single hot-spare. Rebuild time on a failed 20TB SSD drops from ~20+ hours to a couple of hours. Performance during rebuild stays close to baseline. The two distributed spare drives mean zero "swap a drive" panic — failed drives can be replaced at the next maintenance window.</p>
+        <p class="note"><strong>Why 16 DCPOOL directories:</strong> directory-container pools parallelise I/O across their directories. 16 dirs gives 16 concurrent ingest streams without contention. Smaller filesystem per directory also keeps individual fsck/scan times manageable. Directories should be on separate filesystems if you want true parallelism — or at minimum on the same filesystem with separate top-level paths if the underlying array can handle the parallelism (DRAID6 on SSD can).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Phase 2</span> Filesystem Layout on Linux</div>
+  <div class="steps">
+    <div class="step ph-fs">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Provision SSD-backed filesystems for DB, logs, and DCPOOL directories</span>
+        <span class="step-tag tag-build">BUILD</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="cmd-section">Confirm V7000 LUNs are mapped to this host</span>
+<span class="kw">multipath</span> <span class="flag">-ll</span> | <span class="kw">grep</span> <span class="str">-iE</span> <span class="str">"size|status"</span> | <span class="kw">head</span> <span class="flag">-40</span>
+<span class="kw">lsblk</span> <span class="flag">-o</span> NAME,SIZE,TYPE,MOUNTPOINT | <span class="kw">grep</span> <span class="flag">-vE</span> <span class="str">"loop|sr0"</span>
+
+<span class="cmd-section">Partition + format — use XFS for SP filesystems (IBM-recommended)</span>
+<span class="c"># Repeat for each LUN. Example for /sp/db/db001:</span>
+<span class="kw">parted</span> <span class="str">/dev/mapper/mpathX</span> <span class="flag">--script</span> mklabel gpt
+<span class="kw">parted</span> <span class="str">/dev/mapper/mpathX</span> <span class="flag">--script</span> mkpart primary xfs 0% 100%
+<span class="kw">mkfs.xfs</span> <span class="flag">-K</span> <span class="str">/dev/mapper/mpathX-part1</span>
+
+<span class="cmd-section">Create mountpoints — naming convention</span>
+<span class="kw">mkdir</span> <span class="flag">-p</span> <span class="str">/sp/{inst1,db/db00{1..4},actlog,archlog,archfail,dbbackup}</span>
+<span class="kw">mkdir</span> <span class="flag">-p</span> <span class="str">/sp/dcpool/dir{01..16}</span>
+
+<span class="cmd-section">/etc/fstab entries — XFS, no UUIDs (match site convention)</span>
+<span class="c"># Append entries — verify with cat /etc/fstab before mount -a</span>
+<span class="kw">cat</span> >> <span class="str">/etc/fstab</span> <span class="ph">&lt;&lt;EOF</span>
+<span class="str">/dev/mapper/mpath_db001-part1   /sp/db/db001     xfs  defaults,noatime  0  0</span>
+<span class="str">/dev/mapper/mpath_db002-part1   /sp/db/db002     xfs  defaults,noatime  0  0</span>
+<span class="str">/dev/mapper/mpath_db003-part1   /sp/db/db003     xfs  defaults,noatime  0  0</span>
+<span class="str">/dev/mapper/mpath_db004-part1   /sp/db/db004     xfs  defaults,noatime  0  0</span>
+<span class="str">/dev/mapper/mpath_actlog-part1  /sp/actlog       xfs  defaults,noatime  0  0</span>
+<span class="str">/dev/mapper/mpath_archlog-part1 /sp/archlog      xfs  defaults,noatime  0  0</span>
+<span class="str">/dev/mapper/mpath_archfail-part1 /sp/archfail    xfs  defaults,noatime  0  0</span>
+<span class="str">/dev/mapper/mpath_dbbak-part1   /sp/dbbackup     xfs  defaults,noatime  0  0</span>
+<span class="str">/dev/mapper/mpath_dc01-part1    /sp/dcpool/dir01 xfs  defaults,noatime  0  0</span>
+<span class="c"># … continue dir02 … dir16</span>
+<span class="ph">EOF</span>
+
+<span class="kw">mount</span> <span class="flag">-a</span>
+<span class="kw">df</span> <span class="flag">-hT</span> <span class="str">/sp</span>
+
+<span class="cmd-section">Set ownership for SP instance user</span>
+<span class="c"># Default IBM SP install uses tsminst1:tsmsrvrs. Adjust if site differs.</span>
+<span class="kw">chown</span> <span class="flag">-R</span> tsminst1:tsmsrvrs <span class="str">/sp</span>
+<span class="kw">chmod</span> <span class="flag">-R</span> 750 <span class="str">/sp</span>
+
+<span class="c"># Sanity-check ownership on every mount point</span>
+<span class="kw">ls</span> <span class="flag">-ld</span> <span class="str">/sp /sp/db/db00{1..4} /sp/actlog /sp/archlog /sp/dcpool/dir{01..16}</span></div>
+        <p class="note note-caution"><strong>noatime:</strong> always set on SP filesystems. Without it, every read updates the access timestamp, generating unnecessary write I/O on filesystems that may have hundreds of millions of files. <code>noatime</code> can be a 10-20% performance gain on busy DCPOOL directories.</p>
+        <p class="note"><strong>Why XFS over ext4 for SP:</strong> XFS scales much better to hundreds of millions of files in a single filesystem (DCPOOL directories), handles large metadata operations more efficiently, and is the IBM-tested filesystem for both SP DB and container pool directories. Ext4 works but isn't the IBM-blueprint choice.</p>
+        <p class="note note-critical"><strong>Do NOT mount DCPOOL directories on the same filesystem as the SP DB.</strong> If the DB filesystem fills, the SP server halts. Keeping DCPOOL on separate filesystems (or at minimum a separate set of LUNs from DB) prevents one capacity event from taking down both data and metadata simultaneously.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 3</span> Define DCPOOL_PRIMARY — Hot Tier on SSD</div>
+  <div class="steps">
+    <div class="step ph-dcp open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Create directory-container storage pool with inline dedup &amp; compression</span>
+        <span class="step-tag tag-build">BUILD</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="cmd-section">Verify SP version supports container pools (8.1+)</span>
+<span class="kw">QUERY STATUS</span> <span class="flag">F=D</span> | <span class="kw">grep</span> <span class="flag">-iE</span> <span class="str">"server name|version"</span>
+
+<span class="cmd-section">Create the directory-container storage pool</span>
+<span class="kw">DEFINE STGPOOL</span> DCPOOL_PRIMARY <span class="ph">\</span>
+    <span class="flag">STGTYPE=</span>DIRECTORY <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Primary backup container pool — SSD, multi-customer ingest"</span> <span class="ph">\</span>
+    <span class="flag">MAXSIZE=</span>NOLIMIT <span class="ph">\</span>
+    <span class="flag">ENCRYPT=</span>YES <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>YES
+
+<span class="c"># Verify pool exists and is empty</span>
+<span class="kw">QUERY STGPOOL</span> DCPOOL_PRIMARY <span class="flag">F=D</span>
+
+<span class="cmd-section">Add 16 storage pool directories — one per filesystem</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir01</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir02</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir03</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir04</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir05</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir06</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir07</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir08</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir09</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir10</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir11</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir12</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir13</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir14</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir15</span>
+<span class="kw">DEFINE STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="str">/sp/dcpool/dir16</span>
+
+<span class="cmd-section">Verify all 16 directories registered, status ONLINE</span>
+<span class="kw">QUERY STGPOOLDIRECTORY</span> DCPOOL_PRIMARY <span class="flag">F=D</span>
+
+<span class="cmd-section">Confirm capacity is what we expect</span>
+<span class="c"># Total capacity should be ~272TB (16 × 17TB)</span>
+<span class="kw">QUERY STGPOOL</span> DCPOOL_PRIMARY <span class="flag">F=D</span> | <span class="kw">grep</span> <span class="flag">-iE</span> <span class="str">"total space|free|util"</span></div>
+        <div class="note note-info"><strong>Container pool features that matter:</strong>
+          <table class="ref-table">
+            <tr><th>Feature</th><th>Effect</th></tr>
+            <tr><td>Inline dedup</td><td>Variable-block dedup at ingest — typical 2-4× reduction across mixed AIX workloads</td></tr>
+            <tr><td>Inline compression</td><td>Stacks on top of dedup — adds another 1.5-2× for compressible data</td></tr>
+            <tr><td>ENCRYPT=YES</td><td>AES-256 at rest. Server-managed keys; KMIP-managed available later</td></tr>
+            <tr><td>No reclamation</td><td>Containers manage their own space; no nightly RECLAIM jobs to schedule</td></tr>
+            <tr><td>No volume defs</td><td>No DEFINE VOLUME / no scratch counts — capacity = sum of directory FS sizes</td></tr>
+          </table>
+        </div>
+        <p class="note note-caution"><strong>Once <code>ENCRYPT=YES</code> is set, it cannot be turned off without rebuilding the pool.</strong> All data ingested is encrypted with the server's master key. Confirm you have a master key backup procedure (<code>BACKUP KEYS</code> command) before enabling, or you risk locking yourself out of your own data after a server rebuild.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Phase 4</span> Define CCPOOL_ARCHIVE — Cold Tier on COS</div>
+  <div class="steps">
+    <div class="step ph-ccp">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Create cloud-container storage pool backed by IBM COS</span>
+        <span class="step-tag tag-build">BUILD</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Test COS connectivity from the SP server (out-of-band, before defining)</span>
+<span class="c"># Confirm DNS + TLS path to the COS endpoint resolves and responds</span>
+<span class="kw">curl</span> <span class="flag">-sI</span> <span class="str">https://s3.eu-gb.cloud-object-storage.appdomain.cloud</span> | <span class="kw">head</span> <span class="flag">-3</span>
+
+<span class="c"># Optional but useful — full S3 sanity check with awscli or aws-cli-plugin-cos:</span>
+<span class="c">#   aws --endpoint-url=https://s3.eu-gb...appdomain.cloud s3 ls s3://sp-archive-prod-eu</span>
+
+<span class="cmd-section">Define the cloud-container storage pool</span>
+<span class="kw">DEFINE STGPOOL</span> CCPOOL_ARCHIVE <span class="ph">\</span>
+    <span class="flag">STGTYPE=</span>CLOUD <span class="ph">\</span>
+    <span class="flag">CLOUDTYPE=</span>S3 <span class="ph">\</span>
+    <span class="flag">CLOUDURL=</span><span class="str">https://s3.eu-gb.cloud-object-storage.appdomain.cloud</span> <span class="ph">\</span>
+    <span class="flag">IDENTITY=</span><span class="ph">&lt;HMAC_ACCESS_KEY&gt;</span> <span class="ph">\</span>
+    <span class="flag">PASSWORD=</span><span class="ph">&lt;HMAC_SECRET_KEY&gt;</span> <span class="ph">\</span>
+    <span class="flag">BUCKETNAME=</span><span class="str">sp-archive-prod-eu</span> <span class="ph">\</span>
+    <span class="flag">ENCRYPTIONTYPE=</span>AES <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Cloud archive container pool — IBM COS, multi-customer cold tier"</span>
+
+<span class="cmd-section">Verify pool came up ONLINE — first connection authenticates against COS</span>
+<span class="kw">QUERY STGPOOL</span> CCPOOL_ARCHIVE <span class="flag">F=D</span>
+
+<span class="c"># Status field should report ONLINE.</span>
+<span class="c"># If OFFLINE — most common cause is bad HMAC creds or wrong endpoint URL.</span>
+<span class="c"># Check actlog around the failure:</span>
+<span class="kw">QUERY ACTLOG</span> <span class="flag">BEGINTIME=-00:10</span> <span class="flag">SEARCH=</span><span class="str">"CCPOOL_ARCHIVE"</span></div>
+        <p class="note note-info"><strong>Why HMAC credentials and not IAM tokens:</strong> SP authenticates to COS via the S3 protocol, which requires HMAC access/secret pairs. IAM bearer tokens (the COS default for newer credential types) are not supported by the S3 protocol path. When generating service credentials in the COS portal, tick "Include HMAC Credential" — without it, the secret key field will be missing and the stgpool will refuse to come online.</p>
+        <p class="note note-caution"><strong>ENCRYPTIONTYPE=AES is doubled with bucket-side encryption — that's fine and recommended.</strong> SP encrypts at the object level before upload (server-side master key). COS additionally encrypts at rest. Two layers protect against both transport-level interception and a leaked COS service credential being usable to read clear data.</p>
+        <p class="note"><strong>Network bandwidth note:</strong> sustained tier traffic to COS is bound by the SP server's outbound link. Plan for 100-300 Mbit/s sustained during heavy tiering windows (e.g. month-end when monthly fulls are 30 days old and start tiering en masse). If the SP server is on a 1Gbit link shared with backup ingest, schedule tiering windows outside backup windows — see Phase 5.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Phase 5</span> Define Tiering Rule — Age-Based DCPOOL → CCPOOL</div>
+  <div class="steps">
+    <div class="step ph-tier">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Tier inactive data older than 30 days from SSD to COS</span>
+        <span class="step-tag tag-caution">POLICY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="cmd-section">Verify exact STGRULE syntax for your SP version</span>
+<span class="c"># Parameter names changed slightly between 8.1.10 and 8.1.20+. Always check first:</span>
+<span class="kw">HELP DEFINE STGRULE</span>
+
+<span class="cmd-section">Define the tiering rule (8.1.13+ syntax — verify against HELP output)</span>
+<span class="kw">DEFINE STGRULE</span> TIER_HOT_TO_COLD <span class="ph">\</span>
+    <span class="flag">ACTIONTYPE=</span>TIER <span class="ph">\</span>
+    <span class="flag">SRCPOOLNAME=</span>DCPOOL_PRIMARY <span class="ph">\</span>
+    <span class="flag">DESTPOOLNAME=</span>CCPOOL_ARCHIVE <span class="ph">\</span>
+    <span class="flag">DAYS=</span>30 <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Tier inactive data &gt;30d from SSD container pool to COS"</span>
+
+<span class="cmd-section">Set a tiering window — outside backup ingest hours</span>
+<span class="c"># Tiering can compete with backup ingest for SP DB I/O and outbound network.</span>
+<span class="c"># Restrict to a daytime window when backup load is light:</span>
+<span class="kw">UPDATE STGRULE</span> TIER_HOT_TO_COLD <span class="ph">\</span>
+    <span class="flag">STARTTIME=</span>09:00 <span class="ph">\</span>
+    <span class="flag">DURATION=</span>8 <span class="flag">DURUNITS=</span>HOURS <span class="ph">\</span>
+    <span class="flag">ACTIVE=</span>YES
+
+<span class="cmd-section">Verify rule</span>
+<span class="kw">QUERY STGRULE</span> TIER_HOT_TO_COLD <span class="flag">F=D</span>
+
+<span class="cmd-section">First execution — manually trigger to validate end-to-end flow</span>
+<span class="c"># Don't wait for the schedule; force a run with a small data set first.</span>
+<span class="c"># Look for any ANR8xxx / ANR1xxx errors in the actlog during/after.</span>
+<span class="kw">RUN STGRULE</span> TIER_HOT_TO_COLD <span class="flag">PREVIEW=</span>YES   <span class="c"># dry-run, lists what would tier</span>
+<span class="kw">RUN STGRULE</span> TIER_HOT_TO_COLD                 <span class="c"># actual run</span>
+
+<span class="c"># Watch progress</span>
+<span class="kw">QUERY PROCESS</span>
+<span class="kw">QUERY ACTLOG</span> <span class="flag">BEGINTIME=-01:00</span> <span class="flag">SEARCH=</span><span class="str">"TIER_HOT_TO_COLD"</span></div>
+        <div class="note note-info"><strong>What "30 days" actually means:</strong>
+          <table class="ref-table">
+            <tr><th>Concept</th><th>Behaviour</th></tr>
+            <tr><td>DAYS=30</td><td>Data not accessed/written for 30+ days qualifies for tiering</td></tr>
+            <tr><td>Inactive only</td><td>Active backups never tier — only inactive versions move</td></tr>
+            <tr><td>Restore behaviour</td><td>Tiered data is fully online — restores fetch on demand from COS, transparent to client</td></tr>
+            <tr><td>No re-hydration</td><td>Once moved, data does not auto-promote back to SSD on access</td></tr>
+          </table>
+        </div>
+        <p class="note"><strong>Why 30 days specifically:</strong> matches the most aggressive customer retention (Bluechip's MC_FILE_30D file-level incremental). Their daily incrementals expire around the time they'd otherwise tier — almost no daily data ever reaches COS, which is the right outcome (small, frequently-accessed files stay on fast tier). Monthly and yearly fulls all tier. If you have a customer with sub-30-day fulls (e.g. weekly-fulls-kept-2-weeks), drop the rule to 14 days for that customer-pattern.</p>
+        <p class="note note-caution"><strong>RUN STGRULE PREVIEW=YES is the safe first move.</strong> It lists candidate objects without moving any data. Always run it on the first activation against a populated DCPOOL — gives you a count of GB-to-be-moved so you can size the COS bucket and outbound bandwidth window appropriately.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Phase 6</span> SP Database Backup — Local + COS Off-Site</div>
+  <div class="steps">
+    <div class="step ph-db">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Define DB backup device classes and schedule daily dual-target backups</span>
+        <span class="step-tag tag-critical">DR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">Local DB backup target — FILE devclass on SSD</span>
+<span class="kw">DEFINE DEVCLASS</span> DBBACK_FILE <span class="ph">\</span>
+    <span class="flag">DEVTYPE=</span>FILE <span class="ph">\</span>
+    <span class="flag">DIRECTORY=</span><span class="str">/sp/dbbackup</span> <span class="ph">\</span>
+    <span class="flag">MOUNTLIMIT=</span>4 <span class="ph">\</span>
+    <span class="flag">MAXCAPACITY=</span>50G
+
+<span class="cmd-section">Off-site DB backup target — DBCLOUD devclass to COS</span>
+<span class="c"># Different bucket from CCPOOL_ARCHIVE — keep DB backups isolated from data.</span>
+<span class="kw">DEFINE DEVCLASS</span> DBBACK_CLOUD <span class="ph">\</span>
+    <span class="flag">DEVTYPE=</span>DBCLOUD <span class="ph">\</span>
+    <span class="flag">CLOUDTYPE=</span>S3 <span class="ph">\</span>
+    <span class="flag">CLOUDURL=</span><span class="str">https://s3.eu-gb.cloud-object-storage.appdomain.cloud</span> <span class="ph">\</span>
+    <span class="flag">IDENTITY=</span><span class="ph">&lt;HMAC_ACCESS_KEY&gt;</span> <span class="ph">\</span>
+    <span class="flag">PASSWORD=</span><span class="ph">&lt;HMAC_SECRET_KEY&gt;</span> <span class="ph">\</span>
+    <span class="flag">BUCKETNAME=</span><span class="str">sp-dbbackup-prod-eu</span>
+
+<span class="cmd-section">Set DB backup retention</span>
+<span class="c"># Keep 7 generations of DB backups — covers a week of daily fulls.</span>
+<span class="kw">SET DBRECOVERY</span> DBBACK_FILE
+<span class="kw">SET DRMDBBACKUPEXPIREDAYS</span> 7
+
+<span class="cmd-section">First DB backup — validate both targets work</span>
+<span class="c"># Local first (faster, validates basic DB backup capability)</span>
+<span class="kw">BACKUP DB</span> <span class="flag">DEVCLASS=</span>DBBACK_FILE <span class="flag">TYPE=</span>FULL <span class="flag">WAIT=</span>YES
+
+<span class="c"># Then to COS (validates the cloud devclass)</span>
+<span class="kw">BACKUP DB</span> <span class="flag">DEVCLASS=</span>DBBACK_CLOUD <span class="flag">TYPE=</span>FULL <span class="flag">WAIT=</span>YES
+
+<span class="cmd-section">Verify both backups landed</span>
+<span class="kw">QUERY DBBACKUPTRIGGER</span>
+<span class="kw">QUERY VOLHISTORY</span> <span class="flag">TYPE=</span>DBBACKUP
+
+<span class="cmd-section">Schedule daily DB backup — admin schedule, not client schedule</span>
+<span class="c"># Local target — runs at 02:00, fast, primary recovery target</span>
+<span class="kw">DEFINE SCHEDULE</span> DAILY_DBBACKUP_LOCAL <span class="ph">\</span>
+    <span class="flag">TYPE=</span>ADMINISTRATIVE <span class="ph">\</span>
+    <span class="flag">CMD=</span><span class="str">"BACKUP DB DEVCLASS=DBBACK_FILE TYPE=FULL"</span> <span class="ph">\</span>
+    <span class="flag">ACTIVE=</span>YES <span class="ph">\</span>
+    <span class="flag">STARTDATE=</span>TODAY+1 <span class="flag">STARTTIME=</span>02:00 <span class="ph">\</span>
+    <span class="flag">PERIOD=</span>1 <span class="flag">PERUNITS=</span>DAYS <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Daily SP DB backup to local SSD"</span>
+
+<span class="c"># Cloud target — runs at 03:00 after local completes, off-site copy</span>
+<span class="kw">DEFINE SCHEDULE</span> DAILY_DBBACKUP_CLOUD <span class="ph">\</span>
+    <span class="flag">TYPE=</span>ADMINISTRATIVE <span class="ph">\</span>
+    <span class="flag">CMD=</span><span class="str">"BACKUP DB DEVCLASS=DBBACK_CLOUD TYPE=FULL"</span> <span class="ph">\</span>
+    <span class="flag">ACTIVE=</span>YES <span class="ph">\</span>
+    <span class="flag">STARTDATE=</span>TODAY+1 <span class="flag">STARTTIME=</span>03:00 <span class="ph">\</span>
+    <span class="flag">PERIOD=</span>1 <span class="flag">PERUNITS=</span>DAYS <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Daily SP DB backup off-site to COS"</span>
+
+<span class="cmd-section">Verify schedules</span>
+<span class="kw">QUERY SCHEDULE</span> <span class="flag">TYPE=</span>ADMINISTRATIVE</div>
+        <p class="note note-critical"><strong>Two DB backup paths is non-negotiable.</strong> The SP DB backup is the only thing that can recover the server after total loss. Local-only backups die with the server during a site disaster. Cloud-only backups extend RTO significantly (have to download ~3-5TB before you can start a restore). Both targets give you fast local recovery for the common case (DB corruption) and survivable off-site copies for the catastrophic case (site loss).</p>
+        <p class="note"><strong>DRMDBBACKUPEXPIREDAYS=7:</strong> keeps 7 daily fulls. SP automatically expires older DB backups from <code>QUERY VOLHISTORY</code> at this threshold. Set higher (14-30) if you want longer recovery point options, lower (3-5) if DB backup capacity is tight.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Phase 7</span> Customer Policy Alignment — Point Domains at Shared Pools</div>
+  <div class="steps">
+    <div class="step ph-policy">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Update existing &amp; future customer copy groups to use DCPOOL_PRIMARY</span>
+        <span class="step-tag tag-build">INTEGRATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="cmd-section">Pattern — every customer's MCs point at the shared DCPOOL_PRIMARY</span>
+<span class="c"># For an existing customer (Bluechip example):</span>
+<span class="kw">UPDATE COPYGROUP</span> BLUECHIP_DOM STANDARD MC_FILE_30D STANDARD <span class="ph">\</span>
+    <span class="flag">DESTINATION=</span>DCPOOL_PRIMARY
+
+<span class="kw">UPDATE COPYGROUP</span> BLUECHIP_DOM STANDARD MC_MFULL_3M STANDARD <span class="ph">\</span>
+    <span class="flag">DESTINATION=</span>DCPOOL_PRIMARY
+
+<span class="kw">UPDATE COPYGROUP</span> BLUECHIP_DOM STANDARD MC_YFULL_2Y STANDARD <span class="ph">\</span>
+    <span class="flag">DESTINATION=</span>DCPOOL_PRIMARY
+
+<span class="cmd-section">Re-activate the policy set so pool change takes effect</span>
+<span class="c"># UPDATE COPYGROUP modifies the inactive policy set. Activate to push it live.</span>
+<span class="kw">VALIDATE POLICYSET</span> BLUECHIP_DOM STANDARD
+<span class="kw">ACTIVATE POLICYSET</span> BLUECHIP_DOM STANDARD
+
+<span class="cmd-section">Confirm bindings are now to shared pool</span>
+<span class="kw">QUERY COPYGROUP</span> BLUECHIP_DOM ACTIVE STANDARD <span class="flag">F=D</span> <span class="ph">\</span>
+  | <span class="kw">grep</span> <span class="flag">-iE</span> <span class="str">"mgmt class|destination"</span></div>
+
+        <div class="note note-info"><strong>Customer separation is preserved at the policy layer:</strong>
+          <table class="ref-table">
+            <tr><th>Layer</th><th>Per-customer</th><th>Shared</th></tr>
+            <tr><td>Domain</td><td>BLUECHIP_DOM, ACME_DOM, …</td><td>—</td></tr>
+            <tr><td>Mgmt classes</td><td>MC_FILE_30D, MC_MFULL_3M, …</td><td>—</td></tr>
+            <tr><td>Cloptsets</td><td>COPT_FILE, COPT_MFULL, …</td><td>—</td></tr>
+            <tr><td>Schedules</td><td>SCH_DAILY_INCR, SCH_MONTHLY_FULL, …</td><td>—</td></tr>
+            <tr><td>Nodes</td><td>BC0X_FILE, AC0X_FILE, …</td><td>—</td></tr>
+            <tr><td>Storage pool</td><td>—</td><td>DCPOOL_PRIMARY</td></tr>
+            <tr><td>Tiering / archive</td><td>—</td><td>CCPOOL_ARCHIVE (via STGRULE)</td></tr>
+          </table>
+        </div>
+
+        <p class="note"><strong>Per-customer reporting still works:</strong> use <code>QUERY OCCUPANCY node_name=BC0*</code> or <code>SELECT … FROM occupancy WHERE node_name LIKE 'BC0%'</code> to get per-customer space attribution. The shared pool stores the bytes once (deduped), but SP tracks logical occupancy per node, so chargeback and capacity reports remain customer-specific.</p>
+        <p class="note note-caution"><strong>For new customer onboarding going forward:</strong> the Bluechip-style runbook still applies, but Phase 2 (storage foundation) becomes a no-op — you skip <code>DEFINE DEVCLASS</code> and <code>DEFINE STGPOOL</code> entirely. Every new customer's copy groups go straight to <code>DESTINATION=DCPOOL_PRIMARY</code> and inherit the existing tiering rule automatically.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 8 ════ -->
+  <div class="phase-label"><span>Phase 8</span> Verification &amp; Ongoing Monitoring</div>
+  <div class="steps">
+    <div class="step ph-verify open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">End-to-end checks and the queries you'll re-run forever</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="cmd-section">Pool inventory &amp; capacity</span>
+<span class="kw">QUERY STGPOOL</span> DCPOOL_PRIMARY <span class="flag">F=D</span>
+<span class="kw">QUERY STGPOOL</span> CCPOOL_ARCHIVE <span class="flag">F=D</span>
+<span class="kw">QUERY STGPOOLDIRECTORY</span> DCPOOL_PRIMARY    <span class="c"># 16 dirs, all ONLINE</span>
+
+<span class="cmd-section">Dedup &amp; compression efficacy on hot tier</span>
+<span class="c"># After a few days of ingest, these tell you if dedup is working.</span>
+<span class="c"># Healthy AIX-multi-customer workload: dedup ratio 2-4x, compression 1.5-2x.</span>
+<span class="kw">QUERY STGPOOL</span> DCPOOL_PRIMARY <span class="flag">F=D</span> | <span class="kw">grep</span> <span class="flag">-iE</span> <span class="str">"dedup|compress|space saved"</span>
+
+<span class="cmd-section">Tiering activity — daily check during ramp-up</span>
+<span class="kw">QUERY STGRULE</span> TIER_HOT_TO_COLD <span class="flag">F=D</span>
+<span class="kw">QUERY PROCESS</span> <span class="flag">SEARCH=</span><span class="str">"TIER"</span>
+<span class="kw">QUERY ACTLOG</span> <span class="flag">BEGINTIME=-24:00</span> <span class="flag">SEARCH=</span><span class="str">"STGRULE"</span>
+
+<span class="c"># Total bytes moved to COS in the last 24h</span>
+<span class="kw">SELECT</span> SUM(bytes_processed)/1024/1024/1024 <span class="kw">AS</span> <span class="str">"GB tiered (24h)"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> processes <span class="kw">WHERE</span> process_name=<span class="str">'TIER'</span>
+
+<span class="cmd-section">Per-customer occupancy — the chargeback view</span>
+<span class="kw">SELECT</span> <span class="ph">\</span>
+    SUBSTR(node_name,1,4) <span class="kw">AS</span> <span class="str">"Customer"</span>, <span class="ph">\</span>
+    stgpool_name           <span class="kw">AS</span> <span class="str">"Pool"</span>, <span class="ph">\</span>
+    COUNT(*)               <span class="kw">AS</span> <span class="str">"Filespaces"</span>, <span class="ph">\</span>
+    SUM(logical_mb)/1024   <span class="kw">AS</span> <span class="str">"Logical GB"</span>, <span class="ph">\</span>
+    SUM(reporting_mb)/1024 <span class="kw">AS</span> <span class="str">"Stored GB"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> occupancy <span class="ph">\</span>
+  <span class="kw">GROUP BY</span> SUBSTR(node_name,1,4), stgpool_name <span class="ph">\</span>
+  <span class="kw">ORDER BY</span> 1, 2
+
+<span class="cmd-section">DB backup health — must always pass</span>
+<span class="kw">QUERY VOLHISTORY</span> <span class="flag">TYPE=</span>DBBACKUP <span class="flag">BEGINDATE=</span>-7
+
+<span class="c"># Last successful local + cloud DB backup timestamps</span>
+<span class="kw">SELECT</span> devclass_name,MAX(date_time) <span class="kw">AS</span> <span class="str">"Last Successful"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> volhistory <span class="ph">\</span>
+  <span class="kw">WHERE</span> type=<span class="str">'BACKUPFULL'</span> <span class="ph">\</span>
+  <span class="kw">GROUP BY</span> devclass_name
+
+<span class="cmd-section">Filesystem-level health (Linux side)</span>
+<span class="c"># DCPOOL directory filesystems — all must stay below 85% utilization.</span>
+<span class="c"># SP container pools refuse new writes to a directory above ~95%.</span>
+<span class="kw">df</span> <span class="flag">-hT</span> <span class="str">/sp/dcpool/dir*</span> | <span class="kw">awk</span> <span class="str">'NR==1 || $6+0 &gt; 70'</span>
+
+<span class="cmd-section">Daily monitoring one-liner — paste into a wrapper script</span>
+<span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span class="flag">-dataonly=yes</span> <span class="ph">\</span>
+  <span class="str">"SELECT stgpool_name, est_capacity_mb/1024 AS gb, pct_utilized FROM stgpools WHERE stgpool_name IN ('DCPOOL_PRIMARY','CCPOOL_ARCHIVE')"</span></div>
+        <p class="note note-info"><strong>The 4 numbers to watch daily:</strong> (1) DCPOOL_PRIMARY pct_utilized — should hover steady-state ~50-70% if tiering is keeping up. Climbing past 80% means tiering is falling behind ingest. (2) CCPOOL_ARCHIVE pct_utilized — informational only (no real ceiling), but tracks growth. (3) Last successful DB backup to both targets — must be within last 24h. (4) DCPOOL directory filesystem usage — any single directory above 90% will start rejecting writes for that dir while others still accept.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ ROLLBACK ════ -->
+  <div class="phase-label"><span>Rollback</span> Removing the New Architecture</div>
+  <div class="steps">
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB</span>
+        <span class="step-title">Tear-down sequence (only if pools have no committed customer data)</span>
+        <span class="step-tag tag-caution">ROLLBACK</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="cRB"><button class="copy-btn" onclick="copy('cRB',this)">COPY</button><span class="cmd-section">Stop tiering first — prevents data movement during teardown</span>
+<span class="kw">UPDATE STGRULE</span> TIER_HOT_TO_COLD <span class="flag">ACTIVE=</span>NO
+<span class="kw">DELETE STGRULE</span> TIER_HOT_TO_COLD
+
+<span class="cmd-section">Repoint customer copygroups elsewhere BEFORE deleting pools</span>
+<span class="c"># If pools still have customer data, this is essentially a migration not a rollback.</span>
+<span class="c"># Rollback is only viable if the pools are empty / no committed backups.</span>
+
+<span class="cmd-section">Empty cloud pool first (cheaper to delete than to keep around)</span>
+<span class="kw">DELETE STGPOOL</span> CCPOOL_ARCHIVE <span class="flag">DISCARDDATA=</span>YES
+<span class="c"># NOTE: this issues delete operations against the COS bucket — bucket itself remains.</span>
+<span class="c"># Verify in COS portal that bucket is emptied or remove bucket separately.</span>
+
+<span class="cmd-section">Drop directory-container pool</span>
+<span class="kw">DELETE STGPOOL</span> DCPOOL_PRIMARY <span class="flag">DISCARDDATA=</span>YES
+
+<span class="cmd-section">Remove DB backup devclasses (only if not in use)</span>
+<span class="kw">DELETE SCHEDULE</span> DAILY_DBBACKUP_LOCAL <span class="flag">TYPE=</span>ADMINISTRATIVE
+<span class="kw">DELETE SCHEDULE</span> DAILY_DBBACKUP_CLOUD <span class="flag">TYPE=</span>ADMINISTRATIVE
+<span class="kw">DELETE DEVCLASS</span> DBBACK_FILE
+<span class="kw">DELETE DEVCLASS</span> DBBACK_CLOUD
+
+<span class="cmd-section">Filesystem cleanup (manual, on the Linux host)</span>
+<span class="c"># Only after SP pool deletes complete</span>
+<span class="kw">umount</span> <span class="str">/sp/dcpool/dir*</span>
+<span class="c"># Remove fstab entries, then optionally re-format LUNs</span></div>
+        <p class="note note-critical"><strong>DISCARDDATA=YES is irreversible.</strong> All backup versions stored in the pool are deleted with no recovery. Use only when you've already migrated customer data elsewhere or accept the data loss. For a real rollback after pools have customer data, the path is: stand up replacement pools, use <code>MOVE NODEDATA</code> per customer to migrate, then delete the empty originals — that's a multi-day operation, not a quick rollback.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Step Summary</div>
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; animation: fadeUp .4s .5s ease both; opacity:0;">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
+      <tr><td>mkfs.xfs -K</td><td>Format SSD LUNs as XFS</td><td>noatime in fstab</td></tr>
+      <tr><td>DEFINE STGPOOL DCPOOL_PRIMARY STGTYPE=DIRECTORY</td><td>Hot tier, inline dedup+compress</td><td>ENCRYPT=YES is one-way</td></tr>
+      <tr><td>DEFINE STGPOOLDIRECTORY × 16</td><td>16 directories for parallel ingest</td><td>One per filesystem</td></tr>
+      <tr><td>DEFINE STGPOOL CCPOOL_ARCHIVE STGTYPE=CLOUD</td><td>COS-backed cold tier</td><td>HMAC creds required (not IAM)</td></tr>
+      <tr><td>DEFINE STGRULE … ACTIONTYPE=TIER</td><td>Age-based DCPOOL → CCPOOL movement</td><td>30 days default; verify syntax per version</td></tr>
+      <tr><td>RUN STGRULE … PREVIEW=YES</td><td>Dry-run tiering before first activation</td><td>Reports candidate volume</td></tr>
+      <tr><td>DEFINE DEVCLASS DBBACK_FILE / DBBACK_CLOUD</td><td>Local + COS DB backup targets</td><td>DEVTYPE=DBCLOUD for COS</td></tr>
+      <tr><td>BACKUP DB DEVCLASS=… TYPE=FULL</td><td>Daily full DB backup</td><td>Both targets, scheduled</td></tr>
+      <tr><td>UPDATE COPYGROUP … DESTINATION=DCPOOL_PRIMARY</td><td>Repoint customer MCs at shared pool</td><td>Re-activate policy set after</td></tr>
+      <tr><td>QUERY OCCUPANCY node_name LIKE</td><td>Per-customer occupancy in shared pool</td><td>Chargeback / capacity reporting</td></tr>
+      <tr><td>QUERY STGPOOL … (pct_utilized)</td><td>Capacity health monitoring</td><td>Daily — DCPOOL should sit 50-70%</td></tr>
+      <tr><td>QUERY ACTLOG SEARCH=STGRULE</td><td>Tiering activity audit</td><td>Daily during ramp-up</td></tr>
+    </table>
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>SP container pools <strong>must</strong> be 8.1.x or later. Older 7.x servers don't support directory-container or cloud-container pools — for those, the only path is upgrade-or-stay-on-FILE-devclass.</li>
+      <li><code>ENCRYPT=YES</code> on container pools requires the SP master key to be backed up via <code>BACKUP KEYS</code>. Lose the master key, lose access to all encrypted pool data, even with the data files intact. Back up the key immediately after enabling encryption and before first ingest.</li>
+      <li>STGRULE syntax differs slightly between SP versions (<code>SOURCESTGPOOL</code> / <code>SRCPOOLNAME</code> / <code>SRCSTG</code>). Always run <code>HELP DEFINE STGRULE</code> on the deployed server before defining — the runbook syntax targets 8.1.13+.</li>
+      <li>The COS HMAC credentials embedded in <code>DEFINE STGPOOL</code> are stored in the SP DB. If those credentials are rotated or compromised, run <code>UPDATE STGPOOL CCPOOL_ARCHIVE IDENTITY=… PASSWORD=…</code> to update — don't delete and re-create, you'll orphan the data references.</li>
+      <li>Per-customer chargeback uses the <code>occupancy</code> table — not the <code>stgpool</code> table. The shared pool reports total bytes once; per-node logical bytes are tracked separately and survive dedup correctly for billing.</li>
+      <li>Outbound bandwidth to COS is the most common ramp-up bottleneck. Monitor <code>SUM(bytes_processed)</code> from the <code>processes</code> table during the first month — if tiering can't keep up with monthly-full-aging, either widen the tiering window or split DAYS by management class.</li>
+      <li>DCPOOL directory filesystems should stay below 85% utilization. SP refuses writes to a single directory at ~95%, but other directories continue accepting — monitor each FS individually, not just the pool aggregate.</li>
+      <li>For new customer onboarding, the existing Bluechip-style runbook still applies — but skip Phase 2 entirely. New customers consume the shared pools directly via <code>DESTINATION=DCPOOL_PRIMARY</code> on their copy groups. No new pools, no new device classes per customer.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>SP Linux · V7000 SSD primary · IBM COS archive · multi-customer shared pools</span>
+  <span>storage architecture / tiering / DR</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>

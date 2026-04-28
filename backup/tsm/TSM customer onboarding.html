@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TSM Customer Onboarding Template — Bluechip</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-green {
+    color: var(--green);
+    border-color: rgba(57,211,83,.4);
+    background: rgba(57,211,83,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── template variable block ── */
+  .vars {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 6px 6px 0;
+    padding: 14px 18px;
+    margin-bottom: 32px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .vars-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+
+  .vars-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 6px 18px;
+  }
+
+  .vars-row {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  .vars-row .vk {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 130px;
+    letter-spacing: .04em;
+  }
+
+  .vars-row .vv {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .vars-row .vv.placeholder { color: var(--amber); }
+
+  .vars-note {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    line-height: 1.6;
+  }
+
+  .vars-note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--amber);
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    animation: fadeUp .4s .05s ease both;
+    opacity: 0;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.cool { color: var(--purple); }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-pre     { border-left-color: var(--cyan); }
+  .step.ph-domain  { border-left-color: var(--purple); }
+  .step.ph-policy  { border-left-color: var(--amber); }
+  .step.ph-cloptset{ border-left-color: var(--purple); }
+  .step.ph-nodes   { border-left-color: var(--purple); }
+  .step.ph-sched   { border-left-color: var(--green); }
+  .step.ph-verify  { border-left-color: var(--green); }
+  .step.ph-report  { border-left-color: var(--cyan); }
+
+  .step:nth-child(1) { animation-delay: .04s; }
+  .step:nth-child(2) { animation-delay: .08s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+  .tag-build    { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .var  { color: var(--amber); font-weight: 600; }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* ── reference table ── */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .ref-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 7px 12px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .ref-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+  }
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  /* ── summary table ── */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) { font-size: 12px; color: var(--text); }
+  .summary-table td:last-child { font-size: 12px; color: var(--text-dim); }
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>TSM Customer Onboarding Template — Bluechip</h1>
+  <div class="header-badges">
+    <span class="badge badge-green">REUSABLE TEMPLATE</span>
+    <span class="badge">v2 · shared pool</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ════ Template variables ════ -->
+  <div class="vars">
+    <div class="vars-title">Template Variables — Substitute For Each New Customer</div>
+    <div class="vars-grid">
+      <div class="vars-row"><span class="vk">CUSTOMER</span><span class="vv placeholder">BLUECHIP</span></div>
+      <div class="vars-row"><span class="vk">DOMAIN</span><span class="vv placeholder">BLUECHIP_DOM</span></div>
+      <div class="vars-row"><span class="vk">PREFIX</span><span class="vv placeholder">BC0</span></div>
+      <div class="vars-row"><span class="vk">LPAR_LIST</span><span class="vv placeholder">BC01, BC02, BC03</span></div>
+      <div class="vars-row"><span class="vk">FILE_RETENTION</span><span class="vv">30 days</span></div>
+      <div class="vars-row"><span class="vk">MFULL_RETENTION</span><span class="vv">180 days (6 months)</span></div>
+      <div class="vars-row"><span class="vk">YFULL_RETENTION</span><span class="vv">2555 days (7 years)</span></div>
+      <div class="vars-row"><span class="vk">PRIMARY_POOL</span><span class="vv">DCPOOL_PRIMARY</span></div>
+      <div class="vars-row"><span class="vk">DAILY_START</span><span class="vv">22:00</span></div>
+      <div class="vars-row"><span class="vk">MFULL_START</span><span class="vv">20:00 (1st of month)</span></div>
+      <div class="vars-row"><span class="vk">YFULL_START</span><span class="vv">18:00 (1st January)</span></div>
+    </div>
+    <div class="vars-note">
+      Every <code>BLUECHIP</code> / <code>BC0X</code> / <code>BC0X_*</code> token in the commands below is a substitution point. To onboard <code>ACME</code> with LPARs <code>AC01/AC02/AC03</code>: bulk replace <code>BLUECHIP</code> → <code>ACME</code> and <code>BC0</code> → <code>AC0</code>, then adjust retentions in Phase 3 if different. Storage pool, schedules, and tiering rule remain shared and need no change.
+    </div>
+  </div>
+
+  <!-- ════ Meta ════ -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Customer</div><div class="meta-val">Bluechip</div></div>
+    <div class="meta-cell"><div class="meta-label">Domain</div><div class="meta-val">BLUECHIP_DOM</div></div>
+    <div class="meta-cell"><div class="meta-label">LPARs</div><div class="meta-val">3 × AIX (BC01/02/03)</div></div>
+    <div class="meta-cell"><div class="meta-label">Nodes</div><div class="meta-val">9 (3 per LPAR)</div></div>
+    <div class="meta-cell"><div class="meta-label">Mgmt classes</div><div class="meta-val">3 (FILE / MFULL / YFULL)</div></div>
+    <div class="meta-cell"><div class="meta-label">Storage pool</div><div class="meta-val info">DCPOOL_PRIMARY (shared)</div></div>
+    <div class="meta-cell"><div class="meta-label">Tiering</div><div class="meta-val cool">Auto via STGRULE</div></div>
+    <div class="meta-cell"><div class="meta-label">Retentions</div><div class="meta-val warn">30d / 6m / 7y</div></div>
+  </div>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Pre-flight — Naming Collision Check</div>
+  <div class="steps">
+    <div class="step ph-pre open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Confirm no existing objects clash with the customer namespace</span>
+        <span class="step-tag tag-info">PREFLIGHT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># All queries below MUST return zero rows / "object not found" before proceeding</span>
+<span class="kw">QUERY DOMAIN</span> <span class="var">BLUECHIP_DOM</span>
+<span class="kw">QUERY NODE</span> <span class="var">BC0*</span>
+<span class="kw">QUERY SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> <span class="flag">*</span>
+<span class="kw">QUERY CLOPTSET</span> <span class="var">BLUECHIP_*</span>
+
+<span class="c"># Confirm shared pool exists and is healthy (it should already exist from architecture build)</span>
+<span class="kw">QUERY STGPOOL</span> DCPOOL_PRIMARY <span class="flag">F=D</span> | <span class="kw">grep</span> <span class="flag">-iE</span> <span class="str">"status|util"</span></div>
+        <p class="note note-info"><strong>Why this matters:</strong> TSM/SP object names are global within their type. A clash on a node name with another customer would fail the define, or worse, attach the new client to an existing node's filespace — extremely difficult to unwind cleanly. This 5-second check has saved hours of cleanup more than once.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Phase 2</span> Define Policy Domain</div>
+  <div class="steps">
+    <div class="step ph-domain">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Create the customer policy domain</span>
+        <span class="step-tag tag-build">BUILD</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="kw">DEFINE DOMAIN</span> <span class="var">BLUECHIP_DOM</span> <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> - 3 AIX LPARs - daily incr / monthly full / yearly full"</span> <span class="ph">\</span>
+    <span class="flag">BACKRETENTION=</span>30 <span class="ph">\</span>
+    <span class="flag">ARCHRETENTION=</span>365
+
+<span class="c"># Verify</span>
+<span class="kw">QUERY DOMAIN</span> <span class="var">BLUECHIP_DOM</span> <span class="flag">F=D</span></div>
+        <p class="note"><strong>BACKRETENTION / ARCHRETENTION</strong> are domain-level fallback retentions used only when objects cannot bind to a management class (e.g. an MC is deleted while objects still reference it). The real retention controls live on the copy groups in Phase 3 — these are belt-and-braces.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 3</span> Build Policy Set, Management Classes, Activate</div>
+  <div class="steps">
+    <div class="step ph-policy open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Policy set + 3 management classes + copy groups + activate</span>
+        <span class="step-tag tag-caution">RETENTION</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="cmd-section">Policy set (always called STANDARD by convention)</span>
+<span class="kw">DEFINE POLICYSET</span> <span class="var">BLUECHIP_DOM</span> STANDARD <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> policy v1"</span>
+
+<span class="cmd-section">MC #1 — File-level incremental, 30-day retention</span>
+<span class="kw">DEFINE MGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_FILE_30D <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Daily file-level incremental — 30-day retention"</span>
+
+<span class="kw">DEFINE COPYGROUP</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_FILE_30D STANDARD <span class="ph">\</span>
+    <span class="flag">TYPE=</span>BACKUP <span class="ph">\</span>
+    <span class="flag">DESTINATION=</span>DCPOOL_PRIMARY <span class="ph">\</span>
+    <span class="flag">VEREXISTS=</span>NOLIMIT <span class="ph">\</span>
+    <span class="flag">VERDELETED=</span>1 <span class="ph">\</span>
+    <span class="flag">RETEXTRA=</span>30 <span class="ph">\</span>
+    <span class="flag">RETONLY=</span>30 <span class="ph">\</span>
+    <span class="flag">MODE=</span>MODIFIED <span class="ph">\</span>
+    <span class="flag">SERIALIZATION=</span>SHRSTATIC
+
+<span class="cmd-section">MC #2 — Monthly full, 6-month retention (180d / 6 versions)</span>
+<span class="kw">DEFINE MGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_MFULL_6M <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Monthly full — 180-day retention (6 versions)"</span>
+
+<span class="kw">DEFINE COPYGROUP</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_MFULL_6M STANDARD <span class="ph">\</span>
+    <span class="flag">TYPE=</span>BACKUP <span class="ph">\</span>
+    <span class="flag">DESTINATION=</span>DCPOOL_PRIMARY <span class="ph">\</span>
+    <span class="flag">VEREXISTS=</span>6 <span class="ph">\</span>
+    <span class="flag">VERDELETED=</span>2 <span class="ph">\</span>
+    <span class="flag">RETEXTRA=</span>180 <span class="ph">\</span>
+    <span class="flag">RETONLY=</span>180 <span class="ph">\</span>
+    <span class="flag">MODE=</span>ABSOLUTE <span class="ph">\</span>
+    <span class="flag">SERIALIZATION=</span>SHRSTATIC
+
+<span class="cmd-section">MC #3 — Yearly full, 7-year retention (2555d / 7 versions)</span>
+<span class="kw">DEFINE MGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_YFULL_7Y <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Yearly full — 2555-day retention (7 versions)"</span>
+
+<span class="kw">DEFINE COPYGROUP</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_YFULL_7Y STANDARD <span class="ph">\</span>
+    <span class="flag">TYPE=</span>BACKUP <span class="ph">\</span>
+    <span class="flag">DESTINATION=</span>DCPOOL_PRIMARY <span class="ph">\</span>
+    <span class="flag">VEREXISTS=</span>7 <span class="ph">\</span>
+    <span class="flag">VERDELETED=</span>2 <span class="ph">\</span>
+    <span class="flag">RETEXTRA=</span>2555 <span class="ph">\</span>
+    <span class="flag">RETONLY=</span>2555 <span class="ph">\</span>
+    <span class="flag">MODE=</span>ABSOLUTE <span class="ph">\</span>
+    <span class="flag">SERIALIZATION=</span>SHRSTATIC
+
+<span class="cmd-section">Set the default management class</span>
+<span class="kw">ASSIGN DEFMGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_FILE_30D
+
+<span class="cmd-section">Validate before activating — fail-fast on policy errors</span>
+<span class="kw">VALIDATE POLICYSET</span> <span class="var">BLUECHIP_DOM</span> STANDARD
+<span class="c"># Expect: "ANR1515I Policy set STANDARD validated"</span>
+
+<span class="cmd-section">Activate</span>
+<span class="kw">ACTIVATE POLICYSET</span> <span class="var">BLUECHIP_DOM</span> STANDARD
+
+<span class="cmd-section">Confirm active policy is what we expect</span>
+<span class="kw">QUERY POLICYSET</span> <span class="var">BLUECHIP_DOM</span> ACTIVE
+<span class="kw">QUERY MGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> ACTIVE
+<span class="kw">QUERY COPYGROUP</span> <span class="var">BLUECHIP_DOM</span> ACTIVE STANDARD <span class="flag">F=D</span></div>
+
+        <div class="note note-info"><strong>Retention parameters at a glance:</strong>
+          <table class="ref-table">
+            <tr><th>Mgmt class</th><th>VEREXISTS</th><th>VERDELETED</th><th>RETEXTRA</th><th>RETONLY</th><th>MODE</th></tr>
+            <tr><td>MC_FILE_30D</td><td>NOLIMIT</td><td>1</td><td>30</td><td>30</td><td>MODIFIED</td></tr>
+            <tr><td>MC_MFULL_6M</td><td>6</td><td>2</td><td>180</td><td>180</td><td>ABSOLUTE</td></tr>
+            <tr><td>MC_YFULL_7Y</td><td>7</td><td>2</td><td>2555</td><td>2555</td><td>ABSOLUTE</td></tr>
+          </table>
+        </div>
+
+        <p class="note"><strong>Reading the parameters:</strong> <code>VEREXISTS</code> = how many versions to keep while the file still exists. <code>VERDELETED</code> = how many versions to keep after the file is deleted. <code>RETEXTRA</code> = days to keep a version after it's been superseded. <code>RETONLY</code> = days to keep the last remaining version after the file is deleted. <code>MODE=ABSOLUTE</code> on full schedules forces unchanged files to re-send each cycle so they get re-bound to the long-retention MC.</p>
+
+        <p class="note note-caution"><strong>7 yearly versions is intentional.</strong> With <code>VEREXISTS=7</code> and <code>RETEXTRA=2555</code>, after 7 years of yearly fulls you'll hold all 7 simultaneously. The 8th yearly will start expiring the oldest. If your retention requirement is strictly 7 years total (not "the most recent 7 yearlies"), set <code>VEREXISTS=7</code> and rely on RETEXTRA for time-based aging — the configuration above does exactly this.</p>
+
+        <p class="note note-critical"><strong>Activate is one-way without rollback.</strong> Once <code>ACTIVATE POLICYSET</code> runs, the active policy replaces what was active before. Always <code>VALIDATE</code> first. To revert, you re-edit the inactive policy set and re-activate.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Phase 4</span> Client Option Sets — Bind Data to Correct MC</div>
+  <div class="steps">
+    <div class="step ph-cloptset">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Define server-pushed include rules per backup purpose</span>
+        <span class="step-tag tag-build">BIND</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Customer-prefixed cloptsets — keeps namespace clean across customers</span>
+<span class="kw">DEFINE CLOPTSET</span> <span class="var">BLUECHIP</span>_COPT_FILE <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> — bind data to MC_FILE_30D"</span>
+<span class="kw">DEFINE CLIENTOPT</span> <span class="var">BLUECHIP</span>_COPT_FILE INCLEXCL <span class="str">"INCLUDE /.../* MC_FILE_30D"</span>
+
+<span class="kw">DEFINE CLOPTSET</span> <span class="var">BLUECHIP</span>_COPT_MFULL <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> — bind data to MC_MFULL_6M"</span>
+<span class="kw">DEFINE CLIENTOPT</span> <span class="var">BLUECHIP</span>_COPT_MFULL INCLEXCL <span class="str">"INCLUDE /.../* MC_MFULL_6M"</span>
+
+<span class="kw">DEFINE CLOPTSET</span> <span class="var">BLUECHIP</span>_COPT_YFULL <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> — bind data to MC_YFULL_7Y"</span>
+<span class="kw">DEFINE CLIENTOPT</span> <span class="var">BLUECHIP</span>_COPT_YFULL INCLEXCL <span class="str">"INCLUDE /.../* MC_YFULL_7Y"</span>
+
+<span class="cmd-section">Verify</span>
+<span class="kw">QUERY CLOPTSET</span> <span class="var">BLUECHIP</span>_COPT_*
+<span class="kw">QUERY CLIENTOPT</span> <span class="var">BLUECHIP</span>_COPT_FILE
+<span class="kw">QUERY CLIENTOPT</span> <span class="var">BLUECHIP</span>_COPT_MFULL
+<span class="kw">QUERY CLIENTOPT</span> <span class="var">BLUECHIP</span>_COPT_YFULL</div>
+        <p class="note note-info"><strong>Why customer-prefixed cloptsets:</strong> cloptset names are global. Without the customer prefix, two customers with similar requirements would end up sharing a cloptset, which makes per-customer changes risky. Prefix them and each customer gets their own isolated set even though they bind to identically-named MCs (which are scoped to the domain, so naming clashes are fine across domains).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Phase 5</span> Node Registration</div>
+  <div class="steps">
+    <div class="step ph-nodes">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Register all 9 nodes — bound to domain and cloptset</span>
+        <span class="step-tag tag-build">REGISTER</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="cmd-section">File-level nodes (3) — daily incremental → MC_FILE_30D</span>
+<span class="kw">REGISTER NODE</span> <span class="var">BC01</span>_FILE <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
+    <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_FILE <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC01</span> — daily file-level incremental"</span>
+
+<span class="kw">REGISTER NODE</span> <span class="var">BC02</span>_FILE <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
+    <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_FILE <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC02</span> — daily file-level incremental"</span>
+
+<span class="kw">REGISTER NODE</span> <span class="var">BC03</span>_FILE <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
+    <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_FILE <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC03</span> — daily file-level incremental"</span>
+
+<span class="cmd-section">Monthly-full nodes (3) → MC_MFULL_6M</span>
+<span class="kw">REGISTER NODE</span> <span class="var">BC01</span>_MFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
+    <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_MFULL <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC01</span> — monthly full"</span>
+
+<span class="kw">REGISTER NODE</span> <span class="var">BC02</span>_MFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
+    <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_MFULL <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC02</span> — monthly full"</span>
+
+<span class="kw">REGISTER NODE</span> <span class="var">BC03</span>_MFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
+    <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_MFULL <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC03</span> — monthly full"</span>
+
+<span class="cmd-section">Yearly-full nodes (3) → MC_YFULL_7Y</span>
+<span class="kw">REGISTER NODE</span> <span class="var">BC01</span>_YFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
+    <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_YFULL <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC01</span> — yearly full"</span>
+
+<span class="kw">REGISTER NODE</span> <span class="var">BC02</span>_YFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
+    <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_YFULL <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC02</span> — yearly full"</span>
+
+<span class="kw">REGISTER NODE</span> <span class="var">BC03</span>_YFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
+    <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_YFULL <span class="ph">\</span>
+    <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC03</span> — yearly full"</span>
+
+<span class="cmd-section">Verify all 9 nodes</span>
+<span class="kw">QUERY NODE</span> <span class="var">BC0*</span> <span class="flag">F=D</span>
+<span class="kw">SELECT</span> node_name,domain_name,cloptset_name <span class="kw">FROM</span> nodes <span class="kw">WHERE</span> node_name <span class="kw">LIKE</span> <span class="str">'<span class="var">BC0</span>%'</span></div>
+        <p class="note note-caution"><strong>COMPRESSION=NO at register:</strong> the shared <code>DCPOOL_PRIMARY</code> is a directory-container pool with inline compression. Client-side compression on top of that is wasted CPU on the AIX LPAR <em>and</em> shreds dedup matching (compressed bytes don't dedup against uncompressed equivalents from another customer). Always set <code>COMPRESSION=NO</code> when the destination is a container pool with inline compression enabled.</p>
+        <p class="note"><strong>MAXNUMMP=4:</strong> allows up to 4 concurrent mount points per node, paired with client-side <code>RESOURCEUTILIZATION</code> for multi-stream backups. <code>&lt;PASSWORD&gt;</code> placeholder is set per node at register; on first client login with <code>passwordaccess generate</code> in <code>dsm.sys</code>, the client rotates it and writes to the local TSM password store.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Phase 6</span> Schedules &amp; Node Associations</div>
+  <div class="steps">
+    <div class="step ph-sched">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Define 3 schedules and associate the right nodes to each</span>
+        <span class="step-tag tag-build">SCHEDULE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">Daily incremental — every day, 22:00</span>
+<span class="kw">DEFINE SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> SCH_DAILY_INCR <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> - daily file-level incremental"</span> <span class="ph">\</span>
+    <span class="flag">ACTION=</span>INCREMENTAL <span class="ph">\</span>
+    <span class="flag">OPTIONS=</span><span class="str">"-domain=all-local"</span> <span class="ph">\</span>
+    <span class="flag">STARTDATE=</span>TODAY+1 <span class="flag">STARTTIME=</span>22:00 <span class="ph">\</span>
+    <span class="flag">SCHEDSTYLE=</span>CLASSIC <span class="ph">\</span>
+    <span class="flag">PERIOD=</span>1 <span class="flag">PERUNITS=</span>DAYS <span class="ph">\</span>
+    <span class="flag">DURATION=</span>2 <span class="flag">DURUNITS=</span>HOURS <span class="ph">\</span>
+    <span class="flag">PRIORITY=</span>5
+
+<span class="cmd-section">Monthly full — 1st of every month, 20:00, mode=absolute</span>
+<span class="kw">DEFINE SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> SCH_MONTHLY_FULL <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> - monthly full (mode=absolute)"</span> <span class="ph">\</span>
+    <span class="flag">ACTION=</span>INCREMENTAL <span class="ph">\</span>
+    <span class="flag">OPTIONS=</span><span class="str">"-mode=absolute -domain=all-local"</span> <span class="ph">\</span>
+    <span class="flag">SCHEDSTYLE=</span>ENHANCED <span class="ph">\</span>
+    <span class="flag">MONTH=</span>ANY <span class="flag">DAYOFMONTH=</span>1 <span class="ph">\</span>
+    <span class="flag">STARTTIME=</span>20:00 <span class="ph">\</span>
+    <span class="flag">DURATION=</span>4 <span class="flag">DURUNITS=</span>HOURS <span class="ph">\</span>
+    <span class="flag">PRIORITY=</span>3
+
+<span class="cmd-section">Yearly full — 1st January, 18:00, mode=absolute</span>
+<span class="kw">DEFINE SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> SCH_YEARLY_FULL <span class="ph">\</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> - yearly full (mode=absolute)"</span> <span class="ph">\</span>
+    <span class="flag">ACTION=</span>INCREMENTAL <span class="ph">\</span>
+    <span class="flag">OPTIONS=</span><span class="str">"-mode=absolute -domain=all-local"</span> <span class="ph">\</span>
+    <span class="flag">SCHEDSTYLE=</span>ENHANCED <span class="ph">\</span>
+    <span class="flag">MONTH=</span>JANUARY <span class="flag">DAYOFMONTH=</span>1 <span class="ph">\</span>
+    <span class="flag">STARTTIME=</span>18:00 <span class="ph">\</span>
+    <span class="flag">DURATION=</span>6 <span class="flag">DURUNITS=</span>HOURS <span class="ph">\</span>
+    <span class="flag">PRIORITY=</span>2
+
+<span class="cmd-section">Associate nodes with schedules</span>
+<span class="kw">DEFINE ASSOCIATION</span> <span class="var">BLUECHIP_DOM</span> SCH_DAILY_INCR <span class="ph">\</span>
+    <span class="var">BC01_FILE,BC02_FILE,BC03_FILE</span>
+
+<span class="kw">DEFINE ASSOCIATION</span> <span class="var">BLUECHIP_DOM</span> SCH_MONTHLY_FULL <span class="ph">\</span>
+    <span class="var">BC01_MFULL,BC02_MFULL,BC03_MFULL</span>
+
+<span class="kw">DEFINE ASSOCIATION</span> <span class="var">BLUECHIP_DOM</span> SCH_YEARLY_FULL <span class="ph">\</span>
+    <span class="var">BC01_YFULL,BC02_YFULL,BC03_YFULL</span>
+
+<span class="cmd-section">Verify schedules and associations</span>
+<span class="kw">QUERY SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> <span class="flag">F=D</span>
+<span class="kw">QUERY ASSOCIATION</span> <span class="var">BLUECHIP_DOM</span></div>
+        <p class="note note-caution"><strong>1st January overlap:</strong> on Jan 1 each year, all three schedules fire — daily at 22:00, monthly at 20:00 (1st of month), yearly at 18:00 (1st Jan). Three sequential ingest waves on the same LPAR within 4 hours. If network/throughput is constrained, offset the monthly to <code>DAYOFMONTH=2</code> to give yearly clear air. Document the choice either way.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Phase 7</span> End-to-End Verification</div>
+  <div class="steps">
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Walk the full object graph and confirm everything ties together</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="cmd-section">Policy layer</span>
+<span class="kw">QUERY DOMAIN</span> <span class="var">BLUECHIP_DOM</span> <span class="flag">F=D</span>
+<span class="kw">QUERY POLICYSET</span> <span class="var">BLUECHIP_DOM</span> ACTIVE <span class="flag">F=D</span>
+<span class="kw">QUERY MGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> ACTIVE <span class="flag">F=D</span>
+<span class="kw">QUERY COPYGROUP</span> <span class="var">BLUECHIP_DOM</span> ACTIVE STANDARD <span class="flag">F=D</span>
+
+<span class="cmd-section">Cloptsets &amp; nodes — confirm all 9 nodes bound correctly</span>
+<span class="kw">QUERY CLOPTSET</span> <span class="var">BLUECHIP</span>_COPT_*
+<span class="kw">SELECT</span> node_name,domain_name,cloptset_name,maxmp,contact <span class="ph">\</span>
+  <span class="kw">FROM</span> nodes <span class="kw">WHERE</span> node_name <span class="kw">LIKE</span> <span class="str">'<span class="var">BC0</span>%'</span> <span class="kw">ORDER BY</span> node_name
+
+<span class="cmd-section">Schedules and associations</span>
+<span class="kw">QUERY SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> <span class="flag">F=D</span>
+<span class="kw">QUERY ASSOCIATION</span> <span class="var">BLUECHIP_DOM</span>
+
+<span class="cmd-section">End-to-end count check</span>
+<span class="kw">SELECT</span> COUNT(*) <span class="kw">AS</span> <span class="str">"<span class="var">Bluechip</span> nodes"</span> <span class="kw">FROM</span> nodes <span class="kw">WHERE</span> domain_name=<span class="str">'<span class="var">BLUECHIP_DOM</span>'</span>
+<span class="kw">SELECT</span> COUNT(*) <span class="kw">AS</span> <span class="str">"<span class="var">Bluechip</span> schedules"</span> <span class="kw">FROM</span> client_schedules <span class="kw">WHERE</span> domain_name=<span class="str">'<span class="var">BLUECHIP_DOM</span>'</span>
+<span class="kw">SELECT</span> COUNT(*) <span class="kw">AS</span> <span class="str">"<span class="var">Bluechip</span> MCs"</span>   <span class="kw">FROM</span> mgmtclasses     <span class="kw">WHERE</span> domain_name=<span class="str">'<span class="var">BLUECHIP_DOM</span>'</span> <span class="kw">AND</span> set_name=<span class="str">'ACTIVE'</span>
+<span class="c"># Expected: 9 nodes, 3 schedules, 3 MCs</span></div>
+        <p class="note note-info"><strong>Server-side build complete.</strong> The 3 LPARs cannot back up yet — the AIX clients still need <code>dsm.sys</code> / <code>dsm.opt</code> with TCPSERVERADDRESS, NODENAME, PASSWORDACCESS, and the <code>dsmcad</code> scheduler started. Three nodes per LPAR means three stanzas in <code>dsm.sys</code> and three <code>dsmcad</code> instances (or three named-server invocations).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ SQL REPORTING ════════════ -->
+  <div class="phase-label"><span>Phase 8</span> SQL Reporting — Backup Job Status</div>
+  <div class="steps">
+
+    <div class="step ph-report open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Daily backup result query — what failed, what missed, what completed</span>
+        <span class="step-tag tag-info">REPORT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="cmd-section">events table — schedule status codes you'll see</span>
+<span class="c">#   Completed     — schedule ran and succeeded</span>
+<span class="c">#   Failed        — client reported a non-zero RC</span>
+<span class="c">#   Missed        — schedule window passed and the client never connected</span>
+<span class="c">#   Severed       — connection dropped mid-backup</span>
+<span class="c">#   Started       — currently running</span>
+<span class="c">#   Future        — schedule defined for a future window, not yet due</span>
+
+<span class="cmd-section">Query 1 — last 24h schedule outcomes for this customer</span>
+<span class="kw">SELECT</span> <span class="ph">\</span>
+    schedule_name      <span class="kw">AS</span> <span class="str">"Schedule"</span>, <span class="ph">\</span>
+    node_name          <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
+    status             <span class="kw">AS</span> <span class="str">"Status"</span>, <span class="ph">\</span>
+    actual_start       <span class="kw">AS</span> <span class="str">"Started"</span>, <span class="ph">\</span>
+    completed          <span class="kw">AS</span> <span class="str">"Finished"</span>, <span class="ph">\</span>
+    result             <span class="kw">AS</span> <span class="str">"RC"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> events <span class="ph">\</span>
+  <span class="kw">WHERE</span> domain_name = <span class="str">'<span class="var">BLUECHIP_DOM</span>'</span> <span class="ph">\</span>
+    <span class="kw">AND</span> scheduled_start &gt; (current_timestamp - 24 hours) <span class="ph">\</span>
+  <span class="kw">ORDER BY</span> scheduled_start <span class="kw">DESC</span>, node_name
+
+<span class="cmd-section">Query 2 — only failures &amp; missed in the last 24h (the alert query)</span>
+<span class="kw">SELECT</span> <span class="ph">\</span>
+    node_name          <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
+    schedule_name      <span class="kw">AS</span> <span class="str">"Schedule"</span>, <span class="ph">\</span>
+    status             <span class="kw">AS</span> <span class="str">"Status"</span>, <span class="ph">\</span>
+    result             <span class="kw">AS</span> <span class="str">"RC"</span>, <span class="ph">\</span>
+    reason             <span class="kw">AS</span> <span class="str">"Reason"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> events <span class="ph">\</span>
+  <span class="kw">WHERE</span> domain_name = <span class="str">'<span class="var">BLUECHIP_DOM</span>'</span> <span class="ph">\</span>
+    <span class="kw">AND</span> status <span class="kw">IN</span> (<span class="str">'Failed'</span>,<span class="str">'Missed'</span>,<span class="str">'Severed'</span>) <span class="ph">\</span>
+    <span class="kw">AND</span> scheduled_start &gt; (current_timestamp - 24 hours) <span class="ph">\</span>
+  <span class="kw">ORDER BY</span> scheduled_start <span class="kw">DESC</span>
+
+<span class="cmd-section">Query 3 — bytes transferred + duration per node (last 7 days)</span>
+<span class="c"># summary table holds completed-activity stats; entity = node, activity = type</span>
+<span class="kw">SELECT</span> <span class="ph">\</span>
+    entity                                 <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
+    activity                               <span class="kw">AS</span> <span class="str">"Type"</span>, <span class="ph">\</span>
+    DATE(start_time)                       <span class="kw">AS</span> <span class="str">"Date"</span>, <span class="ph">\</span>
+    bytes/1024/1024/1024                   <span class="kw">AS</span> <span class="str">"GB"</span>, <span class="ph">\</span>
+    affected                               <span class="kw">AS</span> <span class="str">"Files"</span>, <span class="ph">\</span>
+    (end_time-start_time) <span class="kw">SECONDS</span>           <span class="kw">AS</span> <span class="str">"Runtime"</span>, <span class="ph">\</span>
+    successful                             <span class="kw">AS</span> <span class="str">"OK?"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> summary <span class="ph">\</span>
+  <span class="kw">WHERE</span> entity <span class="kw">LIKE</span> <span class="str">'<span class="var">BC0</span>%'</span> <span class="ph">\</span>
+    <span class="kw">AND</span> activity = <span class="str">'BACKUP'</span> <span class="ph">\</span>
+    <span class="kw">AND</span> start_time &gt; (current_timestamp - 7 days) <span class="ph">\</span>
+  <span class="kw">ORDER BY</span> entity, start_time <span class="kw">DESC</span>
+
+<span class="cmd-section">Query 4 — last successful backup per node (gaps = stale data!)</span>
+<span class="kw">SELECT</span> <span class="ph">\</span>
+    node_name                              <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
+    MAX(actual_start)                      <span class="kw">AS</span> <span class="str">"Last Run"</span>, <span class="ph">\</span>
+    (current_timestamp - MAX(actual_start)) <span class="kw">DAYS</span>  <span class="kw">AS</span> <span class="str">"Days Ago"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> events <span class="ph">\</span>
+  <span class="kw">WHERE</span> domain_name = <span class="str">'<span class="var">BLUECHIP_DOM</span>'</span> <span class="ph">\</span>
+    <span class="kw">AND</span> status = <span class="str">'Completed'</span> <span class="ph">\</span>
+  <span class="kw">GROUP BY</span> node_name <span class="ph">\</span>
+  <span class="kw">ORDER BY</span> node_name
+
+<span class="cmd-section">Query 5 — per-node occupancy (logical vs stored = dedup ratio)</span>
+<span class="kw">SELECT</span> <span class="ph">\</span>
+    node_name                              <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
+    filespace_name                         <span class="kw">AS</span> <span class="str">"Filespace"</span>, <span class="ph">\</span>
+    num_files                              <span class="kw">AS</span> <span class="str">"Files"</span>, <span class="ph">\</span>
+    logical_mb/1024                        <span class="kw">AS</span> <span class="str">"Logical GB"</span>, <span class="ph">\</span>
+    reporting_mb/1024                      <span class="kw">AS</span> <span class="str">"Stored GB"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> occupancy <span class="ph">\</span>
+  <span class="kw">WHERE</span> node_name <span class="kw">LIKE</span> <span class="str">'<span class="var">BC0</span>%'</span> <span class="ph">\</span>
+  <span class="kw">ORDER BY</span> node_name, filespace_name</div>
+
+        <div class="note note-info"><strong>Status code reference for the events table:</strong>
+          <table class="ref-table">
+            <tr><th>Status</th><th>Meaning</th><th>Action</th></tr>
+            <tr><td>Completed</td><td>Schedule succeeded</td><td>Nothing</td></tr>
+            <tr><td>Failed</td><td>Client started but reported non-zero RC</td><td>Check client dsmerror.log</td></tr>
+            <tr><td>Missed</td><td>Window expired without client connecting</td><td>Check dsmcad service / network</td></tr>
+            <tr><td>Severed</td><td>Connection dropped mid-backup</td><td>Likely network or client crash</td></tr>
+            <tr><td>Started</td><td>Currently running</td><td>Wait or check QUERY SESS</td></tr>
+            <tr><td>Future</td><td>Schedule not yet due</td><td>Nothing</td></tr>
+            <tr><td>Pending</td><td>In window, client not yet connected</td><td>Watch — may transition</td></tr>
+            <tr><td>InProgress</td><td>Client connected, scheduling phase</td><td>Watch</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="step ph-report">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">Cross-customer dashboard query (multi-tenant view)</span>
+        <span class="step-tag tag-info">REPORT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c9"><button class="copy-btn" onclick="copy('c9',this)">COPY</button><span class="cmd-section">Per-customer success/failure summary, last 24h</span>
+<span class="kw">SELECT</span> <span class="ph">\</span>
+    domain_name                            <span class="kw">AS</span> <span class="str">"Customer"</span>, <span class="ph">\</span>
+    SUM(<span class="kw">CASE WHEN</span> status=<span class="str">'Completed'</span> <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> <span class="str">"OK"</span>, <span class="ph">\</span>
+    SUM(<span class="kw">CASE WHEN</span> status=<span class="str">'Failed'</span>    <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> <span class="str">"Failed"</span>, <span class="ph">\</span>
+    SUM(<span class="kw">CASE WHEN</span> status=<span class="str">'Missed'</span>    <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> <span class="str">"Missed"</span>, <span class="ph">\</span>
+    SUM(<span class="kw">CASE WHEN</span> status=<span class="str">'Severed'</span>   <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> <span class="str">"Severed"</span>, <span class="ph">\</span>
+    COUNT(*)                                                <span class="kw">AS</span> <span class="str">"Total"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> events <span class="ph">\</span>
+  <span class="kw">WHERE</span> scheduled_start &gt; (current_timestamp - 24 hours) <span class="ph">\</span>
+    <span class="kw">AND</span> status &lt;&gt; <span class="str">'Future'</span> <span class="ph">\</span>
+  <span class="kw">GROUP BY</span> domain_name <span class="ph">\</span>
+  <span class="kw">ORDER BY</span> domain_name
+
+<span class="cmd-section">Per-customer occupancy &amp; growth (logical vs stored)</span>
+<span class="kw">SELECT</span> <span class="ph">\</span>
+    SUBSTR(node_name,1,4)              <span class="kw">AS</span> <span class="str">"Customer Pfx"</span>, <span class="ph">\</span>
+    COUNT(<span class="kw">DISTINCT</span> node_name)        <span class="kw">AS</span> <span class="str">"Nodes"</span>, <span class="ph">\</span>
+    SUM(num_files)                     <span class="kw">AS</span> <span class="str">"Files"</span>, <span class="ph">\</span>
+    SUM(logical_mb)/1024               <span class="kw">AS</span> <span class="str">"Logical GB"</span>, <span class="ph">\</span>
+    SUM(reporting_mb)/1024             <span class="kw">AS</span> <span class="str">"Stored GB"</span> <span class="ph">\</span>
+  <span class="kw">FROM</span> occupancy <span class="ph">\</span>
+  <span class="kw">GROUP BY</span> SUBSTR(node_name,1,4) <span class="ph">\</span>
+  <span class="kw">ORDER BY</span> 1</div>
+        <p class="note"><strong>The "Stored GB" column reflects per-node attribution after dedup.</strong> Sum of all customers' "Stored GB" should be close to the actual pool occupancy. Discrepancies are usually cross-customer dedup savings — files that exist on multiple customer nodes are stored once but logically attributed to each.</p>
+      </div>
+    </div>
+
+    <div class="step ph-report">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">10</span>
+        <span class="step-title">Wrap dsmadmc in a non-interactive shell call (for cron / monitoring)</span>
+        <span class="step-tag tag-info">AUTOMATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="cmd-section">Pattern — dsmadmc one-shot SQL with stable output</span>
+<span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span class="flag">-password=&lt;pwd&gt;</span> <span class="ph">\</span>
+        <span class="flag">-dataonly=yes</span> <span class="flag">-displaymode=table</span> <span class="ph">\</span>
+        <span class="str">"SELECT node_name, schedule_name, status, result"</span> <span class="ph">\</span>
+        <span class="str">"FROM events WHERE domain_name='<span class="var">BLUECHIP_DOM</span>'"</span> <span class="ph">\</span>
+        <span class="str">"AND scheduled_start &gt; (current_timestamp - 24 hours)"</span> <span class="ph">\</span>
+        <span class="str">"AND status IN ('Failed','Missed','Severed')"</span>
+
+<span class="cmd-section">Common flags for scripted use</span>
+<span class="c">#   -dataonly=yes     suppress headers & banners (dataonly not displaymode)</span>
+<span class="c">#   -displaymode=table  preserve column alignment</span>
+<span class="c">#   -displaymode=list   one field per line — easier for awk/grep parsing</span>
+<span class="c">#   -outfile=/tmp/x.txt  write to file rather than stdout</span>
+<span class="c">#   -comma            comma-separated output for CSV ingest</span>
+<span class="c">#   -tab              tab-separated output</span>
+
+<span class="cmd-section">CSV-friendly variant — pipe straight into anything</span>
+<span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span class="flag">-password=&lt;pwd&gt;</span> <span class="flag">-dataonly=yes</span> <span class="flag">-comma</span> <span class="ph">\</span>
+        <span class="str">"SELECT node_name,status,result,actual_start FROM events"</span> <span class="ph">\</span>
+        <span class="str">"WHERE domain_name='<span class="var">BLUECHIP_DOM</span>' AND scheduled_start &gt; (current_timestamp - 24 hours)"</span> <span class="ph">\</span>
+    > <span class="str">/tmp/<span class="var">bluechip</span>_24h.csv</span>
+
+<span class="cmd-section">Exit-code-driven alerting (for cron + email)</span>
+<span class="kw">#!/bin/ksh</span>
+<span class="c"># Runs at 06:00 daily — alerts on any failure/miss in last 24h</span>
+PWD=<span class="str">"$(cat /etc/sp/admin.pw)"</span>
+OUT=$(<span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span class="flag">-password=$PWD</span> <span class="flag">-dataonly=yes</span> <span class="flag">-comma</span> \
+        <span class="str">"SELECT COUNT(*) FROM events WHERE domain_name='<span class="var">BLUECHIP_DOM</span>'
+         AND scheduled_start &gt; (current_timestamp - 24 hours)
+         AND status IN ('Failed','Missed','Severed')"</span>)
+
+<span class="kw">if</span> [ <span class="str">"$OUT"</span> <span class="flag">-gt</span> 0 ]; <span class="kw">then</span>
+    <span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span class="flag">-password=$PWD</span> <span class="flag">-dataonly=yes</span> \
+            <span class="str">"SELECT node_name,schedule_name,status,result FROM events
+             WHERE domain_name='<span class="var">BLUECHIP_DOM</span>'
+             AND scheduled_start &gt; (current_timestamp - 24 hours)
+             AND status IN ('Failed','Missed','Severed')"</span> \
+        | mailx <span class="flag">-s</span> <span class="str">"<span class="var">Bluechip</span> SP failures: $OUT"</span> backups@example.com
+<span class="kw">fi</span></div>
+        <p class="note note-caution"><strong>Don't put the admin password in cron-readable scripts.</strong> Either use a <code>dsmadmc</code> wrapper that pulls from a 600-permissioned file (as above), or — better — generate an admin password file with <code>dsmadmc -id=admin -password=&lt;pw&gt; -genpwfile</code> and reference it with <code>-passwordaccess=generate</code>. For scripted operations, register a dedicated read-only admin (e.g. <code>SP_REPORT</code>) with <code>SYSTEM</code> privilege restricted to <code>QUERY</code>/<code>SELECT</code> via SP's command authority controls.</p>
+        <p class="note"><strong>Output format hierarchy for parsing ease:</strong> <code>-comma</code> &gt; <code>-tab</code> &gt; <code>-displaymode=table</code> &gt; <code>-displaymode=list</code>. Use <code>-comma</code> for anything you'll parse with awk/perl/python; use <code>-displaymode=table</code> for human-readable email reports.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Step Summary</div>
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; animation: fadeUp .4s .5s ease both; opacity:0;">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
+      <tr><td>QUERY DOMAIN/NODE/SCHEDULE/CLOPTSET</td><td>Pre-flight collision check</td><td>All return zero rows</td></tr>
+      <tr><td>DEFINE DOMAIN BLUECHIP_DOM</td><td>Customer-scoped policy domain</td><td>Holds 1 policy set, 3 MCs</td></tr>
+      <tr><td>DEFINE POLICYSET STANDARD</td><td>Inactive policy set under domain</td><td>Always called STANDARD</td></tr>
+      <tr><td>DEFINE MGMTCLASS × 3</td><td>FILE_30D / MFULL_6M / YFULL_7Y</td><td>One per backup purpose</td></tr>
+      <tr><td>DEFINE COPYGROUP × 3</td><td>Retention parameters per MC</td><td>Destination = DCPOOL_PRIMARY</td></tr>
+      <tr><td>ASSIGN DEFMGMTCLASS … MC_FILE_30D</td><td>Default MC for unbound data</td><td>Required before activate</td></tr>
+      <tr><td>VALIDATE/ACTIVATE POLICYSET</td><td>Validate then promote to ACTIVE</td><td>Activate is one-way</td></tr>
+      <tr><td>DEFINE CLOPTSET × 3 + CLIENTOPT</td><td>Server-pushed include rules</td><td>Customer-prefixed names</td></tr>
+      <tr><td>REGISTER NODE × 9</td><td>BC0{1,2,3}_{FILE,MFULL,YFULL}</td><td>COMPRESSION=NO for container pool</td></tr>
+      <tr><td>DEFINE SCHEDULE × 3</td><td>Daily / monthly / yearly</td><td>mode=absolute on full schedules</td></tr>
+      <tr><td>DEFINE ASSOCIATION × 3</td><td>Bind nodes to schedules</td><td>By purpose suffix</td></tr>
+      <tr><td>SELECT … FROM events WHERE status…</td><td>Daily backup result reporting</td><td>Phase 8 SQL queries</td></tr>
+      <tr><td>SELECT … FROM summary WHERE entity LIKE</td><td>Bytes/files transferred per node</td><td>7-day window typical</td></tr>
+      <tr><td>SELECT … FROM occupancy</td><td>Per-node logical vs stored</td><td>Cross-customer dedup view</td></tr>
+    </table>
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>This runbook is <strong>server-side only</strong> — the 3 AIX clients still need <code>dsm.sys</code> / <code>dsm.opt</code> with <code>TCPSERVERADDRESS</code>, <code>NODENAME</code>, <code>PASSWORDACCESS</code>, and <code>dsmcad</code> scheduler started. Three nodes per LPAR = three stanzas, three <code>dsmcad</code> instances.</li>
+      <li>Retention is governed by <code>VEREXISTS</code>, <code>VERDELETED</code>, <code>RETEXTRA</code>, <code>RETONLY</code> on the copy groups. Domain-level <code>BACKRETENTION</code> is fallback only and applies when objects can't bind to any MC.</li>
+      <li><code>MODE=ABSOLUTE</code> on the monthly/yearly copy groups is mandatory for the snapshot pattern — without it, unchanged files are not re-sent and won't be tagged to the long-retention MC.</li>
+      <li><code>COMPRESSION=NO</code> at register is correct for container-pool destinations. Client compression on top of container-pool inline compression wastes CPU on the AIX LPAR <em>and</em> degrades dedup matching across customers.</li>
+      <li>For <strong>7-year yearly retention</strong>, ensure DCPOOL_PRIMARY → CCPOOL_ARCHIVE tiering rule is in place — yearly fulls aged past 30 days will tier to COS automatically and stay there for the full 2555 days. Without tiering, 7 yearly fulls per LPAR will sit on the SSD tier permanently.</li>
+      <li><code>ACTIVATE POLICYSET</code> has no clean rollback. Always run <code>VALIDATE</code> first; if validation fails, fix the MC/copygroup before activating.</li>
+      <li>Naming convention: every Bluechip object prefixed <code>BLUECHIP_</code>, <code>BC0X_</code>, or <code>BLUECHIP_*</code>. Keeping this strict is what makes <code>SELECT … WHERE node_name LIKE 'BC0%'</code> useful for reporting and cleanup.</li>
+      <li>For cron-based reporting, never embed admin passwords in scripts. Use <code>-genpwfile</code> + <code>passwordaccess=generate</code>, and create a dedicated read-only admin (e.g. <code>SP_REPORT</code>) with restricted command authority for monitoring scripts.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>BLUECHIP_DOM · 9 nodes · 3 MCs · 3 schedules · DCPOOL_PRIMARY (shared)</span>
+  <span>customer onboarding template · v2</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>
