@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FTP / SCP / rsync Cheat Sheet</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f2; color: #1a1a18; padding: 2rem; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a18; }
+  .sheet { max-width: 960px; margin: 0 auto; }
+  .tool-block { background: #fff; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 12px; margin-bottom: 1.25rem; overflow: hidden; }
+  .tool-header { padding: 0.6rem 1.25rem; display: flex; align-items: center; gap: 10px; }
+  .tool-header h2 { font-size: 15px; font-weight: 500; margin: 0; color: #1a1a18; }
+  .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 8px; }
+  .b-blue { background: #E6F1FB; color: #0C447C; }
+  .b-teal { background: #E1F5EE; color: #085041; }
+  .b-amber { background: #FAEEDA; color: #633806; }
+  .hdr-blue { background: #E6F1FB; }
+  .hdr-teal { background: #E1F5EE; }
+  .hdr-amber { background: #FAEEDA; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { font-size: 11px; font-weight: 500; color: #5f5e5a; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 1.25rem; border-top: 0.5px solid rgba(0,0,0,0.12); background: #f8f8f5; text-align: left; }
+  td { padding: 9px 1.25rem; vertical-align: top; border-top: 0.5px solid rgba(0,0,0,0.1); }
+  td:first-child { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 12.5px; color: #1a1a18; white-space: pre; width: 52%; }
+  td:last-child { font-size: 13px; color: #5f5e5a; }
+  .section-label { font-size: 11px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 1.25rem 4px; background: #f2f1ec; border-top: 0.5px solid rgba(0,0,0,0.1); display: block; }
+  .note { font-size: 12px; color: #888780; padding: 8px 1.25rem; border-top: 0.5px solid rgba(0,0,0,0.1); background: #f8f8f5; }
+</style>
+</head>
+<body>
+<div class="sheet">
+<h1>FTP / SCP / rsync — Transfer Cheat Sheet</h1>
+
+<div class="tool-block">
+  <div class="tool-header hdr-blue">
+    <span class="badge b-blue">FTP / SFTP</span>
+    <h2>File Transfer Protocol</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Connection</span></td></tr>
+    <tr><td>ftp &lt;host&gt;</td><td>Open FTP session to host</td></tr>
+    <tr><td>sftp user@host</td><td>Secure FTP over SSH</td></tr>
+    <tr><td>sftp -P 2222 user@host</td><td>SFTP on non-default port</td></tr>
+    <tr><td>sftp -i ~/.ssh/id_rsa user@host</td><td>SFTP with identity file</td></tr>
+    <tr><td colspan="2"><span class="section-label">Interactive — upload</span></td></tr>
+    <tr><td>put /local/file.tar /remote/</td><td>Upload single file</td></tr>
+    <tr><td>mput *.tar.gz</td><td>Upload multiple files (glob)</td></tr>
+    <tr><td>put -r /local/dir /remote/dir</td><td>Upload directory (sftp only)</td></tr>
+    <tr><td colspan="2"><span class="section-label">Interactive — download</span></td></tr>
+    <tr><td>get /remote/file.tar /local/</td><td>Download single file</td></tr>
+    <tr><td>mget *.log</td><td>Download multiple files (glob)</td></tr>
+    <tr><td>get -r /remote/dir /local/dir</td><td>Download directory (sftp only)</td></tr>
+    <tr><td colspan="2"><span class="section-label">Navigation / misc</span></td></tr>
+    <tr><td>ls / lls</td><td>List remote / local directory</td></tr>
+    <tr><td>cd /remote/path / lcd /local</td><td>Change remote / local directory</td></tr>
+    <tr><td>pwd / lpwd</td><td>Print remote / local working dir</td></tr>
+    <tr><td>bye / quit</td><td>Close session</td></tr>
+    <tr><td colspan="2"><span class="section-label">Batch / non-interactive</span></td></tr>
+    <tr><td>sftp user@host &lt;&lt;EOF
+put /backup/db.tar.gz /drop/
+bye
+EOF</td><td>Here-doc batch transfer in shell script</td></tr>
+    <tr><td>sftp -b /tmp/batch.txt user@host</td><td>Execute commands from batch file</td></tr>
+  </table>
+  <div class="note">Note: Plain FTP sends credentials in cleartext — use SFTP or SCP in production. Disable anonymous FTP on backup servers.</div>
+</div>
+
+<div class="tool-block">
+  <div class="tool-header hdr-teal">
+    <span class="badge b-teal">SCP</span>
+    <h2>Secure Copy Protocol</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Local → Remote</span></td></tr>
+    <tr><td>scp file.tar user@host:/backup/</td><td>Copy single file to remote</td></tr>
+    <tr><td>scp -r /local/dir user@host:/backup/</td><td>Copy directory recursively</td></tr>
+    <tr><td>scp -P 2222 file.tar user@host:/tmp/</td><td>Non-default SSH port</td></tr>
+    <tr><td>scp -i ~/.ssh/id_rsa file.tar user@host:/tmp/</td><td>Specify identity file</td></tr>
+    <tr><td>scp -C file.tar user@host:/backup/</td><td>Enable compression in transit</td></tr>
+    <tr><td>scp -l 8192 big.tar user@host:/bkp/</td><td>Limit bandwidth (Kbit/s)</td></tr>
+    <tr><td colspan="2"><span class="section-label">Remote → Local</span></td></tr>
+    <tr><td>scp user@host:/backup/file.tar /local/</td><td>Pull single file from remote</td></tr>
+    <tr><td>scp -r user@host:/backup/dir /local/</td><td>Pull directory from remote</td></tr>
+    <tr><td colspan="2"><span class="section-label">Remote → Remote</span></td></tr>
+    <tr><td>scp user@src:/data/file.tar user@dst:/data/</td><td>Copy between two remote hosts</td></tr>
+    <tr><td colspan="2"><span class="section-label">Useful combos</span></td></tr>
+    <tr><td>scp -rp /local/dir user@host:/dst/</td><td>Preserve timestamps &amp; permissions</td></tr>
+    <tr><td>scp -q file.tar user@host:/bkp/</td><td>Quiet mode — suppress progress</td></tr>
+    <tr><td>scp -v file.tar user@host:/bkp/</td><td>Verbose — useful for debugging</td></tr>
+  </table>
+  <div class="note">Note: SCP lacks resume capability. For large transfers or unreliable links use rsync over SSH instead. On newer OpenSSH (&gt;= 9.0) scp uses the SFTP protocol internally.</div>
+</div>
+
+<div class="tool-block">
+  <div class="tool-header hdr-amber">
+    <span class="badge b-amber">rsync</span>
+    <h2>Remote Sync</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Core flags</span></td></tr>
+    <tr><td>-a  (--archive)</td><td>Recursive + preserve perms, times, symlinks, owner, group</td></tr>
+    <tr><td>-z  (--compress)</td><td>Compress data in transit</td></tr>
+    <tr><td>-v  (--verbose)</td><td>Show files being transferred</td></tr>
+    <tr><td>-P</td><td>--partial + --progress (resume + show progress)</td></tr>
+    <tr><td>-n  (--dry-run)</td><td>Simulate — no changes written</td></tr>
+    <tr><td>--delete</td><td>Delete files on dst not present on src</td></tr>
+    <tr><td>--checksum</td><td>Compare by checksum, not mtime/size</td></tr>
+    <tr><td>--bwlimit=5000</td><td>Limit bandwidth (KBytes/s)</td></tr>
+    <tr><td colspan="2"><span class="section-label">Local → Remote (SSH)</span></td></tr>
+    <tr><td>rsync -avz /src/ user@host:/dst/</td><td>Sync directory to remote (trailing / = contents only)</td></tr>
+    <tr><td>rsync -avzP /src/ user@host:/dst/</td><td>With progress &amp; resume support</td></tr>
+    <tr><td>rsync -avz --delete /src/ user@host:/dst/</td><td>Mirror — removes files deleted on src</td></tr>
+    <tr><td>rsync -avz -e "ssh -p 2222" /src/ user@host:/dst/</td><td>Non-default SSH port</td></tr>
+    <tr><td>rsync -avz -e "ssh -i /root/.ssh/id_rsa" /src/ user@host:/dst/</td><td>Custom identity file</td></tr>
+    <tr><td colspan="2"><span class="section-label">Remote → Local</span></td></tr>
+    <tr><td>rsync -avz user@host:/src/ /local/dst/</td><td>Pull remote directory locally</td></tr>
+    <tr><td>rsync -avzP user@host:/src/big.tar /local/</td><td>Pull single file with resume</td></tr>
+    <tr><td colspan="2"><span class="section-label">Local → Local</span></td></tr>
+    <tr><td>rsync -av /mnt/data/ /mnt/backup/</td><td>Local disk sync</td></tr>
+    <tr><td colspan="2"><span class="section-label">Filtering</span></td></tr>
+    <tr><td>rsync -av --exclude='*.log' /src/ user@host:/dst/</td><td>Exclude by pattern</td></tr>
+    <tr><td>rsync -av --exclude-from=/tmp/excl.txt /src/ user@host:/dst/</td><td>Exclude list from file</td></tr>
+    <tr><td>rsync -av --include='*.tar.gz' --exclude='*' /src/ user@host:/dst/</td><td>Include only .tar.gz files</td></tr>
+    <tr><td colspan="2"><span class="section-label">Backup / AIX considerations</span></td></tr>
+    <tr><td>rsync -avz --numeric-ids /src/ user@host:/dst/</td><td>Preserve UID/GID numerically (cross-host)</td></tr>
+    <tr><td>rsync -avz --log-file=/var/log/rsync.log /src/ user@host:/dst/</td><td>Write transfer log</td></tr>
+    <tr><td>rsync -avzn /src/ user@host:/dst/ 2&gt;&amp;1 | tee /tmp/dryrun.out</td><td>Dry-run with captured output for review</td></tr>
+  </table>
+  <div class="note">Trailing slash on source matters: /src/ syncs contents into /dst/; /src (no slash) creates /dst/src/. On AIX, ensure rsync is installed via toolbox/rpm and SSH key auth is in place for scripted jobs.</div>
+</div>
+
+</div>
+</body>
+</html>
