@@ -4,7 +4,7 @@ A centralised knowledge base of HTML runbooks, procedures, and reference materia
 
 ## Purpose
 
-This wiki serves as a living library of operational documentation — written by engineers, for engineers. Each article is a self-contained HTML runbook that can be opened in any browser, printed, or shared without external dependencies. The goal is to capture proven procedures, reduce tribal knowledge, and provide a reliable reference during both routine maintenance and incident response.
+This wiki serves as a living library of operational documentation, compiled by myself over the course of my 7 year unix career. Each article is a self-contained HTML runbook that can be opened in any browser, printed, or shared without external dependencies. The goal is to capture proven procedures, reduce tribal knowledge, and provide a reliable reference during both routine maintenance and incident response tickets.
 
 ## What's inside
 
@@ -25,4 +25,4 @@ This wiki serves as a living library of operational documentation — written by
 
 ## File format
 
-All documentation is stored as standalone `.html` files — no static site generator, no build step. Open any file directly in a browser to view it.
+All documentation is stored as standalone `.html` files so no static site generator, no build step. Open any file directly in a browser to view it.
