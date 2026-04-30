@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIX LVM Basics — VG / LV / Filesystem Provisioning Runbook</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-green {
+    color: var(--green);
+    border-color: rgba(57,211,83,.3);
+    background: rgba(57,211,83,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+
+  /* ── concept primer ── */
+  .primer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 6px 6px 0;
+    margin: 32px 0 12px;
+    overflow: hidden;
+    animation: fadeUp .4s .1s ease both;
+    opacity: 0;
+  }
+
+  .primer-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    padding: 10px 18px;
+    background: rgba(88,201,232,.04);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .primer-header span {
+    background: rgba(88,201,232,.12);
+    color: var(--cyan);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  .primer-body {
+    padding: 18px 20px;
+  }
+
+  .primer-body p {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+
+  .primer-body p:last-child { margin-bottom: 0; }
+
+  .primer-body code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  .primer-body strong {
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .primer-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 12.5px;
+  }
+
+  .primer-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 12px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .primer-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .primer-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+    width: 80px;
+  }
+
+  .primer-table td:nth-child(2) {
+    font-size: 12.5px;
+    color: var(--text);
+  }
+
+  .primer-table tr:last-child td { border-bottom: none; }
+
+  .primer-math {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.85;
+    margin: 12px 0;
+    color: var(--text);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .primer-math .label { color: var(--text-dim); }
+  .primer-math .num   { color: var(--amber); }
+  .primer-math .res   { color: var(--green); }
+  .primer-math .op    { color: var(--cyan); }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-discover { border-left-color: var(--cyan); }
+  .step.ph-vg       { border-left-color: var(--green); }
+  .step.ph-lv       { border-left-color: var(--green); }
+  .step.ph-fs       { border-left-color: var(--green); }
+  .step.ph-mount    { border-left-color: var(--cyan); }
+  .step.ph-expand   { border-left-color: var(--amber); }
+  .step.ph-state    { border-left-color: var(--purple); }
+  .step.ph-port     { border-left-color: var(--purple); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+  .step:nth-child(7)  { animation-delay: .28s; }
+  .step:nth-child(8)  { animation-delay: .32s; }
+  .step:nth-child(9)  { animation-delay: .36s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+  .tag-action   { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* ── summary table ── */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-top: 0;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .summary-table td:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>AIX LVM Basics — VG / LV / Filesystem Provisioning</h1>
+  <div class="header-badges">
+    <span class="badge badge-green">PROVISIONING</span>
+    <span class="badge">datavg</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">VG Name</div><div class="meta-val">datavg</div></div>
+    <div class="meta-cell"><div class="meta-label">VG Type</div><div class="meta-val info">Scalable (-S)</div></div>
+    <div class="meta-cell"><div class="meta-label">PP Size</div><div class="meta-val">256 MB</div></div>
+    <div class="meta-cell"><div class="meta-label">Disk</div><div class="meta-val">hdiskX (~1 TB)</div></div>
+    <div class="meta-cell"><div class="meta-label">LVs</div><div class="meta-val">test1_lv, test2_lv, test3_lv</div></div>
+    <div class="meta-cell"><div class="meta-label">LV Size</div><div class="meta-val">1000 PPs (~250 GB ea)</div></div>
+    <div class="meta-cell"><div class="meta-label">Filesystems</div><div class="meta-val">/test1, /test2, /test3</div></div>
+    <div class="meta-cell"><div class="meta-label">FS Type</div><div class="meta-val info">JFS2 / INLINE log</div></div>
+  </div>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Identify &amp; Verify the Physical Volume</div>
+  <div class="steps">
+    <div class="step ph-discover open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Identify candidate disk and confirm no VG association</span>
+        <span class="step-tag tag-info">DISCOVER</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># List all known disks and their VG associations</span>
+<span class="kw">lspv</span>
+
+<span class="c"># Confirm hdiskX is present and recognised by the kernel</span>
+<span class="kw">lsdev</span> <span class="flag">-Cc</span> disk
+
+<span class="c"># Inspect attributes of the candidate disk</span>
+<span class="kw">lsattr</span> <span class="flag">-El</span> <span class="ph">hdiskX</span></div>
+        <p class="note"><strong>Expected state:</strong> the candidate disk should appear in <code>lspv</code> with <code>None</code> in the VG column. If it shows an existing VG name, <strong>stop</strong> — the disk is in use. If it has a stale PVID but no VG (e.g. recycled from a removed system), continue to Step 03.</p>
+      </div>
+    </div>
+
+    <div class="step ph-discover">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Verify disk size and check for residual VGDA</span>
+        <span class="step-tag tag-info">VERIFY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># Disk size in MB — confirm ~1,048,576 (1 TB) or as expected</span>
+<span class="kw">bootinfo</span> <span class="flag">-s</span> <span class="ph">hdiskX</span>
+
+<span class="c"># Inspect first sectors for a residual VGDA / LVM signature</span>
+<span class="c"># Output of all zeros = clean disk; non-zero = stale LVM metadata</span>
+<span class="kw">lquerypv</span> <span class="flag">-h</span> <span class="str">/dev/<span class="ph">hdiskX</span></span> 80 10
+
+<span class="c"># Optional — confirm the disk is not part of a concurrent or imported VG</span>
+<span class="kw">lspv</span> <span class="ph">hdiskX</span> 2&gt;/dev/null
+<span class="kw">lqueryvg</span> <span class="flag">-p</span> <span class="ph">hdiskX</span> <span class="flag">-At</span> 2&gt;/dev/null</div>
+        <p class="note note-info"><strong>Sizing math:</strong> with PP size 256 MB on a ~1 TB disk you get approximately <strong>3,996 usable PPs</strong> (some PPs reserved for VGDA/VGSA metadata). See the concept primer below for a full breakdown of how PP, LP, and FS sizes relate.</p>
+      </div>
+    </div>
+
+    <div class="step ph-discover">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Clear stale PVID if disk is recycled (conditional)</span>
+        <span class="step-tag tag-caution">CONDITIONAL</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># Only run if Step 01 showed a stale PVID with no VG, or Step 02</span>
+<span class="c"># lquerypv output had non-zero LVM signature</span>
+
+<span class="c"># Clear the existing PVID</span>
+<span class="kw">chdev</span> <span class="flag">-l</span> <span class="ph">hdiskX</span> <span class="flag">-a</span> pv=clear
+
+<span class="c"># Re-assign a fresh PVID</span>
+<span class="kw">chdev</span> <span class="flag">-l</span> <span class="ph">hdiskX</span> <span class="flag">-a</span> pv=yes
+
+<span class="c"># Confirm new PVID is set and disk is unassigned</span>
+<span class="kw">lspv</span> | <span class="kw">grep</span> <span class="ph">hdiskX</span></div>
+        <p class="note note-caution"><strong>Skip this step</strong> on a brand-new disk. <code>mkvg</code> will assign a fresh PVID automatically when the VG is created. Only clear the PVID when you are certain the disk previously belonged to a system that is no longer running and the data is genuinely abandoned — there is no recovery path after <code>pv=clear</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ CONCEPT PRIMER ════ -->
+  <div class="primer">
+    <div class="primer-header">
+      <span>Concept Primer</span>
+      Physical Partitions, Logical Partitions &amp; Filesystem Sizing
+    </div>
+    <div class="primer-body">
+
+      <p>AIX LVM presents three layers of abstraction between the raw disk and the filesystem. Understanding how they relate is essential to sizing LVs correctly and reading the output of <code>lsvg</code> / <code>lslv</code>.</p>
+
+      <table class="primer-table">
+        <tr><th>Term</th><th>Description</th></tr>
+        <tr>
+          <td>PV</td>
+          <td><strong>Physical Volume</strong> — a disk presented to AIX (<code>hdiskX</code>). Belongs to exactly one VG when in use.</td>
+        </tr>
+        <tr>
+          <td>PP</td>
+          <td><strong>Physical Partition</strong> — fixed-size chunk a PV is divided into when it joins a VG. Set by <code>mkvg -s</code> in MB. <strong>Cannot be changed</strong> after VG creation. All PVs in a VG share the same PP size.</td>
+        </tr>
+        <tr>
+          <td>LP</td>
+          <td><strong>Logical Partition</strong> — the unit an LV is built from. An LP is a <em>logical</em> reference that maps to one or more PPs depending on mirroring.</td>
+        </tr>
+        <tr>
+          <td>LV</td>
+          <td><strong>Logical Volume</strong> — a collection of LPs that presents itself as a block device under <code>/dev/&lt;lvname&gt;</code>. The filesystem (or raw consumer) sits on top of this.</td>
+        </tr>
+      </table>
+
+      <p><strong>The LP-to-PP mapping</strong> is where the mirroring story lives. In an unmirrored VG, each LP maps to one PP — they are 1:1. In a 2-copy mirrored VG, each LP maps to two PPs (one per copy). In a 3-copy mirror, each LP maps to three PPs. This is why mirroring "doubles" or "triples" the PP cost of an LV without changing its usable size.</p>
+
+<div class="primer-math"><span class="label">Unmirrored:</span>  LV size  <span class="op">=</span>  <span class="num">LP count</span>  <span class="op">×</span>  <span class="num">PP size</span>     (1 LP = 1 PP)
+<span class="label">2-copy:</span>      LV size  <span class="op">=</span>  <span class="num">LP count</span>  <span class="op">×</span>  <span class="num">PP size</span>     (1 LP = 2 PPs — doubles VG consumption)
+<span class="label">3-copy:</span>      LV size  <span class="op">=</span>  <span class="num">LP count</span>  <span class="op">×</span>  <span class="num">PP size</span>     (1 LP = 3 PPs — triples VG consumption)
+
+<span class="label">Worked example — this runbook:</span>
+  <span class="num">1000 LPs</span>  <span class="op">×</span>  <span class="num">256 MB PP size</span>   <span class="op">=</span>   <span class="res">256,000 MB  =  250 GB</span>
+  Three LVs at 1000 LPs (unmirrored)  <span class="op">=</span>   <span class="res">3000 PPs allocated</span>
+  ~3996 PPs available on 1 TB disk     <span class="op">=</span>   <span class="res">~996 PPs free (~249 GB)</span></div>
+
+      <p><strong>Filesystem size vs LV size.</strong> A JFS2 filesystem on a 250 GB LV will not show 250 GB free in <code>df -g</code>. A small portion is consumed by the JFS2 superblock and (with INLINE log) the transaction log. Expect a few hundred MB of overhead per filesystem — usually negligible at this scale, but worth knowing about when you size LVs near the edge of available VG capacity.</p>
+
+      <p><strong>Reading <code>lsvg</code> output:</strong> <code>TOTAL PPs</code> is the count after VGDA/VGSA reservation; <code>USED PPs</code> is what your LVs have allocated; <code>FREE PPs</code> is what's left for new LVs or expansion. The <code>(megabytes)</code> figures next to each are simply <code>count × PP size</code> — multiply yourself if you have a non-MB PP size in mind.</p>
+
+    </div>
+  </div>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Phase 2</span> Create the Volume Group</div>
+  <div class="steps">
+    <div class="step ph-vg open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Create datavg as a Scalable VG with 256 MB PP size</span>
+        <span class="step-tag tag-ok">CREATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Create the VG</span>
+<span class="c"># -S       : Scalable VG (modern default; up to 1024 PVs / 256 LVs / 32,768 PPs)</span>
+<span class="c"># -s 256   : Physical Partition size in MB</span>
+<span class="c"># -f       : Force creation even if disk looks like it belonged to another VG</span>
+<span class="c"># -y       : VG name</span>
+<span class="kw">mkvg</span> <span class="flag">-S</span> <span class="flag">-s</span> 256 <span class="flag">-f</span> <span class="flag">-y</span> datavg <span class="ph">hdiskX</span>
+
+<span class="cmd-section">Confirm the VG was created and is varied on</span>
+<span class="c"># Should list datavg and show it as active</span>
+<span class="kw">lsvg</span>
+
+<span class="c"># VG attributes — TOTAL PPs, FREE PPs, PP SIZE, MAX LVs, etc.</span>
+<span class="kw">lsvg</span> datavg
+
+<span class="c"># Physical-disk membership of the VG</span>
+<span class="kw">lsvg</span> <span class="flag">-p</span> datavg
+
+<span class="c"># Confirm hdiskX now shows datavg in lspv output</span>
+<span class="kw">lspv</span> | <span class="kw">grep</span> <span class="ph">hdiskX</span></div>
+        <p class="note note-info"><strong>Why Scalable (-S):</strong> Scalable VGs supersede the older Original (default) and Big (-B) formats. They support far higher PV/LV/PP counts out of the box and avoid the need for later <code>chvg -B</code> / <code>chvg -G</code> conversions if the VG grows. For any new VG on AIX 6.1 or later, Scalable is the right default unless there is a specific compatibility reason otherwise.</p>
+        <p class="note note-caution"><strong>PP size tradeoff:</strong> 256 MB is a balanced choice for a 1 TB disk. Smaller PPs (e.g. 32 MB) give finer LV sizing granularity but exhaust the per-PV PP limit faster on large disks. Larger PPs (e.g. 1024 MB) waste space on small LVs. Once set at <code>mkvg</code> time, PP size cannot be changed — the VG must be recreated.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 3</span> Create the Logical Volumes</div>
+  <div class="steps">
+    <div class="step ph-lv open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Create test1_lv, test2_lv, test3_lv — 1000 PPs each</span>
+        <span class="step-tag tag-ok">CREATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="cmd-section">Create the three LVs</span>
+<span class="c"># -t jfs2  : LV type — pairs with the JFS2 filesystem in Phase 4</span>
+<span class="c"># -y NAME  : LV name</span>
+<span class="c"># datavg   : target VG</span>
+<span class="c"># 1000     : number of LPs (each 256 MB) -> 250 GB</span>
+<span class="kw">mklv</span> <span class="flag">-t</span> jfs2 <span class="flag">-y</span> test1_lv datavg 1000
+<span class="kw">mklv</span> <span class="flag">-t</span> jfs2 <span class="flag">-y</span> test2_lv datavg 1000
+<span class="kw">mklv</span> <span class="flag">-t</span> jfs2 <span class="flag">-y</span> test3_lv datavg 1000</div>
+        <p class="note">See the concept primer above for the LP-to-PP relationship. In this unmirrored VG, 1000 LPs at 256 MB = 250 GB and consumes exactly 1000 PPs from the VG's free pool. If this VG were 2-copy mirrored, the same <code>mklv ... 1000</code> would consume 2000 PPs.</p>
+      </div>
+    </div>
+
+    <div class="step ph-lv">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Verify LV creation and VG consumption</span>
+        <span class="step-tag tag-info">VERIFY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="c"># All LVs in datavg — should list all three at 1000 LPs / 1000 PPs</span>
+<span class="kw">lsvg</span> <span class="flag">-l</span> datavg
+
+<span class="c"># Per-LV detail — type, LP/PP counts, copies, mirror policy</span>
+<span class="kw">lslv</span> test1_lv
+<span class="kw">lslv</span> test2_lv
+<span class="kw">lslv</span> test3_lv
+
+<span class="c"># Confirm VG free PP count has dropped by ~3000</span>
+<span class="kw">lsvg</span> datavg | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">'TOTAL PPs|FREE PPs|USED PPs'</span></div>
+        <p class="note">Expected post-create state: TOTAL PPs ≈ 3996, USED PPs = 3000, FREE PPs ≈ 996. The remaining ~249 GB of free space is what makes the expansion in Phase 6 possible without adding more disks.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Phase 4</span> Create the JFS2 Filesystems</div>
+  <div class="steps">
+    <div class="step ph-fs open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">crfs — JFS2 with INLINE log on each LV</span>
+        <span class="step-tag tag-ok">CREATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="cmd-section">Create the three filesystems</span>
+<span class="c"># -v jfs2              : filesystem type</span>
+<span class="c"># -d LV                : backing logical volume</span>
+<span class="c"># -m /mountpoint       : mountpoint (created automatically if missing)</span>
+<span class="c"># -A yes               : auto-mount at boot (entry added to /etc/filesystems)</span>
+<span class="c"># -a logname=INLINE    : inline log inside the LV (no separate jfs2log LV)</span>
+<span class="kw">crfs</span> <span class="flag">-v</span> jfs2 <span class="flag">-d</span> test1_lv <span class="flag">-m</span> <span class="str">/test1</span> <span class="flag">-A</span> yes <span class="flag">-a</span> logname=INLINE
+<span class="kw">crfs</span> <span class="flag">-v</span> jfs2 <span class="flag">-d</span> test2_lv <span class="flag">-m</span> <span class="str">/test2</span> <span class="flag">-A</span> yes <span class="flag">-a</span> logname=INLINE
+<span class="kw">crfs</span> <span class="flag">-v</span> jfs2 <span class="flag">-d</span> test3_lv <span class="flag">-m</span> <span class="str">/test3</span> <span class="flag">-A</span> yes <span class="flag">-a</span> logname=INLINE
+
+<span class="cmd-section">Verify /etc/filesystems entries were created</span>
+<span class="kw">lsfs</span> /test1 /test2 /test3
+
+<span class="c"># Or inspect the stanza directly</span>
+<span class="kw">grep</span> <span class="flag">-A6</span> <span class="str">'^/test1:'</span> <span class="str">/etc/filesystems</span></div>
+        <p class="note note-info"><strong>INLINE log vs separate jfs2log:</strong> INLINE places the JFS2 transaction log inside the data LV — simpler to manage, no separate <code>logform</code> step, and the log grows with the filesystem on <code>chfs</code>. A dedicated jfs2log LV (shared across multiple filesystems) can offer marginal performance gains on heavy-write workloads but adds a separately-mirrored single point of failure to plan around. INLINE is the modern default for general-purpose filesystems.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Phase 5</span> Mount and Verify</div>
+  <div class="steps">
+    <div class="step ph-mount open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Mount the filesystems and confirm available space</span>
+        <span class="step-tag tag-ok">MOUNT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="cmd-section">Mount each filesystem</span>
+<span class="kw">mount</span> <span class="str">/test1</span>
+<span class="kw">mount</span> <span class="str">/test2</span>
+<span class="kw">mount</span> <span class="str">/test3</span>
+
+<span class="cmd-section">Verify mounted state and free space</span>
+<span class="c"># All three should show mounted with ~250 GB available</span>
+<span class="c"># (slightly less than 250 GB due to JFS2 superblock + INLINE log overhead)</span>
+<span class="kw">df</span> <span class="flag">-g</span> <span class="str">/test1 /test2 /test3</span>
+
+<span class="c"># Confirm mount table</span>
+<span class="kw">mount</span> | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">'/test[123]'</span>
+
+<span class="c"># Confirm permissions are crfs default — root:system 755</span>
+<span class="kw">ls</span> <span class="flag">-ld</span> <span class="str">/test1 /test2 /test3</span>
+
+<span class="cmd-section">Reboot-persistence sanity check (no reboot required)</span>
+<span class="c"># Validate that /etc/filesystems entries are syntactically correct</span>
+<span class="c"># and would auto-mount cleanly. lsfs reads /etc/filesystems directly.</span>
+<span class="kw">lsfs</span> <span class="flag">-q</span> /test1 /test2 /test3</div>
+        <p class="note note-critical"><strong>If <code>mount</code> fails:</strong> common causes are (1) the mountpoint already contains data — <code>ls -la /testN</code> before mounting; (2) <code>/etc/filesystems</code> stanza was malformed — check with <code>lsfs</code>; (3) the LV is being held by another process. Do <strong>not</strong> reboot to clear a mount issue — fix the stanza in <code>/etc/filesystems</code> first or the host may fail to come up cleanly.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Phase 6</span> Bonus — Filesystem Expansion Reference</div>
+  <div class="steps">
+    <div class="step ph-expand">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">chfs — grow an LV and its filesystem in one command</span>
+        <span class="step-tag tag-caution">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c9"><button class="copy-btn" onclick="copy('c9',this)">COPY</button><span class="cmd-section">Confirm there is free space in the VG before growing</span>
+<span class="kw">lsvg</span> datavg | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">'FREE PPs|FREE PPs (megabytes)'</span>
+
+<span class="cmd-section">Grow /test1 by +10 GB (LV + FS in one step)</span>
+<span class="c"># size=+10G expands the filesystem and underlying LV by 10 GB.</span>
+<span class="c"># size=10G (no +) would set absolute size to 10 GB — which would shrink it.</span>
+<span class="c"># Always use the + prefix when growing.</span>
+<span class="kw">chfs</span> <span class="flag">-a</span> size=+10G <span class="str">/test1</span>
+
+<span class="cmd-section">Verify new size</span>
+<span class="kw">df</span> <span class="flag">-g</span> <span class="str">/test1</span>
+<span class="kw">lslv</span> test1_lv | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">'LPs|PPs'</span>
+
+<span class="cmd-section">Alternative — grow LV only (manual, two-step)</span>
+<span class="c"># Use this if you want to extend the LV without immediately expanding the FS</span>
+<span class="kw">extendlv</span> test1_lv 40                  <span class="c"># add 40 LPs (~10 GB)</span>
+<span class="kw">chfs</span> <span class="flag">-a</span> size=+10G <span class="str">/test1</span>          <span class="c"># grow FS to match</span>
+
+<span class="cmd-section">Shrinking JFS2 (online)</span>
+<span class="c"># JFS2 supports online shrink — JFS (legacy) does not.</span>
+<span class="c"># size=-5G reduces the filesystem by 5 GB. The underlying LV is NOT</span>
+<span class="c"># reduced automatically — use rmlvcopy/migratepv if you need PPs back.</span>
+<span class="kw">chfs</span> <span class="flag">-a</span> size=-5G <span class="str">/test1</span></div>
+        <p class="note note-caution"><strong>Watch the <code>+</code> sign.</strong> <code>chfs -a size=10G</code> sets absolute size to 10 GB. On a 250 GB filesystem, this is a destructive shrink operation and <code>chfs</code> will refuse only if data would be lost — but on a near-empty filesystem it will proceed silently. Always use <code>size=+N</code> when growing and <code>size=-N</code> when shrinking. Never use bare <code>size=N</code> without thinking about it.</p>
+        <p class="note note-info"><strong>Why <code>chfs -a size=+N</code> "just works":</strong> JFS2 with INLINE log makes filesystem expansion a single atomic operation — <code>chfs</code> calls <code>extendlv</code> on the underlying LV, then resizes the filesystem and INLINE log in place. With a separate jfs2log LV, only the data LV grows; the log remains its original size and may need separate management.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Phase 7</span> VG State Management — varyoffvg / varyonvg</div>
+  <div class="steps">
+    <div class="step ph-state">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">10</span>
+        <span class="step-title">Take a VG offline and bring it back online</span>
+        <span class="step-tag tag-action">STATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="cmd-section">When to varyoff a VG</span>
+<span class="c"># - Maintenance work on the underlying disk(s)</span>
+<span class="c"># - Before unmapping shared / SAN storage</span>
+<span class="c"># - Required step before exportvg (Phase 8)</span>
+<span class="c"># - Releasing reserves on shared storage in HA scenarios</span>
+
+<span class="cmd-section">Pre-flight — all filesystems must be unmounted</span>
+<span class="c"># varyoffvg will refuse if any LV in the VG has an active mount or is open.</span>
+<span class="c"># Identify all mounted filesystems on the VG:</span>
+<span class="kw">lsvgfs</span> datavg
+
+<span class="c"># Unmount each one</span>
+<span class="kw">umount</span> <span class="str">/test1</span>
+<span class="kw">umount</span> <span class="str">/test2</span>
+<span class="kw">umount</span> <span class="str">/test3</span>
+
+<span class="c"># Confirm nothing is still holding an LV open</span>
+<span class="kw">fuser</span> <span class="flag">-c</span> <span class="str">/test1 /test2 /test3</span>     <span class="c"># expect no output</span>
+
+<span class="cmd-section">Take the VG offline</span>
+<span class="kw">varyoffvg</span> datavg
+
+<span class="c"># Confirm VG is no longer active</span>
+<span class="kw">lsvg</span> <span class="flag">-o</span>                          <span class="c"># lists only varied-on VGs</span>
+<span class="kw">lsvg</span>                              <span class="c"># lists all known VGs (including offline)</span>
+
+<span class="cmd-section">Bring the VG back online</span>
+<span class="kw">varyonvg</span> datavg
+
+<span class="c"># Confirm active state</span>
+<span class="kw">lsvg</span> <span class="flag">-o</span> | <span class="kw">grep</span> datavg
+
+<span class="cmd-section">Re-mount the filesystems</span>
+<span class="kw">mount</span> <span class="str">/test1</span>
+<span class="kw">mount</span> <span class="str">/test2</span>
+<span class="kw">mount</span> <span class="str">/test3</span>
+<span class="kw">df</span> <span class="flag">-g</span> <span class="str">/test1 /test2 /test3</span></div>
+        <p class="note note-caution"><strong>varyoffvg is fail-safe by default.</strong> If any LV is open or any filesystem is mounted, <code>varyoffvg</code> will refuse and report the offending LV. Don't be tempted to use forceful workarounds — fix the open handle (umount the FS, kill the holding process) and retry cleanly.</p>
+        <p class="note note-info"><strong><code>varyonvg -f</code> exists but is for recovery scenarios</strong> — quorum loss, partial VGDA availability after disk failure. Don't use it routinely; if a normal <code>varyonvg</code> fails, investigate <em>why</em> before reaching for <code>-f</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 8 ════ -->
+  <div class="phase-label"><span>Phase 8</span> VG Portability — exportvg / importvg</div>
+  <div class="steps">
+    <div class="step ph-port">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">11</span>
+        <span class="step-title">Move a VG between hosts (e.g. SAN reassignment, LPAR migration)</span>
+        <span class="step-tag tag-action">PORTABILITY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="cmd-section">When to export / import a VG</span>
+<span class="c"># - Migrating data disks between LPARs / hosts</span>
+<span class="c"># - Reassigning SAN LUNs to a different host</span>
+<span class="c"># - Recovering data from a disk lifted out of a decommissioned system</span>
+<span class="c">#</span>
+<span class="c"># exportvg removes the VG definition from the SOURCE host's ODM.</span>
+<span class="c"># It does NOT touch any data on disk. The VGDA on the disk itself</span>
+<span class="c"># remains intact and is what importvg reads on the target host.</span>
+
+<span class="cmd-section">════ ON SOURCE HOST ════</span>
+
+<span class="c"># 1. Unmount all filesystems in the VG (same as Phase 7)</span>
+<span class="kw">umount</span> <span class="str">/test1 /test2 /test3</span>
+
+<span class="c"># 2. Vary off the VG</span>
+<span class="kw">varyoffvg</span> datavg
+
+<span class="c"># 3. Capture VG metadata for reference (filesystem stanzas, LV layout)</span>
+<span class="c">#    Useful if anything goes wrong on the target side.</span>
+<span class="kw">lsvg</span> <span class="flag">-l</span> datavg > <span class="str">/tmp/datavg-lv-layout.txt</span>
+<span class="kw">grep</span> <span class="flag">-A6</span> <span class="str">'^/test'</span> <span class="str">/etc/filesystems</span> > <span class="str">/tmp/datavg-fs-stanzas.txt</span>
+
+<span class="c"># 4. Export the VG (removes ODM entries on source only)</span>
+<span class="kw">exportvg</span> datavg
+
+<span class="c"># 5. Confirm VG is gone from this host's view</span>
+<span class="kw">lsvg</span>                              <span class="c"># datavg should NOT appear</span>
+<span class="kw">lspv</span> | <span class="kw">grep</span> <span class="ph">hdiskX</span>           <span class="c"># PVID present, VG column = "None"</span>
+
+<span class="c"># 6. (If SAN-attached) — unmap LUN from this host, remap to target</span>
+<span class="c">#    (If physical) — physically move the disk</span>
+<span class="kw">rmdev</span> <span class="flag">-dl</span> <span class="ph">hdiskX</span>              <span class="c"># cleanly remove device after unmap</span>
+
+<span class="cmd-section">════ ON TARGET HOST ════</span>
+
+<span class="c"># 1. Discover the new disk</span>
+<span class="kw">cfgmgr</span> <span class="flag">-v</span>
+
+<span class="c"># 2. Identify the disk by its PVID (NOT by hdisk number — numbering</span>
+<span class="c">#    differs between hosts).  Source-host hdiskX may be hdiskY here.</span>
+<span class="kw">lspv</span>                              <span class="c"># find the PVID matching the source-host record</span>
+
+<span class="c"># 3. Import the VG — importvg reads the VGDA from disk and recreates</span>
+<span class="c">#    the ODM entries plus /etc/filesystems stanzas for any FSes.</span>
+<span class="c">#    -y NAME : VG name on this host (usually keep the same)</span>
+<span class="kw">importvg</span> <span class="flag">-y</span> datavg <span class="ph">hdiskY</span>
+
+<span class="c"># 4. Confirm import succeeded</span>
+<span class="kw">lsvg</span> | <span class="kw">grep</span> datavg          <span class="c"># datavg listed</span>
+<span class="kw">lsvg</span> <span class="flag">-l</span> datavg                <span class="c"># LVs and FSes recreated</span>
+<span class="kw">grep</span> <span class="flag">-A6</span> <span class="str">'^/test'</span> <span class="str">/etc/filesystems</span>
+
+<span class="c"># 5. importvg auto-varies the VG on by default. Confirm:</span>
+<span class="kw">lsvg</span> <span class="flag">-o</span> | <span class="kw">grep</span> datavg
+
+<span class="c"># 6. Mount the filesystems</span>
+<span class="kw">mount</span> <span class="str">/test1</span>
+<span class="kw">mount</span> <span class="str">/test2</span>
+<span class="kw">mount</span> <span class="str">/test3</span>
+<span class="kw">df</span> <span class="flag">-g</span></div>
+        <p class="note note-info"><strong>importvg uses PVID, not hdisk number.</strong> The source-host <code>hdiskX</code> may show up as <code>hdiskY</code> (or any other number) on the target. Always verify by PVID, not device name. <code>importvg</code> only needs <em>one</em> PV from a multi-PV VG — it will find the others automatically via the VGDA.</p>
+        <p class="note note-caution"><strong>Mountpoint collisions on import:</strong> if <code>/test1</code> already exists on the target host with content, the mount will overlay it (hiding the existing files until unmount). If the target has its own filesystem at the same path, you'll need to plan a rename — either alter the source-host stanzas before export, or edit <code>/etc/filesystems</code> on the target after import and before mounting.</p>
+        <p class="note note-critical"><strong>exportvg does NOT delete data.</strong> It removes the ODM entries only. The VGDA on disk is untouched. This means: (1) you can re-import on the same host with <code>importvg</code> if export was done in error; (2) <strong>never</strong> use <code>exportvg</code> as a "delete everything" command — use <code>reducevg</code> + <code>chpv -C</code> + disk wipe for that.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Command Summary</div>
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; animation: fadeUp .4s .5s ease both; opacity:0;">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
+      <tr><td>lspv</td><td>List PVs and VG associations</td><td>Candidate disk should show "None"</td></tr>
+      <tr><td>bootinfo -s hdiskX</td><td>Disk size in MB</td><td>Sanity-check size before mkvg</td></tr>
+      <tr><td>lquerypv -h /dev/hdiskX 80 10</td><td>Inspect for residual VGDA</td><td>All zeros = clean</td></tr>
+      <tr><td>chdev -l hdiskX -a pv=clear</td><td>Clear stale PVID</td><td>Recycled disks only — destructive</td></tr>
+      <tr><td>mkvg -S -s 256 -f -y datavg hdiskX</td><td>Create Scalable VG, 256 MB PPs</td><td>PP size cannot be changed later</td></tr>
+      <tr><td>lsvg datavg / lsvg -p datavg</td><td>VG attributes / PV membership</td><td>Confirm TOTAL/FREE PPs</td></tr>
+      <tr><td>mklv -t jfs2 -y NAME datavg 1000</td><td>Create 250 GB JFS2 LV</td><td>1000 LPs × 256 MB</td></tr>
+      <tr><td>lsvg -l datavg</td><td>List all LVs in VG</td><td>Verify post-create state</td></tr>
+      <tr><td>crfs -v jfs2 -d LV -m /mp -A yes -a logname=INLINE</td><td>Create JFS2 FS with inline log</td><td>Auto-mount stanza added to /etc/filesystems</td></tr>
+      <tr><td>lsfs /mp</td><td>Inspect FS stanza</td><td>Confirms /etc/filesystems is correct</td></tr>
+      <tr><td>mount /mp</td><td>Mount filesystem</td><td>Reads /etc/filesystems</td></tr>
+      <tr><td>df -g /mp</td><td>Verify free space in GB</td><td>Slight overhead vs raw LP size</td></tr>
+      <tr><td>chfs -a size=+10G /mp</td><td>Grow LV + FS together</td><td>Always use + prefix</td></tr>
+      <tr><td>extendlv NAME 40</td><td>Grow LV only (40 LPs)</td><td>Pair with chfs to grow FS</td></tr>
+      <tr><td>lsvgfs datavg</td><td>List filesystems on a VG</td><td>Useful pre-varyoff check</td></tr>
+      <tr><td>varyoffvg datavg</td><td>Take VG offline</td><td>All FSes must be unmounted first</td></tr>
+      <tr><td>varyonvg datavg</td><td>Bring VG online</td><td>-f for recovery only</td></tr>
+      <tr><td>lsvg -o</td><td>List only varied-on VGs</td><td>Quick state check</td></tr>
+      <tr><td>exportvg datavg</td><td>Remove VG ODM entries (source)</td><td>Does NOT delete data on disk</td></tr>
+      <tr><td>importvg -y datavg hdiskY</td><td>Import VG on target host</td><td>Auto-varies on; uses PVID, not hdisk#</td></tr>
+    </table>
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li><strong>PP size is permanent.</strong> Once <code>mkvg -s</code> is set, it cannot be changed — the VG must be backed up, removed, and recreated. Choose with the disk size and expected LV granularity in mind.</li>
+      <li><strong>Scalable VG (-S) is the modern default.</strong> Avoids needing later <code>chvg -B</code> / <code>chvg -G</code> conversions if the VG outgrows Original/Big format limits.</li>
+      <li><strong>Use <code>-f</code> deliberately.</strong> The force flag bypasses the safety check that warns about residual VG metadata. Always run Step 02 (<code>lquerypv -h</code>) first so the force is informed, not blind.</li>
+      <li><strong>INLINE log keeps the filesystem self-contained.</strong> One LV = one filesystem = one log. Easier to migrate, snapshot, or unmirror without coordinating across LVs.</li>
+      <li><strong>JFS2 supports online shrink, JFS does not.</strong> If there is any chance the filesystem will need to shrink in future, JFS2 is the correct choice (and is the modern default anyway).</li>
+      <li><strong><code>chfs -a size=+N</code> grows; bare <code>size=N</code> sets absolute size.</strong> The latter is a footgun on filesystems with data. Always include the <code>+</code> or <code>-</code> sign.</li>
+      <li><strong>Bad <code>/etc/filesystems</code> stanzas can break boot.</strong> If a non-root filesystem fails to mount at boot, AIX will drop to maintenance mode. Validate with <code>lsfs</code> after any manual edit and <strong>never</strong> reboot before <code>mount -a</code> succeeds (or the equivalent verification per filesystem).</li>
+      <li><strong>varyoffvg requires no open LVs.</strong> Unmount all filesystems and clear any open handles (<code>fuser -c</code>) before running. Don't reach for forceful workarounds — fix the holder.</li>
+      <li><strong>exportvg does not delete data.</strong> It removes the VG from the source host's ODM only. The VGDA stays on disk. To genuinely wipe a disk, use <code>reducevg</code> + <code>chpv -C</code> + a manual zero-fill.</li>
+      <li><strong>importvg keys on PVID, not hdisk number.</strong> Disk numbering will almost certainly differ on the target host — verify by PVID, not by name.</li>
+      <li><strong>Permissions remain crfs default (root:system 755).</strong> Application-specific ownership / mode changes are out of scope for this runbook — apply them separately after the filesystem is mounted and before any application data is written.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>AIX LVM · Scalable VG · JFS2 / INLINE log</span>
+  <span>mkvg / mklv / crfs / mount / varyonvg / importvg</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>
