@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TSM Restore Cheat Sheet</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f2; color: #1a1a18; padding: 2rem; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a18; }
+  .sub { font-size: 13px; color: #5f5e5a; margin-top: -1rem; margin-bottom: 1.5rem; }
+  .sheet { max-width: 980px; margin: 0 auto; }
+  .tool-block { background: #fff; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 12px; margin-bottom: 1.25rem; overflow: hidden; }
+  .tool-header { padding: 0.6rem 1.25rem; display: flex; align-items: center; gap: 10px; }
+  .tool-header h2 { font-size: 15px; font-weight: 500; margin: 0; color: #1a1a18; }
+  .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 8px; }
+  .b-blue   { background: #E6F1FB; color: #0C447C; }
+  .b-teal   { background: #E1F5EE; color: #085041; }
+  .b-amber  { background: #FAEEDA; color: #633806; }
+  .b-purple { background: #EFEAFB; color: #3F2890; }
+  .b-rose   { background: #FBE7E7; color: #8C1E1E; }
+  .b-grey   { background: #ECECE8; color: #44443F; }
+  .hdr-blue   { background: #E6F1FB; }
+  .hdr-teal   { background: #E1F5EE; }
+  .hdr-amber  { background: #FAEEDA; }
+  .hdr-purple { background: #EFEAFB; }
+  .hdr-rose   { background: #FBE7E7; }
+  .hdr-grey   { background: #ECECE8; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { font-size: 11px; font-weight: 500; color: #5f5e5a; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 1.25rem; border-top: 0.5px solid rgba(0,0,0,0.12); background: #f8f8f5; text-align: left; }
+  td { padding: 9px 1.25rem; vertical-align: top; border-top: 0.5px solid rgba(0,0,0,0.1); }
+  td:first-child { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 12.5px; color: #1a1a18; white-space: pre; width: 56%; }
+  td:last-child  { font-size: 13px; color: #5f5e5a; }
+  .section-label { font-size: 11px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 1.25rem 4px; background: #f2f1ec; border-top: 0.5px solid rgba(0,0,0,0.1); display: block; }
+  .note { font-size: 12px; color: #5f5e5a; padding: 8px 1.25rem; border-top: 0.5px solid rgba(0,0,0,0.1); background: #f8f8f5; line-height: 1.55; }
+  .note strong { color: #633806; font-weight: 600; }
+  .note code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 11.5px; background: rgba(0,0,0,0.05); padding: 1px 5px; border-radius: 3px; color: #1a1a18; }
+  .key-conventions { background: #fff; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 12px; padding: 14px 1.25rem; margin-bottom: 1.5rem; font-size: 12.5px; color: #44443F; line-height: 1.7; }
+  .key-conventions strong { color: #1a1a18; }
+  .key-conventions code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 11.5px; background: rgba(0,0,0,0.05); padding: 1px 5px; border-radius: 3px; color: #1a1a18; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<h1>TSM / SP — Restore Cheat Sheet</h1>
+<div class="sub">dsmc restore reference for AIX clients — file, point-in-time, and image-mode patterns</div>
+
+<div class="key-conventions">
+  <strong>Conventions used below:</strong> trailing <code>/</code> on a source means "contents of"; trailing <code>/</code> on a destination is required when restoring multiple objects. Replace <code>SERVERNAME</code> with the dsm.sys stanza you want (e.g. <code>BC01_FILE</code> for individual file restores, <code>BC01_MFULL</code> / <code>BC01_YFULL</code> for point-in-time from full backups). All examples use absolute paths — TSM does not interpret relative paths the way shell does. <code>-pick</code> opens an interactive picker; <code>-pitdate</code> / <code>-pittime</code> are for scripted point-in-time. <code>-inactive</code> shows expired/old versions; without it you only see the current active version.
+</div>
+
+<!-- ════════════ DSMC SHELL — INTERACTIVE VS COMMAND-LINE ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-grey">
+    <span class="badge b-grey">dsmc</span>
+    <h2>Two modes — interactive shell vs one-shot CLI</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Interactive — multiple commands per session</span></td></tr>
+    <tr><td>dsmc -servername=BC01_FILE</td><td>Open dsmc prompt against a specific stanza</td></tr>
+    <tr><td>dsmc> q sched</td><td>Show schedules associated with this node</td></tr>
+    <tr><td>dsmc> q mgmt</td><td>Show active management classes and their bindings</td></tr>
+    <tr><td>dsmc> q backup /etc/passwd</td><td>Show backup versions of a file</td></tr>
+    <tr><td>dsmc> q filespace</td><td>List filespaces backed up for this node</td></tr>
+    <tr><td>dsmc> quit</td><td>Exit the dsmc prompt</td></tr>
+    <tr><td colspan="2"><span class="section-label">One-shot — single command, returns to shell</span></td></tr>
+    <tr><td>dsmc restore /etc/hosts -servername=BC01_FILE</td><td>Single restore command, exits when done</td></tr>
+    <tr><td>dsmc q backup /etc/hosts -servername=BC01_FILE</td><td>Single query, exits — useful in scripts</td></tr>
+  </table>
+  <div class="note"><strong>Tip:</strong> for any restore that's going to take more than a minute, run interactively (<code>dsmc -servername=…</code>) so you can inspect <code>q backup</code> output before committing to the restore. One-shot mode is for scripted/automated work where you already know exactly what you want.</div>
+</div>
+
+<!-- ════════════ INVESTIGATING WHAT'S AVAILABLE ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-grey">
+    <span class="badge b-grey">query</span>
+    <h2>Pre-restore — find what's actually there</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Filespaces &amp; backups overview</span></td></tr>
+    <tr><td>q filespace</td><td>List all filespaces backed up for this node</td></tr>
+    <tr><td>q filespace -detail</td><td>Show last backup time and capacity per filespace</td></tr>
+    <tr><td>q backup /etc/</td><td>List active backup versions in /etc/</td></tr>
+    <tr><td>q backup /etc/ -inactive</td><td>List active AND inactive (expired) versions</td></tr>
+    <tr><td>q backup /etc/ -subdir=yes</td><td>Recurse into subdirectories</td></tr>
+    <tr><td>q backup /etc/hosts -inactive</td><td>All known versions of a single file</td></tr>
+    <tr><td colspan="2"><span class="section-label">Point-in-time discovery</span></td></tr>
+    <tr><td>q backup /db/data/ -inactive -subdir=yes</td><td>Find a date that has the version you need</td></tr>
+    <tr><td>q backup / -inactive -fromdate=07/01/2025 -todate=07/15/2025</td><td>Bracket the search to a date range</td></tr>
+  </table>
+  <div class="note"><strong>Always start here.</strong> You cannot restore what TSM doesn't have. <code>q backup -inactive</code> tells you what point-in-time versions exist before you commit to a restore. The output's "Backup Date" column is the timestamp you'll feed into <code>-pitdate</code>.</div>
+</div>
+
+<!-- ════════════ DIRECTORY RESTORES ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-blue">
+    <span class="badge b-blue">restore — directories</span>
+    <h2>Restoring directories</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Whole directory back to original location</span></td></tr>
+    <tr><td>restore /etc/ -subdir=yes -replace=all</td><td>Restore /etc and everything below it, overwriting</td></tr>
+    <tr><td>restore /home/ -subdir=yes -replace=no</td><td>Restore but skip files that already exist</td></tr>
+    <tr><td>restore /var/log/ -subdir=yes -replace=prompt</td><td>Prompt per file before overwriting</td></tr>
+    <tr><td colspan="2"><span class="section-label">Subdirectory only</span></td></tr>
+    <tr><td>restore /home/jim/ -subdir=yes -replace=all</td><td>Restore one user's directory, recursive</td></tr>
+    <tr><td>restore /home/jim/docs/ -subdir=yes</td><td>Even deeper — only the docs/ subtree</td></tr>
+    <tr><td>restore /home/jim/* -subdir=no</td><td>Only files directly in /home/jim, no subdirs</td></tr>
+    <tr><td colspan="2"><span class="section-label">Restore directory to an alternative location</span></td></tr>
+    <tr><td>restore /home/jim/ /tmp/restore/jim/ -subdir=yes</td><td>Source → destination — note trailing / on dest</td></tr>
+    <tr><td>restore /etc/ /restore_staging/etc/ -subdir=yes -replace=all</td><td>Restore /etc to a staging area for review</td></tr>
+    <tr><td>restore /db/ /restore/db_2025-08-01/ -subdir=yes -pitdate=08/01/2025</td><td>PIT restore to alternative location for diff</td></tr>
+  </table>
+  <div class="note"><strong>Trailing slashes matter.</strong> <code>restore /etc/ /tmp/etc/</code> places the contents of /etc into /tmp/etc. <code>restore /etc /tmp/etc</code> (no trailing slashes) would create /tmp/etc/etc — usually not what you want. <code>-subdir=yes</code> is required for recursive restores; without it only the explicitly named directory's immediate contents come back.</div>
+</div>
+
+<!-- ════════════ FILE RESTORES ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-teal">
+    <span class="badge b-teal">restore — files</span>
+    <h2>Restoring individual files</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Single file back to original</span></td></tr>
+    <tr><td>restore /etc/hosts</td><td>Most recent active version, original location</td></tr>
+    <tr><td>restore /etc/hosts -replace=all</td><td>Overwrite without prompting</td></tr>
+    <tr><td>restore /etc/passwd -ifnewer</td><td>Only restore if backup is newer than local copy</td></tr>
+    <tr><td colspan="2"><span class="section-label">Multiple files via wildcard</span></td></tr>
+    <tr><td>restore "/var/log/*.log"</td><td>All .log files — quote to prevent shell glob</td></tr>
+    <tr><td>restore "/var/log/*" -subdir=no</td><td>Everything directly in /var/log, no recursion</td></tr>
+    <tr><td>restore "/etc/network/*.conf"</td><td>Pattern match within a directory</td></tr>
+    <tr><td colspan="2"><span class="section-label">Single file to alternative location</span></td></tr>
+    <tr><td>restore /etc/hosts /tmp/hosts.recovered</td><td>Rename on restore — different filename allowed</td></tr>
+    <tr><td>restore /etc/hosts /tmp/</td><td>Same filename, different directory (note trailing /)</td></tr>
+    <tr><td>restore /db/conf/db.cfg /tmp/restore/db.cfg.20250801</td><td>Restore + rename in one step</td></tr>
+    <tr><td colspan="2"><span class="section-label">Multiple files to alternative directory</span></td></tr>
+    <tr><td>restore "/var/log/*.log" /tmp/log_restore/</td><td>All matching files into staging dir</td></tr>
+    <tr><td>restore /etc/ /tmp/etc_recovery/ -subdir=yes -replace=all</td><td>Whole tree to alternative — review then move</td></tr>
+  </table>
+  <div class="note"><strong>Always quote wildcards.</strong> <code>restore /var/log/*.log</code> without quotes lets the AIX shell expand the glob against the local filesystem first — meaning if /var/log is missing the .log files (which is why you're restoring them), the command becomes <code>restore</code> with no arguments. Quoting passes the pattern verbatim to dsmc, which then matches it against the server-side backup catalog.</div>
+</div>
+
+<!-- ════════════ POINT-IN-TIME RESTORES ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-amber">
+    <span class="badge b-amber">restore — point in time</span>
+    <h2>Restoring as of a specific date / time</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Point-in-time by date — scripted, no prompts</span></td></tr>
+    <tr><td>restore /db/ -subdir=yes -pitdate=08/01/2025</td><td>Restore /db tree as it existed on 1 Aug 2025 (00:00:00)</td></tr>
+    <tr><td>restore /db/ -subdir=yes -pitdate=08/01/2025 -pittime=14:30:00</td><td>PIT to a specific time of day</td></tr>
+    <tr><td>restore /etc/hosts -pitdate=07/15/2025</td><td>Single file as of a date</td></tr>
+    <tr><td>restore /db/ /restore/db_pit/ -subdir=yes -pitdate=08/01/2025</td><td>PIT restore to alternative location</td></tr>
+    <tr><td colspan="2"><span class="section-label">Date format</span></td></tr>
+    <tr><td>-pitdate=MM/DD/YYYY</td><td>US format — TSM default. Locale-dependent</td></tr>
+    <tr><td>-dateformat=4 -pitdate=2025-08-01</td><td>Force ISO format with -dateformat=4</td></tr>
+    <tr><td>-timeformat=1 -pittime=14:30:00</td><td>24-hour clock with -timeformat=1</td></tr>
+    <tr><td colspan="2"><span class="section-label">Choosing the right stanza for PIT</span></td></tr>
+    <tr><td>dsmc restore … -pitdate=… -servername=BC01_FILE</td><td>From file-level node — PIT within last 30 days</td></tr>
+    <tr><td>dsmc restore … -pitdate=… -servername=BC01_MFULL</td><td>From monthly node — PIT within last 6 months</td></tr>
+    <tr><td>dsmc restore … -pitdate=… -servername=BC01_YFULL</td><td>From yearly node — PIT within last 7 years</td></tr>
+  </table>
+  <div class="note"><strong>PIT semantics:</strong> <code>-pitdate</code> tells TSM "give me the version that was active as of this date." If the file existed on that date, you get the version backed up most recently <em>before</em> that date. If the file was deleted before that date, you get nothing — the file's last known version had already aged out by your PIT marker. Always run <code>q backup … -inactive</code> first to confirm versions exist around your target date.</div>
+</div>
+
+<!-- ════════════ -PICK INTERACTIVE ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-purple">
+    <span class="badge b-purple">-pick</span>
+    <h2>Interactive version picker</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Pick from available versions</span></td></tr>
+    <tr><td>restore /etc/hosts -pick</td><td>Open picker showing all active versions</td></tr>
+    <tr><td>restore /etc/hosts -pick -inactive</td><td>Include inactive (expired) versions in picker</td></tr>
+    <tr><td>restore /db/ -subdir=yes -pick -inactive</td><td>Pick versions across a recursive restore</td></tr>
+    <tr><td>restore /home/jim/ -pick -inactive -fromdate=07/01/2025</td><td>Filter picker to versions after a date</td></tr>
+    <tr><td colspan="2"><span class="section-label">Picker controls (inside the picker UI)</span></td></tr>
+    <tr><td>x</td><td>Mark/unmark current line for restore</td></tr>
+    <tr><td>up / down arrows</td><td>Navigate the version list</td></tr>
+    <tr><td>= (equals)</td><td>Mark all entries</td></tr>
+    <tr><td>0 (zero)</td><td>Clear all marks</td></tr>
+    <tr><td>o</td><td>OK / proceed with marked entries</td></tr>
+    <tr><td>c</td><td>Cancel without restoring</td></tr>
+  </table>
+  <div class="note"><strong>When to use -pick:</strong> ad-hoc recoveries where you genuinely don't know which version is the right one (e.g. user says "the file was OK last week but corrupted this week" — pick lets you walk back through versions one at a time). For scripted/automated restores or anything in a runbook, use <code>-pitdate</code> / <code>-pittime</code> so the recovery is reproducible. <code>-pick</code> always implies an interactive terminal — won't work in non-interactive scripts.</div>
+</div>
+
+<!-- ════════════ FROM ANOTHER NODE ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-rose">
+    <span class="badge b-rose">cross-node restore</span>
+    <h2>Restoring data from another node (DR / migration)</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Cross-node access — server-side authorisation required first</span></td></tr>
+    <tr><td>(server) UPDATE NODE BC01_FILE NEWNODENAME=BC01_FILE_OLD</td><td>Rename old/dead node so you can re-register</td></tr>
+    <tr><td>(server) GRANT PROXYNODE TARGET=BC01_FILE_OLD AGENT=BC02_FILE</td><td>Allow BC02_FILE to access BC01_FILE_OLD's data</td></tr>
+    <tr><td>(server) UPDATE NODE BC01_FILE_OLD HLADDRESS=&lt;BC02_IP&gt;</td><td>If using -fromnode, set source node's HL addr</td></tr>
+    <tr><td colspan="2"><span class="section-label">Run the restore on BC02 against BC01_FILE_OLD's data</span></td></tr>
+    <tr><td>dsmc restore -fromnode=BC01_FILE_OLD /home/jim/ /restore/jim/ -subdir=yes</td><td>Pull old BC01 data onto BC02 — fully authoritative recovery</td></tr>
+    <tr><td>dsmc restore -fromnode=BC01_FILE_OLD -pitdate=07/15/2025 / -subdir=yes</td><td>PIT restore from another node's backups</td></tr>
+    <tr><td>dsmc q backup -fromnode=BC01_FILE_OLD /home/</td><td>Inspect the other node's backups before restoring</td></tr>
+  </table>
+  <div class="note"><strong>Use case:</strong> recovering a destroyed LPAR's data onto a replacement LPAR before the original node is rebuilt; or migrating user data from one host to another using TSM as the transport. The PROXYNODE permission is mandatory — TSM will refuse the restore otherwise. Always restore to an alternative location (<code>/restore/...</code>) first, validate, then move into place.</div>
+</div>
+
+<!-- ════════════ IMAGE-MODE RESTORES ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-purple">
+    <span class="badge b-purple">restore image</span>
+    <h2>Image-mode restores — full filesystem recovery</h2>
+  </div>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td colspan="2"><span class="section-label">Discovery — what image backups exist</span></td></tr>
+    <tr><td>dsmc q image</td><td>List active image backups for this node</td></tr>
+    <tr><td>dsmc q image -inactive</td><td>Include inactive (older) image backups</td></tr>
+    <tr><td>dsmc q image /db</td><td>Image backups of a specific filesystem</td></tr>
+    <tr><td colspan="2"><span class="section-label">Restore to original filesystem</span></td></tr>
+    <tr><td>dsmc rest image /db</td><td>Restore most recent active image of /db</td></tr>
+    <tr><td>dsmc rest image /db -deletefiles</td><td>Remove files added since backup (true mirror)</td></tr>
+    <tr><td>dsmc rest image /db -incremental</td><td>Restore image + incrementals on top — full PIT</td></tr>
+    <tr><td colspan="2"><span class="section-label">Restore to alternative target — different LV / mountpoint</span></td></tr>
+    <tr><td>dsmc rest image /db /restore_db</td><td>Source filespace → alternative mountpoint</td></tr>
+    <tr><td>dsmc rest image /db /dev/lv_recover</td><td>Restore directly to a raw LV — must be same size</td></tr>
+    <tr><td colspan="2"><span class="section-label">Point-in-time image restore</span></td></tr>
+    <tr><td>dsmc rest image /db -pitdate=07/01/2025</td><td>Image as it existed on a specific date</td></tr>
+    <tr><td>dsmc rest image /db -pitdate=07/01/2025 -pittime=22:00:00</td><td>PIT to specific time</td></tr>
+    <tr><td colspan="2"><span class="section-label">Interactive picker for image restores</span></td></tr>
+    <tr><td>dsmc rest image /db -pick</td><td>Pick from available image versions</td></tr>
+    <tr><td>dsmc rest image /db -pick -inactive</td><td>Pick from active + inactive image versions</td></tr>
+  </table>
+  <div class="note"><strong>Critical pre-checks for image restore:</strong> the target filesystem MUST be unmounted before restore (<code>umount /db</code>) — otherwise you'll corrupt active data. The target LV must be at least the size of the original. Image restore is block-level — it overwrites the entire filesystem, including files you didn't want to touch. Use <code>-incremental</code> if you want image + post-backup file changes layered on top.</div>
+  <div class="note"><strong>Image vs file-level restore — when to choose which:</strong> file-level restores are surgical (one file, one directory, no downtime). Image restore is whole-filesystem and requires unmounting — typical use cases are DR after total disk loss, recovering a corrupted filesystem, or rebuilding an LPAR's data volume from scratch. For a few files, always use <code>restore</code>; for a whole filesystem from a known-good point in time, image is dramatically faster than file-level recursive restore.</div>
+</div>
+
+<!-- ════════════ COMMON OPTIONS QUICK REFERENCE ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-grey">
+    <span class="badge b-grey">options</span>
+    <h2>Common restore options reference</h2>
+  </div>
+  <table>
+    <tr><th>Option</th><th>Effect</th></tr>
+    <tr><td>-subdir=yes / no</td><td>Recurse into subdirectories. Default for restore is no</td></tr>
+    <tr><td>-replace=all</td><td>Overwrite without prompting (scripts)</td></tr>
+    <tr><td>-replace=no</td><td>Skip files that already exist on disk</td></tr>
+    <tr><td>-replace=prompt</td><td>Ask per file (interactive only — default)</td></tr>
+    <tr><td>-ifnewer</td><td>Only restore if backup version is newer than file on disk</td></tr>
+    <tr><td>-inactive</td><td>Include inactive/expired versions in picker or query</td></tr>
+    <tr><td>-pick</td><td>Open interactive version picker</td></tr>
+    <tr><td>-pitdate=MM/DD/YYYY</td><td>Restore versions active as of date</td></tr>
+    <tr><td>-pittime=HH:MM:SS</td><td>Combine with -pitdate for time-of-day precision</td></tr>
+    <tr><td>-fromdate / -todate</td><td>Filter -pick or -inactive query to date range</td></tr>
+    <tr><td>-fromnode=&lt;node&gt;</td><td>Restore data backed up by another node (proxynode)</td></tr>
+    <tr><td>-filelist=/path/list.txt</td><td>Restore the list of files in the file (one per line)</td></tr>
+    <tr><td>-preservepath=subtree</td><td>Preserve relative path under destination</td></tr>
+    <tr><td>-preservepath=complete</td><td>Preserve full source path under destination</td></tr>
+    <tr><td>-preservepath=none</td><td>Strip source path entirely (default for single files)</td></tr>
+    <tr><td>-tapeprompt=no</td><td>Don't prompt for tape mounts (scripted restores)</td></tr>
+    <tr><td>-quiet</td><td>Suppress per-file output (good for large restores)</td></tr>
+    <tr><td>-verbose</td><td>Show every file as it's restored (default)</td></tr>
+  </table>
+  <div class="note"><strong>-preservepath behaviour</strong> trips up most people on first use. With <code>-preservepath=subtree</code> and source <code>/home/jim/</code> being restored to <code>/restore/</code>, files land under <code>/restore/jim/...</code>. With <code>-preservepath=complete</code>, files land under <code>/restore/home/jim/...</code>. With <code>-preservepath=none</code>, files land directly in <code>/restore/</code> with no preserved structure (risky for multiple files — use only for single files).</div>
+</div>
+
+<!-- ════════════ TROUBLESHOOTING ════════════ -->
+<div class="tool-block">
+  <div class="tool-header hdr-rose">
+    <span class="badge b-rose">troubleshooting</span>
+    <h2>Common restore problems and what to check</h2>
+  </div>
+  <table>
+    <tr><th>Symptom</th><th>Likely cause / check</th></tr>
+    <tr><td>"ANS1092W No files matching search criteria found"</td><td>Wrong stanza — try -servername= against the right node. Or the path doesn't exist in backups: q backup &lt;path&gt;</td></tr>
+    <tr><td>"ANS1247E File not found" with -pitdate</td><td>File didn't exist on that date, or was deleted before it. Run q backup &lt;path&gt; -inactive to see actual version dates</td></tr>
+    <tr><td>Restore is extremely slow</td><td>Data tiered to COS — first read fetches from cloud. Subsequent reads are from local cache. Plan for slower first restore on aged data</td></tr>
+    <tr><td>Files restored to wrong location</td><td>-preservepath misunderstanding, or trailing slash on dest missing — see -preservepath note above</td></tr>
+    <tr><td>"ANS1126E File exists, not replaced"</td><td>Default -replace=prompt and you said no, OR -replace=no. Re-run with -replace=all if intentional</td></tr>
+    <tr><td>Image restore fails with "filesystem mounted"</td><td>umount the target FS first. Image restore is block-level and requires exclusive access</td></tr>
+    <tr><td>"ANS1029E Communication with TSM server is lost"</td><td>Server down, network issue, or schedule window collision. Check server-side actlog around the timestamp</td></tr>
+    <tr><td>Wildcards don't match</td><td>Shell expanded the glob first. Quote them: restore "/var/log/*.log"</td></tr>
+    <tr><td>"ANS1898I" repeating in output</td><td>Informational only — large restore progress. Use -quiet to suppress</td></tr>
+  </table>
+  <div class="note"><strong>Server-side correlation:</strong> when in doubt, watch the TSM server's <code>QUERY ACTLOG BEGINTIME=-00:30</code> while the restore runs — every client action shows up there with the matching session ID. ANR1xxxE messages on the server side will explain client-side ANSxxxxE messages with full context (e.g. why a session dropped, whether the server rejected an auth attempt).</div>
+</div>
+
+</div>
+</body>
+</html>
