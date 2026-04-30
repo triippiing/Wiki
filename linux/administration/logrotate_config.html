@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logrotate — HMC Backup Logs Runbook</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px var(--green); }
+    50%      { opacity:.5; box-shadow: 0 0 2px var(--green); }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .badge {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  /* ── platform section header ── */
+  .platform-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .platform-bar:first-of-type { margin-top: 0; }
+
+  .platform-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+
+  .platform-tag.linux { color: var(--cyan); border-color: var(--cyan); }
+  .platform-tag.aix   { color: var(--amber); border-color: var(--amber); }
+
+  .platform-bar h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+
+  /* ── section title (legacy) ── */
+  .section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  .steps .step:nth-child(1)  { animation-delay: .05s; border-left-color: var(--cyan); }
+  .steps .step:nth-child(2)  { animation-delay: .10s; }
+  .steps .step:nth-child(3)  { animation-delay: .15s; }
+  .steps .step:nth-child(4)  { animation-delay: .20s; }
+  .steps .step:nth-child(5)  { animation-delay: .25s; border-left-color: var(--green); }
+  .steps .step:nth-child(6)  { animation-delay: .30s; }
+  .steps .step:nth-child(7)  { animation-delay: .35s; }
+
+  .steps.aix .step:nth-child(1) { border-left-color: var(--amber); }
+  .steps.aix .step:nth-child(5) { border-left-color: var(--green); }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code block ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd + .cmd { margin-top: 10px; }
+
+  .cmd .c  { color: var(--text-dim); }       /* comment */
+  .cmd .kw { color: var(--cyan); }            /* keyword / builtin */
+  .cmd .str{ color: var(--green); }           /* string / path */
+  .cmd .ph { color: var(--amber); }           /* placeholder */
+  .cmd .flag{ color: #a78bfa; }               /* flags */
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding-left: 10px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,.04);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  /* ── warnings box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .55s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .warn-box li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--amber);
+  }
+
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: rgba(0,0,0,.25);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  /* ── footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>Logrotate — HMC Backup Logs Runbook</h1>
+  <span class="badge">drhmc01 / drhmc02</span>
+</header>
+
+<div class="wrap">
+
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Targets</div><div class="meta-val">drhmc01backup.log<br>drhmc02backup.log</div></div>
+    <div class="meta-cell"><div class="meta-label">Path</div><div class="meta-val">/var/log</div></div>
+    <div class="meta-cell"><div class="meta-label">Frequency</div><div class="meta-val">Weekly</div></div>
+    <div class="meta-cell"><div class="meta-label">Retention</div><div class="meta-val">12 archives</div></div>
+    <div class="meta-cell"><div class="meta-label">Compression</div><div class="meta-val">gzip / delaycompress</div></div>
+    <div class="meta-cell"><div class="meta-label">Strategy</div><div class="meta-val">copytruncate</div></div>
+  </div>
+
+  <!-- ────────────────────  LINUX  ──────────────────── -->
+  <div class="platform-bar">
+    <span class="platform-tag linux">LINUX</span>
+    <h2>Procedure Steps</h2>
+  </div>
+
+  <div class="steps">
+
+    <!-- L1 -->
+    <div class="step open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Confirm logrotate is present and cron-driven</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="l1"><button class="copy-btn" onclick="copy('l1',this)">COPY</button>which logrotate
+logrotate <span class="flag">--version</span>
+
+<span class="c"># Confirm daily cron hook is in place — present by default on RHEL/Ubuntu</span>
+ls <span class="flag">-la</span> <span class="str">/etc/cron.daily/logrotate</span></div>
+        <p class="note"><strong>Note:</strong> Linux distros run logrotate via <code>/etc/cron.daily/logrotate</code> automatically. If missing, add via crontab before relying on it.</p>
+      </div>
+    </div>
+
+    <!-- L2 -->
+    <div class="step">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Create config drop-in</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="l2"><button class="copy-btn" onclick="copy('l2',this)">COPY</button>vi <span class="str">/etc/logrotate.d/hmcbackup</span></div>
+        <p class="note">Drop-in file — picked up automatically by the daily cron hook. No service restart needed.</p>
+      </div>
+    </div>
+
+    <!-- L3 -->
+    <div class="step">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Config contents</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="l3"><button class="copy-btn" onclick="copy('l3',this)">COPY</button><span class="str">/var/log/drhmc01backup.log</span>
+<span class="str">/var/log/drhmc02backup.log</span>
+{
+    weekly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    dateext
+    dateformat <span class="ph">-%Y%m%d</span>
+}</div>
+        <p class="note"><strong>copytruncate</strong> chosen because the VTL scripts append with <code>&gt;&gt;</code> and don't trap SIGHUP. Copies the file then truncates the original in place — preserves open file handles.</p>
+        <p class="note"><strong>dateext</strong> produces <code>drhmc01backup.log-20260430.gz</code> instead of <code>.1.gz</code> — far easier to grep historically.</p>
+      </div>
+    </div>
+
+    <!-- L4 -->
+    <div class="step">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Validate (dry run)</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="l4"><button class="copy-btn" onclick="copy('l4',this)">COPY</button>logrotate <span class="flag">-d</span> <span class="str">/etc/logrotate.d/hmcbackup</span></div>
+        <p class="note"><code>-d</code> = debug, no changes made. Read output carefully — confirms both log paths are matched and shows the actions logrotate would take.</p>
+      </div>
+    </div>
+
+    <!-- L5 -->
+    <div class="step">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Force a real run and verify</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="l5"><button class="copy-btn" onclick="copy('l5',this)">COPY</button>logrotate <span class="flag">-f</span> <span class="str">/etc/logrotate.d/hmcbackup</span>
+
+<span class="c"># Confirm rotated archives appeared</span>
+ls <span class="flag">-la</span> <span class="str">/var/log/drhmc0*backup.log*</span>
+
+<span class="c"># Confirm state file tracks the rotation</span>
+grep drhmc <span class="str">/var/lib/logrotate/logrotate.status</span></div>
+        <p class="note"><code>-f</code> forces rotation regardless of frequency. Both files should appear in the state file with today's date.</p>
+      </div>
+    </div>
+
+  </div><!-- /linux steps -->
+
+  <!-- ────────────────────  AIX  ──────────────────── -->
+  <div class="platform-bar">
+    <span class="platform-tag aix">AIX</span>
+    <h2>Procedure Steps</h2>
+  </div>
+
+  <div class="steps aix">
+
+    <!-- A1 -->
+    <div class="step open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Confirm logrotate install paths</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="a1"><button class="copy-btn" onclick="copy('a1',this)">COPY</button>which logrotate
+logrotate <span class="flag">--version</span>
+
+<span class="c"># Toolbox builds typically install to /opt/freeware</span>
+rpm <span class="flag">-ql</span> logrotate <span class="flag">| grep -E</span> <span class="str">'status|logrotate.conf|cron'</span></div>
+        <p class="note"><strong>Note:</strong> AIX Toolbox builds usually live under <code>/opt/freeware</code> with symlinks into <code>/usr/bin</code>. State file is typically <code>/var/lib/logrotate.status</code> but may be <code>/opt/freeware/var/lib/logrotate.status</code>.</p>
+      </div>
+    </div>
+
+    <!-- A2 -->
+    <div class="step">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Verify cron schedule — AIX has no /etc/cron.daily</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="a2"><button class="copy-btn" onclick="copy('a2',this)">COPY</button><span class="c"># Check root's crontab for an existing logrotate entry</span>
+crontab <span class="flag">-l</span> <span class="flag">| grep</span> logrotate
+
+<span class="c"># If nothing returns, schedule it manually:</span>
+crontab <span class="flag">-e</span></div>
+        <div class="cmd" id="a2b"><button class="copy-btn" onclick="copy('a2b',this)">COPY</button><span class="c"># Add to root's crontab — daily at 02:30</span>
+30 2 * * *  /usr/bin/logrotate /etc/logrotate.conf >/dev/null 2>&1</div>
+        <p class="note"><strong>Critical:</strong> AIX has no <code>/etc/cron.daily</code> framework. The Toolbox RPM does not always drop a cron hook — verify and add manually if missing or rotation will silently never run.</p>
+      </div>
+    </div>
+
+    <!-- A3 -->
+    <div class="step">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Create config drop-in</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="a3"><button class="copy-btn" onclick="copy('a3',this)">COPY</button>vi <span class="str">/etc/logrotate.d/hmcbackup</span></div>
+        <p class="note">Same path convention as Linux. Confirm <code>/etc/logrotate.conf</code> contains <code>include /etc/logrotate.d</code> — Toolbox default does, but worth checking.</p>
+      </div>
+    </div>
+
+    <!-- A4 -->
+    <div class="step">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Config contents (AIX-adjusted)</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="a4"><button class="copy-btn" onclick="copy('a4',this)">COPY</button><span class="str">/var/log/drhmc01backup.log</span>
+<span class="str">/var/log/drhmc02backup.log</span>
+{
+    weekly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    dateext
+    dateformat <span class="ph">-%Y%m%d</span>
+}</div>
+        <p class="note"><strong>copytruncate</strong> mandatory here — AIX ksh holds the log open via <code>&gt;&gt;</code> and won't reopen on rotation. <code>create</code>-style rotation would break logging until the VTL script restarts.</p>
+        <p class="note"><strong>If using <code>create</code> instead</strong> — use group <code>system</code>, not <code>root</code>: <code>create 0640 root system</code>.</p>
+      </div>
+    </div>
+
+    <!-- A5 -->
+    <div class="step">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Validate, force-run, verify</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="a5"><button class="copy-btn" onclick="copy('a5',this)">COPY</button><span class="c"># Dry run</span>
+logrotate <span class="flag">-d</span> <span class="str">/etc/logrotate.d/hmcbackup</span>
+
+<span class="c"># Force real rotation</span>
+logrotate <span class="flag">-f</span> <span class="str">/etc/logrotate.d/hmcbackup</span>
+
+<span class="c"># Verify archives exist</span>
+ls <span class="flag">-la</span> <span class="str">/var/log/drhmc0*backup.log*</span>
+
+<span class="c"># Confirm state tracking — try both common paths</span>
+cat <span class="str">/var/lib/logrotate.status</span> 2>/dev/null <span class="flag">||</span> \
+    cat <span class="str">/opt/freeware/var/lib/logrotate.status</span>
+
+<span class="c"># Sanity check AIX errpt for any IO/permissions issues</span>
+errpt <span class="flag">| head</span></div>
+      </div>
+    </div>
+
+  </div><!-- /aix steps -->
+
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li><code>copytruncate</code> is preferred for VTL script logs on both platforms — VTL scripts append via <code>&gt;&gt;</code> and don't trap SIGHUP, so <code>create</code>-style rotation breaks logging until the script restarts.</li>
+      <li>AIX has no <code>/etc/cron.daily</code> — verify a logrotate cron entry exists in root's crontab. The Toolbox RPM does not always install one.</li>
+      <li>On AIX, if using <code>create</code> instead of <code>copytruncate</code>, use group <code>system</code> not <code>root</code>: <code>create 0640 root system</code>.</li>
+      <li><code>delaycompress</code> skips compressing the most recent rotation — avoids gzipping a file a process may still be writing to.</li>
+      <li><code>dateext</code> produces <code>drhmc01backup.log-20260430.gz</code> rather than <code>.1.gz</code> — far easier for historical greps and audit work.</li>
+      <li>Always run <code>logrotate -d</code> before <code>logrotate -f</code>. Dry run first, force second, never the other way around.</li>
+      <li>If logs sit on a separate filesystem, monitor free space independently — logrotate silently skips on ENOSPC.</li>
+      <li>If new HMCs come online, switch the glob to <code>/var/log/drhmc*backup.log</code> so they are picked up automatically.</li>
+    </ul>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer>
+  <span>drhmc01 / drhmc02 · Linux + AIX · weekly / 12 / copytruncate</span>
+  <span>HMC Backup Log Rotation</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    const step = header.parentElement;
+    step.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>
