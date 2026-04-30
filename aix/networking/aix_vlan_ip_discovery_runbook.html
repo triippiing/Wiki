@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIX — VLAN IP Discovery Runbook</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.4);
+    background: rgba(88,201,232,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  .step.ph-sweep   { border-left-color: var(--cyan); }
+  .step.ph-resolve { border-left-color: var(--green); }
+  .step.ph-output  { border-left-color: var(--amber); }
+
+  .step:nth-child(1) { animation-delay: .04s; }
+  .step:nth-child(2) { animation-delay: .08s; }
+  .step:nth-child(3) { animation-delay: .12s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── command breakdown table ── */
+  .breakdown {
+    margin-top: 14px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .breakdown-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 8px 14px;
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .breakdown table { width: 100%; border-collapse: collapse; }
+
+  .breakdown td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-size: 12px;
+  }
+
+  .breakdown tr:last-child td { border-bottom: none; }
+
+  .breakdown td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+    width: 30%;
+  }
+
+  .breakdown td:last-child {
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  .breakdown td:last-child code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── output block ── */
+  .output {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--text);
+    margin-top: 10px;
+  }
+
+  .output .ip   { color: var(--cyan); }
+  .output .ptr  { color: var(--text-dim); }
+  .output .mac  { color: var(--green); }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .5s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>AIX — VLAN IP Discovery Runbook</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">DISCOVERY</span>
+    <span class="badge">VLAN 131 · /24</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Platform</div><div class="meta-val">AIX</div></div>
+    <div class="meta-cell"><div class="meta-label">Shell</div><div class="meta-val">ksh</div></div>
+    <div class="meta-cell"><div class="meta-label">Subnet</div><div class="meta-val info">192.168.131.0/24</div></div>
+    <div class="meta-cell"><div class="meta-label">Method</div><div class="meta-val">ICMP sweep + ARP</div></div>
+    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val warn">Local L2 only</div></div>
+    <div class="meta-cell"><div class="meta-label">Privilege</div><div class="meta-val">root not required</div></div>
+  </div>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Parallel Ping Sweep</div>
+  <div class="steps">
+    <div class="step ph-sweep open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Seed the ARP cache with a parallel ICMP sweep</span>
+        <span class="step-tag tag-info">SWEEP</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># Parallel ping sweep across 192.168.131.1 - 192.168.131.254</span>
+i=1
+<span class="kw">while</span> [ $i <span class="flag">-le</span> 254 ]; <span class="kw">do</span>
+    (<span class="kw">ping</span> <span class="flag">-c</span> 1 <span class="flag">-w</span> 1 <span class="str">192.168.131.${i}</span> >/dev/null 2>&amp;1) &amp;
+    i=$((i+1))
+<span class="kw">done</span>
+<span class="kw">wait</span>
+<span class="kw">sleep</span> 2</div>
+
+        <div class="breakdown">
+          <div class="breakdown-header">Command Breakdown</div>
+          <table>
+            <tr><td>i=1</td><td>Initialise loop counter at the first usable host octet.</td></tr>
+            <tr><td>while [ $i -le 254 ]</td><td>Iterate until the broadcast address is reached. <code>254</code> stops short of <code>.255</code> (the broadcast for a /24).</td></tr>
+            <tr><td>( ping ... ) &amp;</td><td>Subshell launched in the background — the loop does not wait for ping to finish before launching the next one. This parallelises the sweep.</td></tr>
+            <tr><td>ping -c 1 -w 1</td><td>AIX ping syntax — send <strong>1</strong> packet, wait <strong>1</strong> second for a reply. <code>-w</code> on AIX is timeout in seconds (not deadline like on Linux).</td></tr>
+            <tr><td>>/dev/null 2>&amp;1</td><td>Discard both stdout and stderr — we don't care about ping output, only the ARP side-effect.</td></tr>
+            <tr><td>i=$((i+1))</td><td>POSIX arithmetic increment — pure ksh, no external <code>expr</code> needed.</td></tr>
+            <tr><td>wait</td><td>Block until every backgrounded subshell finishes. Without this, the next command would race ahead of unfinished pings.</td></tr>
+            <tr><td>sleep 2</td><td>Allow the ARP cache to settle. Background pings can complete a few ms before their ARP entry is fully populated.</td></tr>
+          </table>
+        </div>
+
+        <p class="note note-info"><strong>Why parallel:</strong> a serial sweep with a 1s timeout would take 4+ minutes for a /24. Backgrounding all 254 pings at once finishes in ~5 seconds and produces 254 job-control lines like <code>[1] 14352834</code> as PIDs are registered, then <code>Done</code> / <code>Done(1)</code> as each completes. <code>Done(1)</code> = ping got no reply, <code>Done</code> = reply received — but you don't need to read these; the ARP table is what matters.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Phase 2</span> Resolve &amp; Format Results</div>
+  <div class="steps">
+    <div class="step ph-resolve open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Read ARP cache, reverse-resolve hostnames, append MAC</span>
+        <span class="step-tag tag-ok">RESOLVE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="kw">arp</span> <span class="flag">-an</span> | <span class="kw">awk</span> <span class="str">'/\(.*\)/ &amp;&amp; !/incomplete/ {ip=$2; gsub(/[()]/,"",ip); print ip, $4}'</span> | \
+<span class="kw">sort</span> <span class="flag">-t.</span> +3n <span class="flag">-4</span> | \
+<span class="kw">while</span> <span class="kw">read</span> ip mac; <span class="kw">do</span>
+    name=$(<span class="kw">host</span> $ip 2>/dev/null | <span class="kw">awk</span> <span class="str">'/domain name pointer|name =/ {print $NF}'</span> | <span class="kw">sed</span> <span class="str">'s/\.$//'</span>)
+    [ <span class="flag">-z</span> <span class="str">"$name"</span> ] &amp;&amp; name=<span class="str">"&lt;no PTR&gt;"</span>
+    <span class="kw">printf</span> <span class="str">"%-18s %-32s %s\n"</span> <span class="str">"$ip"</span> <span class="str">"$name"</span> <span class="str">"$mac"</span>
+<span class="kw">done</span></div>
+
+        <div class="breakdown">
+          <div class="breakdown-header">Command Breakdown — Pipeline Stage 1: Extract from ARP</div>
+          <table>
+            <tr><td>arp -an</td><td><code>-a</code> dumps the full ARP cache; <code>-n</code> suppresses reverse DNS at this stage (faster — we resolve manually later for control over output format).</td></tr>
+            <tr><td>awk '/\(.*\)/ &amp;&amp; !/incomplete/'</td><td>Match only lines containing a parenthesised IP and exclude any <code>incomplete</code> entries (unanswered ARP probes that left a stub in the cache).</td></tr>
+            <tr><td>{ip=$2; gsub(/[()]/,"",ip); print ip, $4}</td><td>Field 2 is <code>(IP)</code> — strip the parentheses with <code>gsub</code>, then print the cleaned IP and field 4 (the MAC). Outputs <code>ip mac</code> per line for the next stage.</td></tr>
+          </table>
+        </div>
+
+        <div class="breakdown">
+          <div class="breakdown-header">Command Breakdown — Pipeline Stage 2: Sort Numerically</div>
+          <table>
+            <tr><td>sort -t.</td><td>Use <strong>.</strong> as the field separator — splits each IP into 4 fields by octet.</td></tr>
+            <tr><td>+3n -4</td><td><strong>AIX-native sort syntax.</strong> Sort starting at field offset <code>+3</code> (the 4th octet) up to but not including field <code>-4</code>, numerically (<code>n</code>). AIX <code>sort</code> does NOT accept GNU <code>-k4 -n</code> style.</td></tr>
+          </table>
+        </div>
+
+        <div class="breakdown">
+          <div class="breakdown-header">Command Breakdown — Pipeline Stage 3: Resolve &amp; Print</div>
+          <table>
+            <tr><td>while read ip mac; do</td><td>Read each sorted line into two variables — <code>ip</code> and <code>mac</code> — split on whitespace.</td></tr>
+            <tr><td>name=$(host $ip ...)</td><td>Run a reverse DNS lookup. Output of <code>host</code> on AIX is typically <code>X.Y.Z.W.in-addr.arpa domain name pointer host.fqdn.</code></td></tr>
+            <tr><td>awk '/domain name pointer|name =/ {print $NF}'</td><td>Match either AIX-style (<code>domain name pointer</code>) or BIND-style (<code>name =</code>) output and extract the last field — the FQDN.</td></tr>
+            <tr><td>sed 's/\.$//'</td><td>Strip the trailing dot DNS appends to FQDNs.</td></tr>
+            <tr><td>[ -z "$name" ] &amp;&amp; name="&lt;no PTR&gt;"</td><td>If no PTR record exists, the lookup returns nothing — substitute a placeholder so the column stays aligned.</td></tr>
+            <tr><td>printf "%-18s %-32s %s\n"</td><td>Print three left-justified columns: IP (18 chars), hostname (32 chars), MAC. Produces a clean, aligned table.</td></tr>
+          </table>
+        </div>
+
+        <p class="note note-caution"><strong>AIX gotchas:</strong> the GNU <code>sort -t. -k4 -n</code> form will fail with a usage error on AIX — always use the <code>+pos -pos</code> notation. Likewise, <code>host</code> may not be in stock AIX; if absent, swap it for <code>nslookup $ip 2>/dev/null | awk '/name =/ {print $NF}' | sed 's/\.$//'</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 3</span> Expected Output</div>
+  <div class="steps">
+    <div class="step ph-output open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Reference output — VLAN 131 sweep result</span>
+        <span class="step-tag tag-info">SAMPLE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="output"><span class="ip">192.168.131.1</span>      <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">0:59:dc:77:71:ec</span>
+<span class="ip">192.168.131.13</span>     <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">fa:16:3e:6f:c9:a7</span>
+<span class="ip">192.168.131.20</span>     <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">fa:16:3e:52:25:a5</span>
+<span class="ip">192.168.131.50</span>     <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">e6:8:0:3c:91:83</span>
+<span class="ip">192.168.131.54</span>     <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">0:11:25:bf:a8:96</span>
+<span class="ip">192.168.131.66</span>     <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">32:8a:67:b3:4e:6</span>
+<span class="ip">192.168.131.68</span>     <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">0:e:11:14:3d:80</span>
+<span class="ip">192.168.131.101</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">8:94:ef:22:a2:ca</span>
+<span class="ip">192.168.131.150</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">8:94:ef:22:a2:ca</span>
+<span class="ip">192.168.131.201</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">84:a9:38:d2:88:4d</span>
+<span class="ip">192.168.131.202</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">e0:91:f5:9c:f2:c7</span>
+<span class="ip">192.168.131.204</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">e0:91:f5:9c:f9:47</span>
+<span class="ip">192.168.131.205</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">7c:d3:a:5b:b2:8b</span>
+<span class="ip">192.168.131.210</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">7c:d3:a:de:35:1</span>
+<span class="ip">192.168.131.223</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">0:50:56:b8:7c:c8</span>
+<span class="ip">192.168.131.228</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">b8:ca:3a:75:84:e4</span>
+<span class="ip">192.168.131.233</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">8:94:ef:c:99:c0</span>
+<span class="ip">192.168.131.237</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">8:94:ef:c:99:c1</span>
+<span class="ip">192.168.131.249</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">0:e:11:15:68:37</span>
+<span class="ip">192.168.131.254</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">0:1c:7f:8b:dc:a5</span></div>
+
+        <p class="note note-info"><strong>Reading the MAC OUI prefixes:</strong> when DNS is missing, the first three octets of the MAC (OUI) often identify the device vendor — useful for triage:
+        <br>• <code>fa:16:3e</code> → OpenStack / KVM virtual NIC
+        <br>• <code>00:50:56</code> → VMware vSwitch
+        <br>• <code>b8:ca:3a</code> → Dell
+        <br>• <code>00:0e:11</code> → Dell (older / iDRAC range)
+        <br>• <code>84:a9:38</code> → IBM
+        <br>• <code>e0:91:f5</code> → Dell EMC
+        <br>• <code>7c:d3:0a</code> → IEEE-allocated, varies
+        <br>Note duplicate MACs at <code>.101</code>/<code>.150</code> and the consecutive <code>.233</code>/<code>.237</code> pair — likely the same device with two interfaces, or a VRRP/HSRP virtual address. Worth confirming with the network team before claiming either as "free".</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>Discovery scope is the local L2 segment only — ARP does not cross routers. If the VLAN spans subnets, this method only sees hosts on the same broadcast domain as the AIX box.</li>
+      <li>Hosts that block ICMP <strong>and</strong> haven't been talked to recently won't appear. Firewalled appliances and powered-off DHCP-leased addresses are invisible to this method.</li>
+      <li>Use AIX <code>sort +pos -pos</code> notation, NOT GNU <code>-k</code> — the GNU form errors out on AIX with a usage banner.</li>
+      <li>Use AIX <code>ping -c N -w SECS</code> — the <code>-w</code> flag is per-packet timeout on AIX, not deadline as on Linux.</li>
+      <li>If <code>host</code> is not installed, substitute <code>nslookup</code> in the lookup subshell.</li>
+      <li>This is a point-in-time snapshot of <strong>responsiveness</strong>, not an authoritative list of <strong>reservations</strong>. Always cross-check the IPAM / network team before claiming an address as free.</li>
+      <li>Re-run during business hours and out-of-hours if you're trying to capture intermittent or scheduled hosts.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>AIX · ksh · ICMP sweep + ARP discovery</span>
+  <span>vlan / discovery / network audit</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>
