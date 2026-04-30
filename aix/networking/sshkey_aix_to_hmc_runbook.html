@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Runbook: SSH Key Auth — trips-testlab → drhmc01</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-elev: #161b22;
+    --bg-elev2: #1c2128;
+    --border: #30363d;
+    --border-strong: #484f58;
+    --text: #e6edf3;
+    --text-dim: #8d96a0;
+    --text-faint: #6e7681;
+    --accent-collector: #58a6ff;
+    --accent-hmc: #f0883e;
+    --accent-success: #3fb950;
+    --accent-warn: #d29922;
+    --accent-error: #f85149;
+    --code-bg: #010409;
+    --hover: #21262d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 40px 100px;
+  }
+
+  /* HEADER */
+  .doc-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 40px;
+    margin-bottom: 50px;
+  }
+
+  .doc-meta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    margin-bottom: 24px;
+  }
+
+  .doc-meta .pill {
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+
+  .doc-meta .pill.live { color: var(--accent-success); border-color: var(--accent-success); }
+
+  h1 {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 42px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 17px;
+    max-width: 700px;
+  }
+
+  /* CONNECTION DIAGRAM */
+  .topology {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 32px;
+    margin-bottom: 50px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .host-card {
+    padding: 20px;
+    border-radius: 4px;
+    background: var(--bg-elev2);
+    border-left: 3px solid var(--border);
+  }
+
+  .host-card.collector { border-left-color: var(--accent-collector); }
+  .host-card.hmc { border-left-color: var(--accent-hmc); }
+
+  .host-role {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+
+  .host-card.collector .host-role { color: var(--accent-collector); }
+  .host-card.hmc .host-role { color: var(--accent-hmc); }
+
+  .host-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .host-ip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .host-os {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  .arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 24px;
+    color: var(--text-faint);
+    text-align: center;
+  }
+
+  .arrow div:first-child { color: var(--accent-collector); }
+  .arrow .label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    margin-top: 4px;
+  }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 60px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--text-faint);
+    font-weight: 600;
+  }
+
+  h2 {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .section-sub {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* STEP */
+  .step {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .step-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev2);
+  }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg);
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 16px;
+    flex: 1;
+  }
+
+  .run-on {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .run-on.collector {
+    background: rgba(88, 166, 255, 0.15);
+    color: var(--accent-collector);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+  }
+
+  .run-on.hmc {
+    background: rgba(240, 136, 62, 0.15);
+    color: var(--accent-hmc);
+    border: 1px solid rgba(240, 136, 62, 0.3);
+  }
+
+  .step-body {
+    padding: 20px;
+  }
+
+  .step-body p {
+    margin-bottom: 14px;
+    color: var(--text);
+  }
+
+  .step-body p:last-child { margin-bottom: 0; }
+
+  .step-body code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--bg);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+    color: var(--accent-collector);
+    border: 1px solid var(--border);
+  }
+
+  /* CODE BLOCKS */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+
+  .code-header {
+    background: var(--bg-elev2);
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+  }
+
+  .code-header .prompt {
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover {
+    background: var(--hover);
+    color: var(--text);
+    border-color: var(--text-dim);
+  }
+
+  .copy-btn.copied {
+    color: var(--accent-success);
+    border-color: var(--accent-success);
+  }
+
+  pre {
+    padding: 16px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  pre .comment { color: var(--text-faint); }
+  pre .prompt-char { color: var(--accent-success); user-select: none; }
+  pre .keyword { color: var(--accent-collector); }
+  pre .string { color: #a5d6ff; }
+
+  /* CALLOUTS */
+  .callout {
+    border-left: 3px solid var(--border-strong);
+    background: var(--bg-elev);
+    padding: 14px 18px;
+    margin: 16px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 14px;
+  }
+
+  .callout.info { border-left-color: var(--accent-collector); }
+  .callout.warn { border-left-color: var(--accent-warn); }
+  .callout.danger { border-left-color: var(--accent-error); }
+  .callout.success { border-left-color: var(--accent-success); }
+
+  .callout-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .callout.info .callout-label { color: var(--accent-collector); }
+  .callout.warn .callout-label { color: var(--accent-warn); }
+  .callout.danger .callout-label { color: var(--accent-error); }
+  .callout.success .callout-label { color: var(--accent-success); }
+
+  /* VERIFICATION */
+  .verify-box {
+    border: 1px dashed var(--accent-success);
+    background: rgba(63, 185, 80, 0.05);
+    padding: 14px 18px;
+    border-radius: 4px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+
+  .verify-box .label {
+    color: var(--accent-success);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  /* TROUBLESHOOTING TABLE */
+  .ts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 16px 0;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .ts-table th {
+    text-align: left;
+    padding: 12px 16px;
+    background: var(--bg-elev2);
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+
+  .ts-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .ts-table tr:last-child td { border-bottom: none; }
+
+  .ts-table code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--bg);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--accent-warn);
+    border: 1px solid var(--border);
+  }
+
+  /* FOOTER */
+  .doc-footer {
+    margin-top: 80px;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+    color: var(--text-faint);
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* PRINT */
+  @media print {
+    body { background: white; color: black; font-size: 11pt; }
+    .container { max-width: none; padding: 20px; }
+    .copy-btn { display: none; }
+    .step, .topology, .code-block, .ts-table { break-inside: avoid; }
+  }
+
+  @media (max-width: 700px) {
+    .container { padding: 30px 20px; }
+    h1 { font-size: 30px; }
+    .topology { grid-template-columns: 1fr; gap: 16px; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="doc-header">
+    <div class="doc-meta">
+      <span class="pill live">● Active</span>
+      <span class="pill">REV 1.0</span>
+      <span class="pill">OWNER: BACKUP &amp; RECOVERY</span>
+      <span>Last reviewed: 2026-04-22</span>
+    </div>
+    <h1>SSH Key-Based Authentication</h1>
+    <p class="subtitle">Runbook for establishing passwordless SSH from a management host (trips-testlab) to an IBM HMC (drhmc01) for unattended monitoring and automation.</p>
+  </header>
+
+  <!-- TOPOLOGY -->
+  <div class="topology">
+    <div class="host-card collector">
+      <div class="host-role">Source / Collector</div>
+      <div class="host-name">trips-testlab</div>
+      <div class="host-ip">192.168.131.135</div>
+      <div class="host-os">AIX management host · Originates SSH session as root</div>
+    </div>
+    <div class="arrow">
+      <div>──▶</div>
+      <div class="label">SSH / 22</div>
+    </div>
+    <div class="host-card hmc">
+      <div class="host-role">Destination / Target</div>
+      <div class="host-name">drhmc01</div>
+      <div class="host-ip">192.168.131.150</div>
+      <div class="host-os">IBM HMC V9R2 · Restricted shell · User hscroot</div>
+    </div>
+  </div>
+
+  <!-- PREREQS -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">00</span>
+      <h2>Prerequisites</h2>
+      <span class="section-sub">Confirm before starting</span>
+    </div>
+    <div class="step">
+      <div class="step-body">
+        <p>Verify the following before commencing:</p>
+        <p>• <strong>Network reachability</strong> on TCP/22 from <code>192.168.131.135</code> to <code>192.168.131.150</code>.</p>
+        <p>• <strong>hscroot password</strong> available — required once for the initial key upload.</p>
+        <p>• <strong>Root access</strong> on trips-testlab (or whichever local user will run the automation).</p>
+        <p>• <strong>An SCP/PuTTY session</strong> to the HMC for paste operations.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Generate the SSH key pair</h2>
+      <span class="section-sub">trips-testlab</span>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">1.1</span>
+        <span class="step-title">Create the directory if it does not already exist</span>
+        <span class="run-on collector">Run on trips-testlab</span>
+      </div>
+      <div class="step-body">
+        <p>The <code>~/.ssh</code> directory must exist with strict permissions before key generation.</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">#</span> mkdir -p ~/.ssh
+<span class="prompt-char">#</span> chmod 700 ~/.ssh</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">1.2</span>
+        <span class="step-title">Generate a dedicated RSA key pair (no passphrase)</span>
+        <span class="run-on collector">Run on trips-testlab</span>
+      </div>
+      <div class="step-body">
+        <p>A dedicated key isolated from any pre-existing keys. The empty passphrase is required for unattended cron execution; key security is enforced via filesystem permissions.</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">#</span> ssh-keygen -t rsa -b 4096 \
+    -C <span class="string">"hmc_monitor@trips-testlab"</span> \
+    -f ~/.ssh/hmc_monitor_rsa \
+    -N <span class="string">""</span></pre>
+        </div>
+        <div class="callout warn">
+          <div class="callout-label">⚠ Passphrase</div>
+          When prompted, leave the passphrase empty by pressing Enter twice. A passphrase will block unattended execution under cron.
+        </div>
+        <div class="verify-box">
+          <div class="label">✓ Verify</div>
+          <code>ls -l ~/.ssh/hmc_monitor_rsa*</code> — should show two files: private key (mode <code>600</code>) and public key (<code>.pub</code>, mode <code>644</code>).
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Configure SSH client alias</h2>
+      <span class="section-sub">trips-testlab</span>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">2.1</span>
+        <span class="step-title">Add a host alias to <code>~/.ssh/config</code></span>
+        <span class="run-on collector">Run on trips-testlab</span>
+      </div>
+      <div class="step-body">
+        <p>This allows the script to reference <code>drhmc01</code> by its short alias and have SSH automatically apply the correct user, IP, key file, and connection options.</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">#</span> cat &gt;&gt; ~/.ssh/config &lt;&lt;<span class="string">'EOF'</span>
+
+Host drhmc01
+    HostName 192.168.131.150
+    User hscroot
+    IdentityFile ~/.ssh/hmc_monitor_rsa
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+    ConnectTimeout 10
+    BatchMode yes
+EOF
+
+<span class="prompt-char">#</span> chmod 600 ~/.ssh/config</pre>
+        </div>
+        <div class="callout info">
+          <div class="callout-label">ℹ Why IdentitiesOnly yes</div>
+          Without this, SSH will offer every key in the agent before falling back to the configured key. HMCs may lock out hscroot after several failed attempts, so we want only the designated key to be presented.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Upload the public key to the HMC</h2>
+      <span class="section-sub">drhmc01</span>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">3.1</span>
+        <span class="step-title">Display the public key contents on the source host</span>
+        <span class="run-on collector">Run on trips-testlab</span>
+      </div>
+      <div class="step-body">
+        <p>Print the contents of the public key so it can be copied. Select the entire output as a single line — it must not contain any line breaks when transferred.</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">#</span> cat ~/.ssh/hmc_monitor_rsa.pub</pre>
+        </div>
+        <p>Expected format (will be a single long line):</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">Output</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="comment">ssh-rsa AAAAB3NzaC1yc2EAAA...</span>(very long string)<span class="comment">... hmc_monitor@trips-testlab</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">3.2</span>
+        <span class="step-title">SSH to the HMC interactively (last password-required step)</span>
+        <span class="run-on collector">Run on trips-testlab</span>
+      </div>
+      <div class="step-body">
+        <p>Authenticate with the hscroot password one final time to register the key.</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">#</span> ssh hscroot@192.168.131.150</pre>
+        </div>
+        <div class="callout danger">
+          <div class="callout-label">✕ Do not use ssh-copy-id</div>
+          The HMC's restricted shell does not support <code>ssh-copy-id</code>'s mechanism for appending to <code>authorized_keys</code>. The HMC-native <code>mkauthkeys</code> command must be used instead.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">3.3</span>
+        <span class="step-title">Register the public key with mkauthkeys</span>
+        <span class="run-on hmc">Run on drhmc01</span>
+      </div>
+      <div class="step-body">
+        <p>From the HMC prompt, paste the full public key as the argument to <code>mkauthkeys -a</code>. Wrap it in double quotes so the comma and trailing comment are preserved.</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">hscroot@drhmc01:~&gt;</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">$</span> mkauthkeys -a <span class="string">"ssh-rsa AAAAB3Nza...full_key... hmc_monitor@trips-testlab"</span></pre>
+        </div>
+        <p>Replace the example string above with the actual key copied in step 3.1.</p>
+        <div class="verify-box">
+          <div class="label">✓ Verify</div>
+          <code>mkauthkeys --ls</code> — your key should appear in the list. Inspect the comment field at the end (<code>hmc_monitor@trips-testlab</code>) to confirm the correct key was added.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">3.4</span>
+        <span class="step-title">Exit the HMC session</span>
+        <span class="run-on hmc">Run on drhmc01</span>
+      </div>
+      <div class="step-body">
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">hscroot@drhmc01:~&gt;</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">$</span> exit</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>Verify passwordless authentication</h2>
+      <span class="section-sub">trips-testlab</span>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">4.1</span>
+        <span class="step-title">Test connection using the configured alias</span>
+        <span class="run-on collector">Run on trips-testlab</span>
+      </div>
+      <div class="step-body">
+        <p>This single command exercises the full chain: SSH config alias resolution → key selection → HMC authentication → remote command execution.</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">#</span> ssh drhmc01 lshmc -V</pre>
+        </div>
+        <div class="callout success">
+          <div class="callout-label">✓ Expected behaviour</div>
+          The HMC version block should print immediately, with <strong>no password prompt</strong>. If the command returns the version, key authentication is fully functional.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TROUBLESHOOTING -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Troubleshooting</h2>
+      <span class="section-sub">If verification fails</span>
+    </div>
+
+    <div class="step">
+      <div class="step-body">
+        <p>For verbose output to diagnose the auth flow:</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">#</span> ssh -vvv drhmc01 lshmc -V 2&gt;&amp;1 | grep -E <span class="string">"(Offering|Authentication|denied|accept)"</span></pre>
+        </div>
+
+        <table class="ts-table">
+          <thead>
+            <tr><th>Symptom</th><th>Likely Cause</th><th>Resolution</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Prompts for password despite key being present</td>
+              <td>Key not registered on HMC, or wrong key being offered</td>
+              <td>Re-run <code>mkauthkeys --ls</code> on HMC; ensure key matches <code>~/.ssh/hmc_monitor_rsa.pub</code> on collector</td>
+            </tr>
+            <tr>
+              <td>Permission denied (publickey)</td>
+              <td>Permissions on private key, ~/.ssh, or ~/.ssh/config are too open</td>
+              <td><code>chmod 700 ~/.ssh; chmod 600 ~/.ssh/hmc_monitor_rsa ~/.ssh/config</code></td>
+            </tr>
+            <tr>
+              <td>Connection times out</td>
+              <td>Firewall blocking TCP/22 or HMC unreachable</td>
+              <td>Test reachability: <code>nc -zv 192.168.131.150 22</code> from trips-testlab</td>
+            </tr>
+            <tr>
+              <td>Host key verification failed</td>
+              <td>HMC was reinstalled / key changed</td>
+              <td><code>ssh-keygen -R 192.168.131.150 ; ssh-keygen -R drhmc01</code> then retry</td>
+            </tr>
+            <tr>
+              <td>Pasted key shows as multiple lines on HMC</td>
+              <td>Terminal wrapping during paste</td>
+              <td>Use <code>mkauthkeys --rm</code> to remove malformed entry, then re-paste with quotes ensuring single line</td>
+            </tr>
+            <tr>
+              <td><code>mkauthkeys: command not found</code></td>
+              <td>Not on the HMC restricted shell — likely shell escape or wrong host</td>
+              <td>Confirm prompt shows <code>hscroot@drhmc01</code>; reconnect if necessary</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROLLBACK -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Rollback procedure</h2>
+      <span class="section-sub">If the key needs to be revoked</span>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">6.1</span>
+        <span class="step-title">Remove the public key from the HMC</span>
+        <span class="run-on hmc">Run on drhmc01</span>
+      </div>
+      <div class="step-body">
+        <p>From an interactive hscroot session on the HMC:</p>
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">hscroot@drhmc01:~&gt;</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">$</span> mkauthkeys --ls
+<span class="prompt-char">$</span> mkauthkeys --rm <span class="string">"ssh-rsa AAAA...full_key... hmc_monitor@trips-testlab"</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">6.2</span>
+        <span class="step-title">Remove the keypair on the collector</span>
+        <span class="run-on collector">Run on trips-testlab</span>
+      </div>
+      <div class="step-body">
+        <div class="code-block">
+          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
+          <pre><span class="prompt-char">#</span> rm -i ~/.ssh/hmc_monitor_rsa ~/.ssh/hmc_monitor_rsa.pub</pre>
+        </div>
+        <p>Optionally remove the alias block from <code>~/.ssh/config</code> if the host is being decommissioned.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="doc-footer">
+    <span>Runbook · SSH Key Auth · trips-testlab → drhmc01</span>
+    <span>Generated: 2026-04-22 · IBM HMC V9R2</span>
+  </footer>
+
+</div>
+
+<script>
+  // Copy button handlers
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pre = btn.closest('.code-block').querySelector('pre');
+      const text = pre.innerText.replace(/^[#$]\s/gm, '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.textContent;
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1500);
+      }).catch(() => {
+        btn.textContent = 'Failed';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>
