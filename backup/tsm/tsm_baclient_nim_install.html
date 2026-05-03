@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RB-TSM-AIX-001 — TSM BA Client Binary NIM Install</title>
+<meta name="description" content="End-to-end procedure for staging IBM Spectrum Protect (TSM) BA client filesets, defining 22 standalone NIM clients on DR_NIM_01, and pushing the install in a single operation to bc01–bc22.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.4);
+    background: rgba(88,201,232,.06);
+  }
+
+  .badge-amber {
+    color: var(--amber);
+    border-color: rgba(240,163,10,.4);
+    background: rgba(240,163,10,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* ── topology card ── */
+  .topology {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 20px;
+    animation: fadeUp .4s .05s ease both;
+    opacity: 0;
+  }
+
+  .host-card {
+    padding: 16px 18px;
+    border-radius: 4px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+  }
+
+  .host-card.master { border-left-color: var(--cyan); }
+  .host-card.client { border-left-color: var(--amber); }
+
+  .host-role {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .host-card.master .host-role { color: var(--cyan); }
+  .host-card.client .host-role { color: var(--amber); }
+
+  .host-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin-bottom: 4px;
+  }
+
+  .host-ip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .host-os {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+
+  .arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: center;
+    color: var(--text-dim);
+  }
+
+  .arrow .glyph {
+    font-size: 22px;
+    color: var(--cyan);
+  }
+
+  .arrow .label {
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── checklist ── */
+  .checklist {
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .35s ease both;
+  }
+
+  .checklist li {
+    padding: 11px 18px 11px 42px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .checklist li:last-child { border-bottom: none; }
+
+  .checklist li::before {
+    content: '☐';
+    position: absolute;
+    left: 18px;
+    top: 10px;
+    color: var(--green);
+    font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .checklist li strong { color: var(--text-hi); }
+
+  .checklist li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-prereq   { border-left-color: var(--cyan); }
+  .step.ph-validate { border-left-color: var(--cyan); }
+  .step.ph-stage    { border-left-color: var(--green); }
+  .step.ph-define   { border-left-color: var(--cyan); }
+  .step.ph-clients  { border-left-color: var(--amber); }
+  .step.ph-group    { border-left-color: var(--purple); }
+  .step.ph-install  { border-left-color: var(--red); }
+  .step.ph-verify   { border-left-color: var(--green); }
+  .step.ph-rollback { border-left-color: var(--amber); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+    flex-wrap: wrap;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 28px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+
+  .run-on {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .run-on.master { background: rgba(88,201,232,.08); color: var(--cyan); border: 1px solid rgba(88,201,232,.25); }
+  .run-on.client { background: rgba(240,163,10,.08); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--purple); }
+  .cmd .flag { color: var(--amber); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-critical strong { color: var(--red); }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-info strong { color: var(--cyan); }
+
+  .note.note-verify {
+    border-left-color: var(--green);
+    background: rgba(57,211,83,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-verify strong { color: var(--green); }
+
+  /* ── inline reference / fileset table ── */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+
+  .ref-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  .ref-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .ref-table td:last-child {
+    color: var(--text-dim);
+  }
+
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  .ref-table code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── option grid ── */
+  .option-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  @media (max-width: 640px) {
+    .option-grid { grid-template-columns: 1fr; }
+  }
+
+  .option-card {
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .option-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    font-weight: 600;
+  }
+
+  .option-header.opt-a { background: rgba(57,211,83,.1); color: var(--green); border-bottom: 1px solid rgba(57,211,83,.2); }
+  .option-header.opt-b { background: rgba(240,163,10,.1); color: var(--amber); border-bottom: 1px solid rgba(240,163,10,.2); }
+
+  .option-desc {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── summary table ── */
+  .summary-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .4s .5s ease both;
+    opacity: 0;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .summary-table td:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: 720px) {
+    .topology { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>RB-TSM-AIX-001 — TSM BA Client Binary NIM Install</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">BINARY INSTALL</span>
+    <span class="badge">AIX 7.x · TSM 8.1.x</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-TSM-AIX-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">BA Client Binary NIM Install</div></div>
+    <div class="meta-cell"><div class="meta-label">Source</div><div class="meta-val mono">DR_NIM_01</div></div>
+    <div class="meta-cell"><div class="meta-label">Source IP</div><div class="meta-val mono">192.168.131.1</div></div>
+    <div class="meta-cell"><div class="meta-label">Targets</div><div class="meta-val mono warn">bc01 — bc22</div></div>
+    <div class="meta-cell"><div class="meta-label">Target subnet</div><div class="meta-val mono">.2 — .23 / 24</div></div>
+    <div class="meta-cell"><div class="meta-label">OS</div><div class="meta-val">AIX 7.x</div></div>
+    <div class="meta-cell"><div class="meta-label">Spectrum Protect</div><div class="meta-val info">8.1.x</div></div>
+    <div class="meta-cell"><div class="meta-label">Filesets</div><div class="meta-val">7 (TSM + GSKit + JBB)</div></div>
+    <div class="meta-cell"><div class="meta-label">Transport</div><div class="meta-val mono">nimsh / TCP 3901</div></div>
+  </div>
+
+  <!-- Topology -->
+  <div class="topology">
+    <div class="host-card master">
+      <div class="host-role">NIM Master</div>
+      <div class="host-name">DR_NIM_01</div>
+      <div class="host-ip">192.168.131.1</div>
+      <div class="host-os">AIX · NIM master · lpp_source provider</div>
+    </div>
+    <div class="arrow">
+      <div class="glyph">──▶</div>
+      <div class="label">nim -o cust</div>
+    </div>
+    <div class="host-card client">
+      <div class="host-role">NIM Clients × 22</div>
+      <div class="host-name">bc01 — bc22</div>
+      <div class="host-ip">192.168.131.2 — 192.168.131.23</div>
+      <div class="host-os">AIX · standalone · TSM BA targets</div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Prerequisites</div>
+  <ul class="checklist">
+    <li><strong>NIM master operational</strong> — <code>DR_NIM_01</code> built, <code>nimesis</code> and <code>nimd</code> SRC subsystems running.</li>
+    <li><strong>NFS mount accessible</strong> — staging area containing the seven extracted BA client filesets visible from <code>DR_NIM_01</code>.</li>
+    <li><strong>Network reachability</strong> — all 22 clients (<code>192.168.131.2 — .23</code>) reachable from <code>DR_NIM_01</code> over TCP/3901 (nimsh) and ICMP.</li>
+    <li><strong>Hostname resolution</strong> — bidirectional resolution between <code>DR_NIM_01</code> and each <code>bc&lt;NN&gt;</code> via DNS or <code>/etc/hosts</code>.</li>
+    <li><strong>NIM client fileset</strong> — <code>bos.sysmgt.nim.client</code> installed on each target (ships with base AIX media).</li>
+    <li><strong>Disk space on master</strong> — minimum 500 MB free at the lpp_source destination path.</li>
+    <li><strong>Root credentials</strong> — root or RBAC equivalent on <code>DR_NIM_01</code> and each target client.</li>
+  </ul>
+  <p class="note note-caution"><strong>Critical:</strong> The NIM client fileset (<code>bos.sysmgt.nim.client</code>) must be present on each <code>bc&lt;NN&gt;</code> before <code>niminit</code> in Phase 5 will succeed. Verify with <code>lslpp -l bos.sysmgt.nim.client</code> on a sample client first.</p>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Phase 2</span> Validate NIM Master State</div>
+  <div class="steps">
+    <div class="step ph-validate open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Confirm NIM master is healthy and serving</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c01"><button class="copy-btn" onclick="copy('c01',this)">COPY</button><span class="cmd-section">NIM master state and daemons</span>
+<span class="kw">lsnim</span> <span class="flag">-l</span> master | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">"Cstate|state"</span>
+<span class="kw">lssrc</span> <span class="flag">-s</span> nimesis
+<span class="kw">lssrc</span> <span class="flag">-s</span> nimd</div>
+        <p class="note note-info"><strong>Restart if needed:</strong> Both NIM daemons must be active. If either is inoperative, restart with <code>startsrc -s nimesis</code> / <code>startsrc -s nimd</code> before continuing.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Sweep all 22 clients for reachability</span>
+        <span class="step-tag tag-info">DISCOVER</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c02"><button class="copy-btn" onclick="copy('c02',this)">COPY</button><span class="cmd-section">Ping sweep bc01 → bc22</span>
+<span class="kw">for</span> i <span class="kw">in</span> $(<span class="kw">seq</span> 1 22); <span class="kw">do</span>
+    host=$(<span class="kw">printf</span> <span class="str">"bc%02d"</span> $i)
+    ip=$(<span class="kw">printf</span> <span class="str">"192.168.131.%d"</span> $((i+1)))
+    <span class="kw">ping</span> <span class="flag">-c1 -w2</span> $ip &gt;/dev/null 2&gt;&amp;1 \
+        &amp;&amp; <span class="kw">print</span> <span class="str">"OK   $host ($ip)"</span> \
+        || <span class="kw">print</span> <span class="str">"FAIL $host ($ip)"</span>
+<span class="kw">done</span></div>
+        <p class="note note-info"><strong>IP convention:</strong> <code>bc&lt;NN&gt;</code> → <code>192.168.131.(NN+1)</code>. So <code>bc01 = .2</code>, <code>bc22 = .23</code>. The <code>.1</code> address is reserved for <code>DR_NIM_01</code>. Any FAIL must be resolved (firewall, routing, host down) before that client can be defined.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Populate /etc/hosts on the master</span>
+        <span class="step-tag tag-caution">CONFIG</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c03"><button class="copy-btn" onclick="copy('c03',this)">COPY</button><span class="cmd-section">Append bc01 → bc22 to /etc/hosts (idempotent)</span>
+<span class="kw">for</span> i <span class="kw">in</span> $(<span class="kw">seq</span> 1 22); <span class="kw">do</span>
+    host=$(<span class="kw">printf</span> <span class="str">"bc%02d"</span> $i)
+    ip=$(<span class="kw">printf</span> <span class="str">"192.168.131.%d"</span> $((i+1)))
+    <span class="kw">grep</span> <span class="flag">-q</span> <span class="str">"$host"</span> /etc/hosts || <span class="kw">print</span> <span class="str">"$ip\t$host"</span> &gt;&gt; /etc/hosts
+<span class="kw">done</span></div>
+        <p class="note">Skip this step if DNS is authoritative for these names.</p>
+        <p class="note note-verify"><strong>✓ Verify:</strong> <code>host bc01</code> on <code>DR_NIM_01</code> resolves to <code>192.168.131.2</code>. From <code>bc01</code>, <code>host DR_NIM_01</code> resolves to <code>192.168.131.1</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 3</span> Stage Installation Media</div>
+  <div class="steps">
+    <div class="step ph-stage open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Required filesets</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note">Seven filesets, all required. JBB depends on the FilePath kernel extension; the BA client depends on GSKit for TLS.</p>
+        <table class="ref-table">
+          <thead>
+            <tr><th>Fileset</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>GSKit8.gskcrypt64.ppc.rte</td><td>IBM Global Security Kit — crypto runtime (TLS dependency)</td></tr>
+            <tr><td>GSKit8.gskssl64.ppc.rte</td><td>GSKit SSL libraries (TLS dependency)</td></tr>
+            <tr><td>tivoli.tsm.client.api.64bit</td><td>TSM API — required by BA client and any future TDP/RMAN integration</td></tr>
+            <tr><td>tivoli.tsm.client.ba.64bit</td><td>BA client (<code>dsmc</code>, <code>dsmcad</code>, <code>dsmtca</code>) — core fileset</td></tr>
+            <tr><td>tivoli.tsm.client.jbb.64bit</td><td>Journal-Based Backup engine</td></tr>
+            <tr><td>tivoli.tsm.client.webgui</td><td>Web GUI (optional but useful for ops handover)</td></tr>
+            <tr><td>tivoli.tsm.filepath_aix</td><td>FilePath kernel extension — required by JBB</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Copy media into a dedicated lpp_source directory</span>
+        <span class="step-tag tag-caution">CONFIG</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c05"><button class="copy-btn" onclick="copy('c05',this)">COPY</button><span class="cmd-section">Stage the seven filesets under /export/lpp_source</span>
+<span class="kw">mkdir</span> <span class="flag">-p</span> <span class="str">/export/lpp_source/tsm_ba_8.1</span>
+<span class="kw">cp</span> <span class="str">/mnt/nfs/tsm/8.1.x/*</span> <span class="str">/export/lpp_source/tsm_ba_8.1/</span>
+<span class="kw">cd</span> <span class="str">/export/lpp_source/tsm_ba_8.1</span>
+<span class="kw">ls</span> <span class="flag">-1</span></div>
+        <p class="note">Substitute <code>/mnt/nfs/tsm/8.1.x</code> for the NFS source path in your environment.</p>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Generate the table of contents</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c06"><button class="copy-btn" onclick="copy('c06',this)">COPY</button><span class="c"># NIM cannot enumerate filesets in an lpp_source directory without a current .toc</span>
+<span class="kw">cd</span> <span class="str">/export/lpp_source/tsm_ba_8.1</span>
+<span class="kw">inutoc</span> .
+<span class="kw">ls</span> <span class="flag">-l</span> .toc</div>
+        <p class="note note-caution"><strong>Common trap:</strong> Re-run <code>inutoc</code> after every change to the directory. A stale <code>.toc</code> is the most common cause of <em>"0503-005 Cannot find requested fileset"</em> errors during <code>nim -o cust</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Phase 4</span> Define the lpp_source NIM Resource</div>
+  <div class="steps">
+    <div class="step ph-define">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Register the staged directory as an lpp_source</span>
+        <span class="step-tag tag-caution">CONFIG</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c07"><button class="copy-btn" onclick="copy('c07',this)">COPY</button><span class="cmd-section">Define lpp_source resource lpp_tsm_ba_81</span>
+<span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> lpp_source \
+    <span class="flag">-a</span> server=master \
+    <span class="flag">-a</span> location=<span class="str">/export/lpp_source/tsm_ba_8.1</span> \
+    <span class="flag">-a</span> packages=all \
+    lpp_tsm_ba_81</div>
+        <p class="note">This creates the resource object <code>lpp_tsm_ba_81</code> that will be allocated to clients during the install push in Phase 7.</p>
+      </div>
+    </div>
+
+    <div class="step ph-define">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Verify the resource is "ready for use"</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c08"><button class="copy-btn" onclick="copy('c08',this)">COPY</button><span class="cmd-section">Inspect resource state</span>
+<span class="kw">lsnim</span> <span class="flag">-l</span> lpp_tsm_ba_81
+
+<span class="cmd-section">Confirm the seven filesets are visible to NIM</span>
+<span class="kw">nim</span> <span class="flag">-o</span> lslpp lpp_tsm_ba_81 | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">"tivoli|GSKit"</span></div>
+        <p class="note note-verify"><strong>✓ Verify:</strong> Output should show <code>Rstate = ready for use</code> and <code>type = lpp_source</code>. <code>simages = no</code> is expected — this is an application lpp_source, not a base OS one.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Phase 5</span> Define All 22 NIM Clients</div>
+  <div class="steps">
+    <div class="step ph-clients">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">Define bc01–bc22 as standalone NIM clients</span>
+        <span class="step-tag tag-caution">CONFIG</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c09"><button class="copy-btn" onclick="copy('c09',this)">COPY</button><span class="cmd-section">Single loop — defines all 22 in one pass</span>
+<span class="kw">for</span> i <span class="kw">in</span> $(<span class="kw">seq</span> 1 22); <span class="kw">do</span>
+    host=$(<span class="kw">printf</span> <span class="str">"bc%02d"</span> $i)
+    ip=$(<span class="kw">printf</span> <span class="str">"192.168.131.%d"</span> $((i+1)))
+
+    <span class="c"># Skip if already defined</span>
+    <span class="kw">lsnim</span> $host &gt;/dev/null 2&gt;&amp;1 &amp;&amp; { <span class="kw">print</span> <span class="str">"$host already defined, skipping"</span>; <span class="kw">continue</span>; }
+
+    <span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> standalone \
+        <span class="flag">-a</span> platform=chrp \
+        <span class="flag">-a</span> netboot_kernel=64 \
+        <span class="flag">-a</span> if1=<span class="str">"find_net $host 0"</span> \
+        <span class="flag">-a</span> net_definition=<span class="str">"ent 255.255.255.0 192.168.131.1"</span> \
+        <span class="flag">-a</span> cable_type1=N/A \
+        $host \
+      &amp;&amp; <span class="kw">print</span> <span class="str">"defined $host ($ip)"</span> \
+      || <span class="kw">print</span> <span class="str">"FAILED $host ($ip)"</span>
+<span class="kw">done</span></div>
+        <p class="note"><strong>Net definition:</strong> The <code>net_definition</code> attribute auto-creates the supporting NIM network object on the first iteration; subsequent definitions reuse it.</p>
+      </div>
+    </div>
+
+    <div class="step ph-clients">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">10</span>
+        <span class="step-title">Verify all 22 clients are registered</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="kw">lsnim</span> <span class="flag">-t</span> standalone | <span class="kw">grep</span> <span class="str">"^bc"</span> | <span class="kw">sort</span> | <span class="kw">wc</span> <span class="flag">-l</span>
+<span class="c"># Expected: 22</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-clients">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">11</span>
+        <span class="step-title">Initialise the NIM client daemon on each LPAR</span>
+        <span class="step-tag tag-caution">CONFIG</span>
+        <span class="run-on client">each bc&lt;NN&gt;</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="c"># One-time init per client. Run as root on each bc<NN> —</span>
+<span class="c"># substitute the actual hostname for each invocation.</span>
+<span class="kw">niminit</span> <span class="flag">-a</span> name=bc01 <span class="flag">-a</span> master=DR_NIM_01 <span class="flag">-a</span> connect=nimsh
+<span class="kw">lssrc</span> <span class="flag">-s</span> nimsh</div>
+        <p class="note note-info"><strong>nimsh vs shell:</strong> <code>connect=nimsh</code> is preferred — authenticated, doesn't require <code>.rhosts</code>. If the customer estate is locked to legacy <code>rsh</code>, fall back to <code>connect=shell</code> for the initial push and convert afterwards.</p>
+      </div>
+    </div>
+
+    <div class="step ph-clients">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">12</span>
+        <span class="step-title">Confirm bidirectional comms from the master</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="c"># Spot-check first and last clients. nim -o lslpp returns the client's</span>
+<span class="c"># installed fileset list — proves the master can reach the client and vice versa.</span>
+<span class="kw">nim</span> <span class="flag">-o</span> lslpp bc01
+<span class="kw">nim</span> <span class="flag">-o</span> lslpp bc22</div>
+        <p class="note note-verify"><strong>✓ Verify:</strong> Each call returns a populated fileset list rather than <em>"0042-006 cannot establish connection"</em>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Phase 6</span> Build the Machine Group</div>
+  <div class="steps">
+    <div class="step ph-group">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">13</span>
+        <span class="step-title">Define the group and add all 22 members</span>
+        <span class="step-tag tag-caution">CONFIG</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="cmd-section">Define group with bc01 as seed member</span>
+<span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> mac_group <span class="flag">-a</span> add_member=bc01 grp_tsm_onboard
+
+<span class="cmd-section">Add the remaining 21 members</span>
+<span class="kw">for</span> i <span class="kw">in</span> $(<span class="kw">seq</span> 2 22); <span class="kw">do</span>
+    host=$(<span class="kw">printf</span> <span class="str">"bc%02d"</span> $i)
+    <span class="kw">nim</span> <span class="flag">-o</span> change <span class="flag">-a</span> add_member=$host grp_tsm_onboard
+<span class="kw">done</span></div>
+        <p class="note">Grouping lets a single <code>nim -o cust</code> invocation drive the install in parallel rather than serialising 22 calls.</p>
+        <p class="note note-verify"><strong>✓ Verify:</strong> <code>lsnim -l grp_tsm_onboard | grep member_</code> returns 22 lines.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Phase 7</span> Push the Install to the Group</div>
+  <div class="steps">
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">14</span>
+        <span class="step-title">Dry-run first to validate dependency resolution</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="option-grid">
+          <div class="option-card">
+            <div class="option-header opt-a">Option A — Dry run</div>
+            <div class="option-desc">Preview-only with <code>-apYg</code>. No filesets installed. Use this first, every time.</div>
+          </div>
+          <div class="option-card">
+            <div class="option-header opt-b">Option B — Live commit</div>
+            <div class="option-desc">Real install with <code>-acgXY</code> in step 15. Only run after the dry-run is clean.</div>
+          </div>
+        </div>
+        <div class="cmd" id="c14"><button class="copy-btn" onclick="copy('c14',this)">COPY</button><span class="cmd-section">Dry-run install across grp_tsm_onboard</span>
+<span class="kw">nim</span> <span class="flag">-o</span> cust \
+    <span class="flag">-a</span> lpp_source=lpp_tsm_ba_81 \
+    <span class="flag">-a</span> filesets=<span class="str">"GSKit8.gskcrypt64.ppc.rte GSKit8.gskssl64.ppc.rte \
+                tivoli.tsm.client.api.64bit \
+                tivoli.tsm.client.ba.64bit \
+                tivoli.tsm.client.jbb.64bit \
+                tivoli.tsm.client.webgui \
+                tivoli.tsm.filepath_aix"</span> \
+    <span class="flag">-a</span> accept_licenses=yes \
+    <span class="flag">-a</span> installp_flags=<span class="str">"-apYg"</span> \
+    grp_tsm_onboard</div>
+        <p class="note note-info"><strong>Flag breakdown:</strong> <code>-a</code> apply, <code>-p</code> preview only, <code>-Y</code> auto-accept licenses, <code>-g</code> install requisite software automatically. The <code>-p</code> turns this into a no-op that exercises every code path except the actual install.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">15</span>
+        <span class="step-title">Commit the install</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c15"><button class="copy-btn" onclick="copy('c15',this)">COPY</button><span class="cmd-section">Live install — same command, with -acgXY</span>
+<span class="kw">nim</span> <span class="flag">-o</span> cust \
+    <span class="flag">-a</span> lpp_source=lpp_tsm_ba_81 \
+    <span class="flag">-a</span> filesets=<span class="str">"GSKit8.gskcrypt64.ppc.rte GSKit8.gskssl64.ppc.rte \
+                tivoli.tsm.client.api.64bit \
+                tivoli.tsm.client.ba.64bit \
+                tivoli.tsm.client.jbb.64bit \
+                tivoli.tsm.client.webgui \
+                tivoli.tsm.filepath_aix"</span> \
+    <span class="flag">-a</span> accept_licenses=yes \
+    <span class="flag">-a</span> installp_flags=<span class="str">"-acgXY"</span> \
+    grp_tsm_onboard</div>
+        <p class="note">Flags: apply, commit, install requisites, expand filesystems if needed, accept licenses.</p>
+        <p class="note note-critical"><strong>License acceptance is mandatory.</strong> Without <code>accept_licenses=yes</code>, the install will exit before the commit phase and leave applied-but-not-committed filesets across the entire estate — tedious to clean up.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">16</span>
+        <span class="step-title">Monitor progress</span>
+        <span class="step-tag tag-info">DISCOVER</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c16"><button class="copy-btn" onclick="copy('c16',this)">COPY</button><span class="cmd-section">Master-side summary</span>
+<span class="kw">ls</span> <span class="flag">-lt</span> /var/adm/ras/nim.installp* 2&gt;/dev/null
+
+<span class="cmd-section">Per-client log (run on the client itself)</span>
+<span class="kw">tail</span> <span class="flag">-f</span> /var/adm/ras/nim.installp</div>
+        <p class="note">Per-client install transcripts are written on the client side; the master keeps a summary in <code>/var/adm/ras/nim.installp</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 8 ════ -->
+  <div class="phase-label"><span>Phase 8</span> Post-Install Verification</div>
+  <div class="steps">
+    <div class="step ph-verify open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">17</span>
+        <span class="step-title">Confirm fileset commit state across the estate</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c17"><button class="copy-btn" onclick="copy('c17',this)">COPY</button><span class="c"># Loop over all 22 clients, return only COMMITTED lines or "not installed" markers.</span>
+<span class="c"># Anything else needs investigation.</span>
+<span class="kw">for</span> i <span class="kw">in</span> $(<span class="kw">seq</span> 1 22); <span class="kw">do</span>
+    host=$(<span class="kw">printf</span> <span class="str">"bc%02d"</span> $i)
+    <span class="kw">print</span> <span class="str">"=== $host ==="</span>
+    <span class="kw">ssh</span> $host <span class="str">"lslpp -l 'tivoli.tsm.client*' 'GSKit8*' 'tivoli.tsm.filepath_aix' 2&gt;&amp;1 \
+              | awk '\$NF==\"COMMITTED\" || /not installed/'"</span>
+<span class="kw">done</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">18</span>
+        <span class="step-title">Confirm dsmc binary is in place</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c18"><button class="copy-btn" onclick="copy('c18',this)">COPY</button><span class="c"># 64-bit BA client installs binaries under /usr/tivoli/tsm/client/ba/bin64.</span>
+<span class="kw">ssh</span> bc01 <span class="str">"ls -l /usr/tivoli/tsm/client/ba/bin64/dsmc /usr/tivoli/tsm/client/ba/bin64/dsmcad"</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">19</span>
+        <span class="step-title">Sanity-check version</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c19"><button class="copy-btn" onclick="copy('c19',this)">COPY</button><span class="kw">ssh</span> bc01 <span class="str">"/usr/tivoli/tsm/client/ba/bin64/dsmc -version"</span></div>
+        <p class="note note-info"><strong>Note:</strong> <code>dsmc</code> will not launch interactively until <code>dsm.sys</code> and <code>dsm.opt</code> are created — that is expected at this stage. The <code>-version</code> flag returns version info without requiring config.</p>
+        <p class="note note-verify"><strong>✓ Verify:</strong> Each client returns a version banner matching the lpp_source level — e.g. <code>Version 8, Release 1, Level x.x</code>.</p>
+      </div>
+    </div>
+
+    <p class="note note-verify" style="margin-top:14px"><strong>✓ Phase complete:</strong> Binaries are installed and committed across all 22 LPARs. Configuration deployment (<code>dsm.sys</code> / <code>dsm.opt</code>, <code>REGISTER NODE</code> server-side, <code>dsmcad</code> scheduler) is the next phase — covered separately under RB-TSM-AIX-002.</p>
+  </div>
+
+  <!-- ════ ROLLBACK ════ -->
+  <div class="phase-label"><span>Rollback</span> Rollback &amp; Troubleshooting</div>
+  <div class="steps">
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.1</span>
+        <span class="step-title">Reject an applied (uncommitted) install</span>
+        <span class="step-tag tag-caution">ROLLBACK</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="cRB1"><button class="copy-btn" onclick="copy('cRB1',this)">COPY</button><span class="c"># Use the -r reject flag via NIM.</span>
+<span class="c"># Only works against applied — not committed — filesets.</span>
+<span class="kw">nim</span> <span class="flag">-o</span> cust \
+    <span class="flag">-a</span> installp_flags=<span class="str">"-r"</span> \
+    <span class="flag">-a</span> filesets=<span class="str">"tivoli.tsm.client.ba.64bit tivoli.tsm.client.api.64bit \
+                tivoli.tsm.client.jbb.64bit tivoli.tsm.client.webgui \
+                tivoli.tsm.filepath_aix"</span> \
+    grp_tsm_onboard</div>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.2</span>
+        <span class="step-title">Deinstall a committed fileset</span>
+        <span class="step-tag tag-caution">ROLLBACK</span>
+        <span class="run-on client">each bc&lt;NN&gt;</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="cRB2"><button class="copy-btn" onclick="copy('cRB2',this)">COPY</button><span class="c"># No NIM-native verb for deinstalling committed filesets. Run installp -u per client.</span>
+<span class="kw">installp</span> <span class="flag">-u</span> tivoli.tsm.client.webgui</div>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.3</span>
+        <span class="step-title">Common failure signatures</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Symptom</th><th>Cause &amp; resolution</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>0042-001 nim: 'client' is not a valid object</td>
+              <td>Client not defined or name mismatch. Verify with <code>lsnim bc&lt;NN&gt;</code>.</td>
+            </tr>
+            <tr>
+              <td>0042-006 cannot establish connection</td>
+              <td>nimsh not running on client, port 3901/tcp blocked, or hostname resolution mismatch. Check <code>lssrc -s nimsh</code> on the client and verify <code>/etc/hosts</code> on both sides.</td>
+            </tr>
+            <tr>
+              <td>0503-005 Cannot find requested fileset</td>
+              <td>Stale or missing <code>.toc</code>. Re-run <code>inutoc /export/lpp_source/tsm_ba_8.1</code> and retry.</td>
+            </tr>
+            <tr>
+              <td>0503-409 bosboot verification failed</td>
+              <td>Pre-existing system issue, not caused by this install. Investigate <code>bosboot -v -a</code> on the affected client before retrying.</td>
+            </tr>
+            <tr>
+              <td>filepath_aix kernel ext error</td>
+              <td>Another process holds the kernel extension. Stop any running TSM/JBB processes (<code>ps -ef | grep dsm</code>) and retry.</td>
+            </tr>
+            <tr>
+              <td>License acceptance error mid-install</td>
+              <td><code>accept_licenses=yes</code> was omitted. Re-run with the flag set; previously-applied filesets will be skipped.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.4</span>
+        <span class="step-title">Log locations</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="run-on master">DR_NIM_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Location</th><th>Contents</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>/var/adm/ras/nim.installp</td><td>Per-host install transcript (lives on both master and client)</td></tr>
+            <tr><td>/var/adm/ras/nimlog</td><td>Master-side NIM operations log</td></tr>
+            <tr><td>/smit.log</td><td>Fallback if SMIT was used for any step</td></tr>
+            <tr><td>lslpp -h &lt;fileset&gt;</td><td>Full apply / commit / reject history per fileset</td></tr>
+          </tbody>
+        </table>
+        <p class="note note-info"><strong>Cleanup:</strong> The machine group <code>grp_tsm_onboard</code> can be retained for future patching campaigns or removed with <code>nim -o remove grp_tsm_onboard</code>. The lpp_source should be retained for future onboardings and BA client upgrades.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Step Summary</div>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
+      <tr><td>lsnim -l master</td><td>Confirm NIM master state</td><td>Cstate must be "ready for a NIM operation"</td></tr>
+      <tr><td>lssrc -s nimesis / nimd</td><td>Confirm NIM daemons running</td><td>Restart with startsrc -s &lt;name&gt; if down</td></tr>
+      <tr><td>inutoc /export/lpp_source/tsm_ba_8.1</td><td>Generate lpp_source TOC</td><td>Re-run after every directory change</td></tr>
+      <tr><td>nim -o define -t lpp_source ...</td><td>Register staged dir as NIM resource</td><td>Phase 4 — creates lpp_tsm_ba_81</td></tr>
+      <tr><td>nim -o define -t standalone ...</td><td>Define each bc&lt;NN&gt; as NIM client</td><td>Phase 5 — looped for all 22</td></tr>
+      <tr><td>niminit -a name=bc&lt;NN&gt; ...</td><td>Initialise NIM client daemon</td><td>Run on each LPAR, one-time</td></tr>
+      <tr><td>nim -o define -t mac_group ...</td><td>Build machine group</td><td>Enables single-shot parallel install</td></tr>
+      <tr><td>nim -o cust ... -apYg</td><td>Dry-run install (preview only)</td><td>Phase 7 step 14 — must be clean before live</td></tr>
+      <tr><td>nim -o cust ... -acgXY</td><td>Live install — apply, commit, requisites</td><td>accept_licenses=yes mandatory</td></tr>
+      <tr><td>lslpp -l 'tivoli.tsm.client*'</td><td>Verify fileset commit state</td><td>Looped across all 22 clients post-install</td></tr>
+      <tr><td>dsmc -version</td><td>Sanity-check installed version</td><td>Works without dsm.sys / dsm.opt configured</td></tr>
+      <tr><td>nim -o cust -a installp_flags="-r"</td><td>Reject applied (uncommitted) install</td><td>Rollback step RB.1</td></tr>
+      <tr><td>installp -u &lt;fileset&gt;</td><td>Deinstall committed fileset</td><td>Per-client only — no NIM verb exists</td></tr>
+    </table>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>Always run the dry-run (<code>-apYg</code>) before the live install (<code>-acgXY</code>). The dry-run exercises dependency resolution against all 22 clients; uncaught issues here become 22 failures during the live push.</li>
+      <li><code>accept_licenses=yes</code> is non-negotiable on the live install. Omitting it leaves applied-but-not-committed filesets across the estate, which then have to be cleaned up per host.</li>
+      <li>The NIM client fileset (<code>bos.sysmgt.nim.client</code>) must already be installed on each <code>bc&lt;NN&gt;</code> before <code>niminit</code>. It ships with base AIX, but custom mksysb images sometimes drop it.</li>
+      <li>Re-run <code>inutoc</code> after any change to the lpp_source directory. A stale <code>.toc</code> is the most common cause of <em>0503-005 Cannot find requested fileset</em>.</li>
+      <li>The IP convention is <code>bc&lt;NN&gt;</code> → <code>192.168.131.(NN+1)</code>. Verify both directions of name resolution before defining clients — half-broken DNS shows up later as <code>0042-006 cannot establish connection</code>.</li>
+      <li>Configuration deployment (<code>dsm.sys</code>, <code>dsm.opt</code>, <code>REGISTER NODE</code> server-side, <code>dsmcad</code> scheduler) is intentionally out of scope here — covered under RB-TSM-AIX-002.</li>
+      <li>Retain <code>lpp_tsm_ba_81</code> and <code>grp_tsm_onboard</code> after the install completes. Both are reusable for future BA client upgrades and patching campaigns.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>RB-TSM-AIX-001 · TSM BA Client Binary NIM Install · DR_NIM_01 → bc01–bc22</span>
+  <span>AIX 7.x · IBM Spectrum Protect 8.1.x</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>
