@@ -4,11 +4,11 @@ A centralised knowledge base of HTML runbooks, procedures, and reference materia
 
 ## Purpose
 
-This wiki serves as a living library of operational documentation, compiled by myself over the course of my 7 year unix career. Each article is a self-contained HTML runbook that can be opened in any browser, printed, or shared without external dependencies. The goal is to capture proven procedures, reduce tribal knowledge, and provide a reliable reference during both routine maintenance and incident response tickets.
+This wiki serves as an actively updated library of operational documentation, compiled by myself over the course of my 7 year unix career. Each article is a self contained HTML runbook that can be opened in any browser, printed, or shared without external dependencies. The goal is to capture proven procedures and to serve as a reliable reference during both routine maintenance tasks and incident response tickets.
 
 ## How to browse
 
-The wiki is published via GitHub Pages — the proper way to read it is at:
+The wiki is published via GitHub Pages - the proper way to read it is at:
 
 **https://triippiing.github.io/Wiki/**
 
@@ -34,7 +34,7 @@ Cloning the repo and opening the `.html` files directly also works — every run
 | **reference/** | Cheat sheets and quick-reference cards (FTP, SCP, rsync, etc.) |
 | **scripts/** | Tooling for the wiki itself — currently `build_index.py` for index generation |
 
-Several of these directories are sparsely populated today and will fill out over time as procedures get written up. The full taxonomy is intentional — it's the shape the wiki is growing into, not a snapshot of what's already there.
+Several of these directories are sparsely populated as of writing this readme and will fill out over time as procedures get uploaded. The full taxonomy is deliberate, im lazy and do not want to be constantly editing this thing so have provisioned for the future.
 
 ## File format
 
