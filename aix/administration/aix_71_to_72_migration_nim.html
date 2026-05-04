@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIX 7.1 → 7.2 Migration · nimadm</title>
+<meta name="description" content="Single-LPAR AIX 7.1 to 7.2 version migration via nimadm (NIM Alternate Disk Migration), executed from a NIM master against a clone of the client's rootvg. The running 7.1 system is left untouched until reboot; cutover is a single reboot.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.4);
+    background: rgba(88,201,232,.06);
+  }
+
+  .badge-amber {
+    color: var(--amber);
+    border-color: rgba(240,163,10,.4);
+    background: rgba(240,163,10,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* ── topology card ── */
+  .topology {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 20px;
+    animation: fadeUp .4s .05s ease both;
+    opacity: 0;
+  }
+
+  .host-card {
+    padding: 16px 18px;
+    border-radius: 4px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+  }
+
+  .host-card.master { border-left-color: var(--cyan); }
+  .host-card.client { border-left-color: var(--amber); }
+
+  .host-role {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .host-card.master .host-role { color: var(--cyan); }
+  .host-card.client .host-role { color: var(--amber); }
+
+  .host-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin-bottom: 4px;
+  }
+
+  .host-ip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .host-os {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+
+  .arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: center;
+    color: var(--text-dim);
+  }
+
+  .arrow .glyph {
+    font-size: 22px;
+    color: var(--cyan);
+  }
+
+  .arrow .label {
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── checklist ── */
+  .checklist {
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .35s ease both;
+  }
+
+  .checklist li {
+    padding: 11px 18px 11px 42px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .checklist li:last-child { border-bottom: none; }
+
+  .checklist li::before {
+    content: '☐';
+    position: absolute;
+    left: 18px;
+    top: 10px;
+    color: var(--green);
+    font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .checklist li strong { color: var(--text-hi); }
+
+  .checklist li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-prereq   { border-left-color: var(--cyan); }
+  .step.ph-validate { border-left-color: var(--cyan); }
+  .step.ph-stage    { border-left-color: var(--green); }
+  .step.ph-backup   { border-left-color: var(--purple); }
+  .step.ph-define   { border-left-color: var(--cyan); }
+  .step.ph-install  { border-left-color: var(--red); }
+  .step.ph-verify   { border-left-color: var(--green); }
+  .step.ph-rollback { border-left-color: var(--amber); }
+  .step.ph-cleanup  { border-left-color: var(--text-dim); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+    flex-wrap: wrap;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 28px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+
+  .run-on {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .run-on.master { background: rgba(88,201,232,.08); color: var(--cyan); border: 1px solid rgba(88,201,232,.25); }
+  .run-on.client { background: rgba(240,163,10,.08); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .run-on.hmc    { background: rgba(167,139,250,.08); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--purple); }
+  .cmd .flag { color: var(--amber); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-critical strong { color: var(--red); }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-info strong { color: var(--cyan); }
+
+  .note.note-verify {
+    border-left-color: var(--green);
+    background: rgba(57,211,83,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-verify strong { color: var(--green); }
+
+  /* ── inline reference table ── */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+
+  .ref-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  .ref-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .ref-table td:last-child {
+    color: var(--text-dim);
+  }
+
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  .ref-table code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── phase strip (nimadm 12 phases) ── */
+  .phase-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .phase-tile {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    border-left: 2px solid var(--cyan);
+  }
+
+  .phase-tile.long { border-left-color: var(--red); }
+  .phase-tile.fin  { border-left-color: var(--green); }
+
+  .phase-tile-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .phase-tile-title {
+    font-size: 12px;
+    color: var(--text-hi);
+    line-height: 1.4;
+  }
+
+  /* ── option grid ── */
+  .option-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  @media (max-width: 640px) {
+    .option-grid { grid-template-columns: 1fr; }
+  }
+
+  .option-card {
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .option-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    font-weight: 600;
+  }
+
+  .option-header.opt-a { background: rgba(57,211,83,.1); color: var(--green); border-bottom: 1px solid rgba(57,211,83,.2); }
+  .option-header.opt-b { background: rgba(240,163,10,.1); color: var(--amber); border-bottom: 1px solid rgba(240,163,10,.2); }
+
+  .option-desc {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .option-desc:last-child { border-bottom: none; }
+
+  .option-desc strong { color: var(--text-hi); font-weight: 600; }
+  .option-desc code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── summary table ── */
+  .summary-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .4s .5s ease both;
+    opacity: 0;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .summary-table td:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: 720px) {
+    .topology { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>AIX 7.1 → 7.2 Migration · nimadm</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">NIMADM</span>
+    <span class="badge">AIX 7.1 → 7.2</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-PATCH-AIX-002</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Version migration · 7.1 → 7.2</div></div>
+    <div class="meta-cell"><div class="meta-label">Method</div><div class="meta-val mono">nimadm (NIM Alt-Disk Migration)</div></div>
+    <div class="meta-cell"><div class="meta-label">Source level</div><div class="meta-val mono">7100-05-12-2336</div></div>
+    <div class="meta-cell"><div class="meta-label">Target level</div><div class="meta-val mono ok">7200-05-10</div></div>
+    <div class="meta-cell"><div class="meta-label">NIM master</div><div class="meta-val mono">dr_nim_01</div></div>
+    <div class="meta-cell"><div class="meta-label">Client LPAR</div><div class="meta-val mono">lpar01</div></div>
+    <div class="meta-cell"><div class="meta-label">Working VG</div><div class="meta-val mono">nimadmvg · ≥ 2× rootvg</div></div>
+    <div class="meta-cell"><div class="meta-label">Spare disk</div><div class="meta-val mono">hdisk1 · ≥ rootvg</div></div>
+    <div class="meta-cell"><div class="meta-label">Window</div><div class="meta-val mono warn">3 — 4 hr</div></div>
+    <div class="meta-cell"><div class="meta-label">nimadm runtime</div><div class="meta-val">90 — 180 min</div></div>
+    <div class="meta-cell"><div class="meta-label">Cutover</div><div class="meta-val ok">single reboot</div></div>
+  </div>
+
+  <!-- Topology -->
+  <div class="topology">
+    <div class="host-card master">
+      <div class="host-role">NIM Master</div>
+      <div class="host-name">dr_nim_01</div>
+      <div class="host-ip">≥ 7.2 TL5 — must be at or above target</div>
+      <div class="host-os">lpp_source · SPOT · nimadmvg working store</div>
+    </div>
+    <div class="arrow">
+      <div class="glyph">──▶</div>
+      <div class="label">nimadm -c</div>
+    </div>
+    <div class="host-card client">
+      <div class="host-role">Client LPAR</div>
+      <div class="host-name">lpar01</div>
+      <div class="host-ip">7.1 TL5 SP12 → 7.2 TL5 SP10</div>
+      <div class="host-os">rootvg cloned to hdisk1 · live system untouched</div>
+    </div>
+  </div>
+
+  <p class="note note-info" style="margin-bottom:24px"><strong>Worked example:</strong> All commands assume <code>lpar01</code> as the client (already a defined NIM machine object on <code>dr_nim_01</code>), <code>hdisk0</code> = live 7.1 rootvg, <code>hdisk1</code> = unassigned spare, lpp_source <code>lpp_aix72tl5sp10</code>, SPOT <code>spot_aix72tl5sp10</code>, working VG <code>nimadmvg</code>, media path <code>/export/nim/media/AIX_7.2_TL5_SP10/</code>. Sub in your own values throughout.</p>
+
+  <p class="note note-caution" style="margin-bottom:32px"><strong>Out of scope:</strong> new installations / "preservation" installs · PowerHA / HACMP-clustered nodes (cluster must be quiesced; migrate one node at a time per IBM's PowerHA migration procedure) · LPAR migrations (LPM is unrelated to nimadm). For 7.1 → 7.3 the procedure is identical — use a 7.3 NIM master and target a 7.3 lpp_source.</p>
+
+  <p class="note note-info" style="margin-bottom:32px"><strong>SP version drift:</strong> SP versions evolve. Confirm the latest 7.2 TL5 SP available on IBM Entitled Software Support (ESS) and target that — there is no benefit to migrating to an older SP and then patching forward.</p>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Pre-change planning · T-7 to T-2 days</div>
+  <ul class="checklist">
+    <li><strong>Change ticket raised</strong> — CAB approval logged.</li>
+    <li><strong>Maintenance window agreed</strong> with application owners.</li>
+    <li><strong>AIX 7.2 entitlement confirmed</strong> in ESS.</li>
+    <li><strong>AIX 7.2 base media downloaded</strong> to NIM master.</li>
+    <li><strong>NIM master at ≥ target client level</strong> — <code>oslevel -s</code> on master must be ≥ <code>7200-05-10</code>.</li>
+    <li><strong>NIM master has free space</strong> for lpp_source (~6 GB) and SPOT.</li>
+    <li><strong>NIM master has nimadmvg</strong> with ≥ 2× client rootvg in free PPs.</li>
+    <li><strong>Client LPAR has free disk</strong> for migration target (≥ rootvg size).</li>
+    <li><strong>Client reachable from NIM master</strong> and resolves both ways.</li>
+    <li><strong>Backup strategy confirmed</strong> — mksysb to NIM, plus TSM file-level coverage.</li>
+    <li><strong>Third-party software confirmed compatible</strong> with AIX 7.2 (see note below).</li>
+    <li><strong>HMC console access tested</strong> for the client LPAR.</li>
+  </ul>
+
+  <p class="note note-caution" style="margin-top:14px"><strong>Third-party software compatibility matters more here than for an SP.</strong> Verify against AIX 7.2 TL5:</p>
+  <table class="ref-table">
+    <thead><tr><th>Component</th><th>What to check</th></tr></thead>
+    <tbody>
+      <tr><td>TSM / IBM Spectrum Protect client</td><td>Per IBM support matrix for AIX 7.2 TL5 SPx supported client versions. Older clients may need upgrading post-migration.</td></tr>
+      <tr><td>PowerHA / HACMP</td><td>Hard version dependency. Do not migrate clustered nodes ad-hoc.</td></tr>
+      <tr><td>Oracle, DB2, SAP</td><td>Each has its own AIX 7.2 certification matrix.</td></tr>
+      <tr><td>Kernel extensions</td><td><code>genkex</code> shows the loaded list — anything 3rd-party must be re-validated.</td></tr>
+      <tr><td>Java, OpenSSL, OpenSSH</td><td>Ship at newer baselines on 7.2.</td></tr>
+      <tr><td>Monitoring / AV agents</td><td>ITM, Nagios, Tanium, etc. — confirm with vendor.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Phase 2</span> NIM master preparation · T-7 to T-1 days</div>
+  <p class="note note-info" style="margin-bottom:14px"><strong>Skip-ahead:</strong> If lpp_source and SPOT already exist for another client at the same target level, jump to step 06.</p>
+  <div class="steps">
+
+    <div class="step ph-validate open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Verify NIM master state and level</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c01"><button class="copy-btn" onclick="copy('c01',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>
+<span class="c"># Must be >= 7200-05-10 (target client level) or higher.</span>
+<span class="c"># A 7.1 NIM master CANNOT migrate clients to 7.2.</span>
+
+<span class="kw">lsnim</span> <span class="flag">-l</span> master
+<span class="c"># Confirm master is initialized.</span>
+
+<span class="kw">lssrc</span> <span class="flag">-ls</span> nimesis
+<span class="c"># NIM service must be active.</span></div>
+        <p class="note note-critical"><strong>Hard rule:</strong> NIM master must be at or above the target client level. A 7.1 master cannot migrate a client to 7.2 — there's no "upgrade" path mid-flight. If the master is below target, upgrade the master first.</p>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Stage the AIX 7.2 base media on the master</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The 7.2 install media from ESS comes as one or more ISOs (typically <code>AIX_7200-05-10_DVD_1_of_2.iso</code> and <code>_2_of_2.iso</code>).</p>
+        <div class="cmd" id="c02"><button class="copy-btn" onclick="copy('c02',this)">COPY</button><span class="kw">mkdir</span> <span class="flag">-p</span> /export/nim/media/AIX_7.2_TL5_SP10
+<span class="kw">cd</span> /export/nim/media/AIX_7.2_TL5_SP10
+
+<span class="cmd-section">Transfer ISOs here (scp, sftp, or NFS from your media share)</span>
+<span class="kw">ls</span> <span class="flag">-l</span>
+<span class="c"># Expect:</span>
+<span class="c"># AIX_7200-05-10_DVD_1_of_2.iso</span>
+<span class="c"># AIX_7200-05-10_DVD_2_of_2.iso</span>
+
+<span class="cmd-section">Verify checksums against ESS download page</span>
+<span class="kw">csum</span> <span class="flag">-h</span> SHA256 *.iso</div>
+        <p class="note note-verify"><strong>✓ Verify:</strong> SHA256 from <code>csum</code> matches the value listed on the ESS download page for each ISO. A bad ISO becomes a corrupt lpp_source — catch it at the doorstep.</p>
+      </div>
+    </div>
+
+    <div class="step ph-define">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Define the lpp_source from both ISOs</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The lpp_source is the fileset repository — a directory of <code>.bff</code> files extracted from the install media. ISO 1 builds the initial lpp_source; ISO 2's contents are layered in via <code>bffcreate</code>.</p>
+        <div class="cmd" id="c03"><button class="copy-btn" onclick="copy('c03',this)">COPY</button><span class="cmd-section">Create the target directory for the lpp_source</span>
+<span class="kw">mkdir</span> <span class="flag">-p</span> /export/nim/lpp_source/lpp_aix72tl5sp10
+
+<span class="cmd-section">Define the lpp_source from the first ISO</span>
+<span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> lpp_source \
+    <span class="flag">-a</span> server=master \
+    <span class="flag">-a</span> location=/export/nim/lpp_source/lpp_aix72tl5sp10 \
+    <span class="flag">-a</span> source=/export/nim/media/AIX_7.2_TL5_SP10/AIX_7200-05-10_DVD_1_of_2.iso \
+    <span class="flag">-a</span> packages=all \
+    lpp_aix72tl5sp10
+
+<span class="cmd-section">Add the contents of ISO 2 to the same lpp_source</span>
+<span class="kw">loopmount</span> <span class="flag">-i</span> /export/nim/media/AIX_7.2_TL5_SP10/AIX_7200-05-10_DVD_2_of_2.iso \
+          <span class="flag">-o</span> <span class="str">"-V cdrfs -o ro"</span> \
+          <span class="flag">-m</span> /mnt/iso2
+
+<span class="kw">bffcreate</span> <span class="flag">-d</span> /mnt/iso2/installp/ppc \
+          <span class="flag">-t</span> /export/nim/lpp_source/lpp_aix72tl5sp10/installp/ppc \
+          all
+
+<span class="kw">loopumount</span> <span class="flag">-i</span> /export/nim/media/AIX_7.2_TL5_SP10/AIX_7200-05-10_DVD_2_of_2.iso \
+           <span class="flag">-m</span> /mnt/iso2
+
+<span class="cmd-section">Rebuild the .toc so NIM sees the new filesets</span>
+<span class="kw">cd</span> /export/nim/lpp_source/lpp_aix72tl5sp10/installp/ppc
+<span class="kw">inutoc</span> .
+
+<span class="cmd-section">Tell NIM to re-check the lpp_source</span>
+<span class="kw">nim</span> <span class="flag">-o</span> check lpp_aix72tl5sp10
+
+<span class="kw">lsnim</span> <span class="flag">-l</span> lpp_aix72tl5sp10
+<span class="c"># Look for: simages = yes  (means it contains a complete BOS image)</span></div>
+        <p class="note note-critical"><strong>simages = yes is non-negotiable.</strong> Without it, <code>nimadm</code> refuses to use this lpp_source for migration. If the attribute is absent, the lpp_source is incomplete — confirm both ISOs were processed and that <code>inutoc</code> ran successfully against the merged tree.</p>
+      </div>
+    </div>
+
+    <div class="step ph-define">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Define the SPOT</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The SPOT (Shared Product Object Tree) is a bootable mini-image used by NIM operations. Built from the lpp_source.</p>
+        <div class="cmd" id="c04"><button class="copy-btn" onclick="copy('c04',this)">COPY</button><span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> spot \
+    <span class="flag">-a</span> server=master \
+    <span class="flag">-a</span> location=/export/nim/spot \
+    <span class="flag">-a</span> source=lpp_aix72tl5sp10 \
+    spot_aix72tl5sp10
+
+<span class="cmd-section">SPOT creation takes 15 — 30 minutes — it builds a bootable image</span>
+<span class="kw">lsnim</span> <span class="flag">-l</span> spot_aix72tl5sp10
+
+<span class="kw">nim</span> <span class="flag">-o</span> check spot_aix72tl5sp10
+<span class="c"># Expect no errors.</span></div>
+        <p class="note note-info"><strong>Tip:</strong> Keep the old 7.1 SPOT around until burn-in is complete — you'll need it for the worst-case <code>bos_inst</code> rollback (see RB.3).</p>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Verify or create the working VG (nimadmvg)</span>
+        <span class="step-tag tag-caution">CONFIG</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">nimadm needs scratch space on the NIM master to NFS-export and manipulate the client's cloned rootvg. <strong>Must be a separate VG (not rootvg)</strong> with at least 2× the client's rootvg size in free PPs.</p>
+        <div class="cmd" id="c05"><button class="copy-btn" onclick="copy('c05',this)">COPY</button><span class="kw">lsvg</span>
+<span class="c"># If 'nimadmvg' does not exist, create it on a dedicated disk:</span>
+<span class="c"># mkvg -y nimadmvg -s 64 hdiskN</span>
+
+<span class="kw">lsvg</span> nimadmvg
+<span class="c"># Note FREE PPs and PP SIZE; multiply for free GB.</span></div>
+        <p class="note note-caution"><strong>Sizing:</strong> Free GB = FREE PPs × PP SIZE / 1024. Need ≥ 2× the client rootvg used capacity. Skimping here causes phase 7 failures partway through filest migration — and phase 7 is the longest phase.</p>
+      </div>
+    </div>
+
+    <div class="step ph-define">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Verify or define the client NIM machine object</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c06"><button class="copy-btn" onclick="copy('c06',this)">COPY</button><span class="kw">lsnim</span> <span class="flag">-l</span> lpar01
+<span class="c"># If "0042-053 lsnim: there is no NIM object named 'lpar01'"</span>
+<span class="c"># then define it:</span>
+
+<span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> standalone \
+    <span class="flag">-a</span> platform=chrp \
+    <span class="flag">-a</span> netboot_kernel=64 \
+    <span class="flag">-a</span> if1=<span class="str">"find_net lpar01 0"</span> \
+    <span class="flag">-a</span> cable_type1=N/A \
+    lpar01
+
+<span class="cmd-section">Confirm the client is reachable</span>
+<span class="kw">nim</span> <span class="flag">-o</span> lslpp lpar01 | <span class="kw">head</span>
+<span class="c"># If this returns lpp data, client communication is working.</span></div>
+        <p class="note note-verify"><strong>✓ Verify:</strong> <code>nim -o lslpp lpar01</code> returns data from the client. If it errors with <code>0042-006</code> or similar, fix bidirectional name resolution and NIM port reachability before continuing.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 3</span> Pre-flight checks on the client LPAR · T-0</div>
+  <p class="note note-info" style="margin-bottom:14px"><strong>Capture everything:</strong> Wrap the whole pre-flight in <code>script /tmp/preflight_$(date +%Y%m%d).log</code> on the client.</p>
+  <div class="steps">
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Capture current OS level and identity</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c07"><button class="copy-btn" onclick="copy('c07',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>                     <span class="c"># expect: 7100-05-12-2336</span>
+<span class="kw">oslevel</span> <span class="flag">-r</span>
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML
+<span class="kw">uname</span> <span class="flag">-a</span>
+<span class="kw">prtconf</span> | <span class="kw">head</span> <span class="flag">-30</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Verify fileset health</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c08"><button class="copy-btn" onclick="copy('c08',this)">COPY</button><span class="kw">lppchk</span> <span class="flag">-v</span>                      <span class="c"># MUST return clean</span>
+<span class="kw">lppchk</span> <span class="flag">-c</span>                      <span class="c"># checksum verify (optional)</span></div>
+        <p class="note note-critical"><strong>Stop condition:</strong> If <code>lppchk -v</code> reports issues, remediate before migration. A migration that inherits a broken 7.1 fileset state will not produce a clean 7.2 — the breakage is carried into the new build, sometimes amplified.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">Identify obsolete or problem filesets</span>
+        <span class="step-tag tag-caution">VALIDATE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c09"><button class="copy-btn" onclick="copy('c09',this)">COPY</button><span class="kw">lslpp</span> <span class="flag">-L</span> | <span class="kw">grep</span> <span class="flag">-i</span> obsolete
+<span class="c"># Any filesets here will be removed by the migration --</span>
+<span class="c"># confirm nothing application-critical depends on them.</span>
+
+<span class="cmd-section">Check for filesets known not to migrate cleanly</span>
+<span class="kw">lslpp</span> <span class="flag">-L</span> bos.adt.libm bos.compat.libs perfagent.tools 2&gt;/dev/null</div>
+        <p class="note">Anything matched in the second command is worth confirming with the application team before migration. <code>perfagent.tools</code> in particular has historically caused post-migration noise.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">10</span>
+        <span class="step-title">Confirm disk space</span>
+        <span class="step-tag tag-caution">VALIDATE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="kw">df</span> <span class="flag">-g</span> / /usr /var /opt /tmp /home</div>
+        <table class="ref-table">
+          <thead><tr><th>Filesystem</th><th>Min free</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>/</td><td>100 MB</td><td>Bootloader, ODM</td></tr>
+            <tr><td>/usr</td><td>3 GB</td><td>7.2 fileset footprint is materially larger than 7.1</td></tr>
+            <tr><td>/var</td><td>1 GB</td><td>nimadm and migration logs</td></tr>
+            <tr><td>/tmp</td><td>1 GB</td><td>installp scratch</td></tr>
+            <tr><td>/opt</td><td>500 MB</td><td>Optional product trees</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">11</span>
+        <span class="step-title">Verify rootvg health and target disk</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="kw">lsvg</span> rootvg
+<span class="kw">lsvg</span> <span class="flag">-p</span> rootvg
+<span class="kw">lsvg</span> <span class="flag">-l</span> rootvg
+
+<span class="kw">lspv</span>
+<span class="c"># Identify the spare disk (e.g. hdisk1) -- must show "None" in</span>
+<span class="c"># the VG column and be >= the size of hdisk0.</span>
+
+<span class="kw">bootinfo</span> <span class="flag">-s</span> hdisk0             <span class="c"># size in MB</span>
+<span class="kw">bootinfo</span> <span class="flag">-s</span> hdisk1             <span class="c"># must be >= hdisk0</span></div>
+        <p class="note note-verify"><strong>✓ Verify:</strong> <code>hdisk1</code> shows <code>None</code> in the VG column · <code>bootinfo -s hdisk1 ≥ bootinfo -s hdisk0</code> · all LVs in <code>lsvg -l rootvg</code> are <code>open/syncd</code>.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">12</span>
+        <span class="step-title">Snapshot bootlist and error log</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span> &gt; /tmp/bootlist_pre.txt
+<span class="kw">bootlist</span> <span class="flag">-m</span> service <span class="flag">-o</span> &gt;&gt; /tmp/bootlist_pre.txt
+
+<span class="kw">errpt</span> | <span class="kw">head</span> <span class="flag">-30</span>
+<span class="kw">errpt</span> <span class="flag">-a</span> &gt; /tmp/errpt_pre.txt</div>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">13</span>
+        <span class="step-title">Snapshot running state for post-migration diff</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="kw">lssrc</span> <span class="flag">-a</span> &gt; /tmp/lssrc_pre.txt
+<span class="kw">netstat</span> <span class="flag">-rn</span> &gt; /tmp/routing_pre.txt
+<span class="kw">df</span> <span class="flag">-g</span> &gt; /tmp/df_pre.txt
+<span class="kw">no</span> <span class="flag">-a</span> &gt; /tmp/no_pre.txt
+<span class="kw">lsattr</span> <span class="flag">-El</span> sys0 &gt; /tmp/sys0_pre.txt
+<span class="kw">genkex</span> &gt; /tmp/genkex_pre.txt    <span class="c"># loaded kernel extensions</span></div>
+        <p class="note">Diff baseline post-migration. Kernel extensions matter especially — anything 3rd-party that doesn't reload on 7.2 is the migration's most common silent-failure mode.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Phase 4</span> Backups</div>
+  <div class="steps">
+
+    <div class="step ph-backup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">14</span>
+        <span class="step-title">Take a NIM-resident mksysb (preferred)</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">A NIM-resident mksysb gives you the option to recover the LPAR via <code>nim -o bos_inst</code> if both the live rootvg and the migrated clone become unbootable.</p>
+        <div class="cmd" id="c14"><button class="copy-btn" onclick="copy('c14',this)">COPY</button><span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> mksysb \
+    <span class="flag">-a</span> server=master \
+    <span class="flag">-a</span> location=/export/nim/mksysb/lpar01_pre72_$(<span class="kw">date</span> +%Y%m%d).mksysb \
+    <span class="flag">-a</span> source=lpar01 \
+    <span class="flag">-a</span> mk_image=yes \
+    lpar01_pre72_$(<span class="kw">date</span> +%Y%m%d)</div>
+        <p class="note note-info"><strong>Pull, not push:</strong> This pulls a mksysb <em>from</em> the client <em>to</em> the master in one operation. Runtime depends on rootvg size and network speed (allow 30 — 90 min).</p>
+      </div>
+    </div>
+
+    <div class="step ph-backup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">15</span>
+        <span class="step-title">Take a local mksysb (fallback)</span>
+        <span class="step-tag tag-info">FALLBACK</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">If a NIM-resident mksysb is impractical, take a local mksysb to NFS.</p>
+        <div class="cmd" id="c15"><button class="copy-btn" onclick="copy('c15',this)">COPY</button><span class="kw">df</span> <span class="flag">-g</span> /backup
+<span class="kw">mksysb</span> <span class="flag">-ipX</span> /backup/$(<span class="kw">hostname</span>)_pre72_$(<span class="kw">date</span> +%Y%m%d_%H%M).mksysb</div>
+      </div>
+    </div>
+
+    <div class="step ph-backup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">16</span>
+        <span class="step-title">Verify the spare disk is ready for nimadm</span>
+        <span class="step-tag tag-caution">VALIDATE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c16"><button class="copy-btn" onclick="copy('c16',this)">COPY</button><span class="kw">lspv</span> | <span class="kw">grep</span> hdisk1
+<span class="c"># Expect: hdisk1  00fXXXXXXXXXXXXX  None</span></div>
+        <p class="note note-caution" style="margin-top:14px"><strong>Stale VG metadata:</strong> If <code>hdisk1</code> shows <code>old_rootvg</code>, <code>altinst_rootvg</code>, or another stale VG from a previous operation, clean it first:</p>
+        <div class="cmd" id="c16b"><button class="copy-btn" onclick="copy('c16b',this)">COPY</button><span class="cmd-section">Only if necessary — destructive to whatever is on hdisk1</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> old_rootvg     <span class="c"># for old_rootvg</span>
+<span class="c"># OR</span>
+<span class="kw">chpv</span> <span class="flag">-C</span> hdisk1                  <span class="c"># clears VGDA, USE WITH CARE</span></div>
+        <p class="note note-info"><strong>Do not pre-clone with alt_disk_copy.</strong> nimadm creates its own clone of rootvg on hdisk1 — it <em>is</em> the clone operation. Taking <code>alt_disk_copy</code> on top would just consume another disk for no benefit.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Phase 5</span> Run the migration</div>
+  <div class="steps">
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">17</span>
+        <span class="step-title">Final pre-execution checks on the NIM master</span>
+        <span class="step-tag tag-info">VALIDATE</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c17"><button class="copy-btn" onclick="copy('c17',this)">COPY</button><span class="cmd-section">Confirm all resources are ready</span>
+<span class="kw">lsnim</span> <span class="flag">-l</span> lpp_aix72tl5sp10 | <span class="kw">grep</span> simages
+<span class="kw">lsnim</span> <span class="flag">-l</span> spot_aix72tl5sp10
+<span class="kw">lsnim</span> <span class="flag">-l</span> lpar01
+<span class="kw">lsvg</span> nimadmvg | <span class="kw">grep</span> <span class="str">"FREE PPs"</span></div>
+        <p class="note note-verify"><strong>✓ Acceptance:</strong> lpp_source has <code>simages = yes</code> · SPOT exists with no errors · client object resolves · nimadmvg has ≥ 2× client rootvg in free PPs.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">18</span>
+        <span class="step-title">Optional: nimadm phase 1 dry run</span>
+        <span class="step-tag tag-info">PREVIEW</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">nimadm runs in 12 phases (see step 20). You can preview without committing — phase 1 is the validation phase, it checks all prerequisites without modifying anything on the client. Useful for catching configuration errors before the real run.</p>
+        <div class="cmd" id="c18"><button class="copy-btn" onclick="copy('c18',this)">COPY</button><span class="kw">nimadm</span> <span class="flag">-c</span> lpar01 \
+       <span class="flag">-s</span> spot_aix72tl5sp10 \
+       <span class="flag">-l</span> lpp_aix72tl5sp10 \
+       <span class="flag">-j</span> nimadmvg \
+       <span class="flag">-d</span> hdisk1 \
+       <span class="flag">-P</span> 1                       <span class="c"># run only phase 1</span></div>
+        <p class="note note-info"><strong>-P N:</strong> Runs only phase N. Cheap to do, catches misconfigured master/client/lpp_source before you sink hours into a real run.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">19</span>
+        <span class="step-title">Execute the full migration</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c19"><button class="copy-btn" onclick="copy('c19',this)">COPY</button><span class="cmd-section">In a captured session</span>
+<span class="kw">script</span> /var/log/nim/nimadm_lpar01_$(<span class="kw">date</span> +%Y%m%d_%H%M).log
+
+<span class="kw">nimadm</span> <span class="flag">-c</span> lpar01 \
+       <span class="flag">-s</span> spot_aix72tl5sp10 \
+       <span class="flag">-l</span> lpp_aix72tl5sp10 \
+       <span class="flag">-j</span> nimadmvg \
+       <span class="flag">-d</span> hdisk1 \
+       <span class="flag">-Y</span>
+
+<span class="cmd-section">Exit the script session when complete</span>
+<span class="kw">exit</span></div>
+        <table class="ref-table">
+          <thead><tr><th>Flag</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>-c</td><td>Client (NIM machine object name)</td></tr>
+            <tr><td>-s</td><td>SPOT</td></tr>
+            <tr><td>-l</td><td>lpp_source</td></tr>
+            <tr><td>-j</td><td>VG on NIM master for working storage</td></tr>
+            <tr><td>-d</td><td>Destination disk on the client</td></tr>
+            <tr><td>-Y</td><td>Accept software licenses non-interactively</td></tr>
+          </tbody>
+        </table>
+        <p class="note">Total runtime: 90 — 180 min depending on rootvg size, network speed, and NIM master CPU.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">20</span>
+        <span class="step-title">nimadm phases — what to expect in the log</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="phase-strip">
+          <div class="phase-tile"><div class="phase-tile-num">Phase 1</div><div class="phase-tile-title">Initialization · prereq check</div></div>
+          <div class="phase-tile"><div class="phase-tile-num">Phase 2</div><div class="phase-tile-title">Client alt_disk_install setup</div></div>
+          <div class="phase-tile"><div class="phase-tile-num">Phase 3</div><div class="phase-tile-title">Clone rootvg hdisk0 → hdisk1 on client</div></div>
+          <div class="phase-tile"><div class="phase-tile-num">Phase 4</div><div class="phase-tile-title">Export client's hdisk1 alt rootvg via NFS to master</div></div>
+          <div class="phase-tile"><div class="phase-tile-num">Phase 5</div><div class="phase-tile-title">Mount alt rootvg on master, configure for migration</div></div>
+          <div class="phase-tile"><div class="phase-tile-num">Phase 6</div><div class="phase-tile-title">Run pre-migration scripts</div></div>
+          <div class="phase-tile long"><div class="phase-tile-num">Phase 7 · longest</div><div class="phase-tile-title">Migrate filesets · new BOS installed here</div></div>
+          <div class="phase-tile"><div class="phase-tile-num">Phase 8</div><div class="phase-tile-title">Run post-migration scripts</div></div>
+          <div class="phase-tile"><div class="phase-tile-num">Phase 9</div><div class="phase-tile-title">Bosboot the alt rootvg</div></div>
+          <div class="phase-tile"><div class="phase-tile-num">Phase 10</div><div class="phase-tile-title">Unmount and clean up NFS export</div></div>
+          <div class="phase-tile"><div class="phase-tile-num">Phase 11</div><div class="phase-tile-title">Wake up alt_disk on client · re-import VG metadata</div></div>
+          <div class="phase-tile fin"><div class="phase-tile-num">Phase 12</div><div class="phase-tile-title">Set client bootlist to alt disk · finalize</div></div>
+        </div>
+        <p class="note note-caution"><strong>Common failure modes:</strong> insufficient space (phase 7), broken filesets inherited from the client (phase 1 or 7), NFS export problems (phase 4 — check firewalls and <code>/etc/exports</code> on the master). The error at the top of the failure usually states which phase to restart from with <code>-r</code> or <code>-P N</code>.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">21</span>
+        <span class="step-title">Monitor progress from the client side</span>
+        <span class="step-tag tag-info">MONITOR</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">In a separate session on the client, watch for the alt rootvg appearing and the NFS mount lifecycle.</p>
+        <div class="cmd" id="c21"><button class="copy-btn" onclick="copy('c21',this)">COPY</button><span class="cmd-section">Watch the alt rootvg appear on hdisk1</span>
+<span class="kw">while</span> <span class="kw">true</span>; <span class="kw">do</span> <span class="kw">lspv</span> | <span class="kw">grep</span> hdisk1; <span class="kw">sleep</span> 30; <span class="kw">done</span>
+
+<span class="cmd-section">When phase 4 begins, hdisk1 is NFS-mounted FROM the master</span>
+<span class="kw">df</span> <span class="flag">-g</span> | <span class="kw">grep</span> nfs
+
+<span class="cmd-section">When phase 12 completes, bootlist will have been updated</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
+<span class="c"># Expect: hdisk1</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">22</span>
+        <span class="step-title">Confirm completion</span>
+        <span class="step-tag tag-ok">VALIDATE</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The nimadm log ends with:</p>
+        <div class="cmd" id="c22"><button class="copy-btn" onclick="copy('c22',this)">COPY</button>Bootlist is set to boot from disk hdisk1.
+nimadm: Migration completed successfully.</div>
+        <p class="note note-info"><strong>State at this point:</strong> the client is still running 7.1 from <code>hdisk0</code>, but is configured to boot 7.2 from <code>hdisk1</code> on next reboot. The cutover is the reboot in Phase 6.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Phase 6</span> Cutover and verification</div>
+  <div class="steps">
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">23</span>
+        <span class="step-title">Final pre-reboot checks on the client</span>
+        <span class="step-tag tag-caution">VALIDATE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c23"><button class="copy-btn" onclick="copy('c23',this)">COPY</button><span class="cmd-section">Confirm bootlist points at the migrated disk</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
+<span class="c"># Expect: hdisk1</span>
+
+<span class="cmd-section">Confirm services are still up (we haven't rebooted yet)</span>
+<span class="kw">lssrc</span> <span class="flag">-a</span> | <span class="kw">grep</span> <span class="flag">-i</span> inoperative</div>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">24</span>
+        <span class="step-title">Application shutdown</span>
+        <span class="step-tag tag-caution">CAUTION</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Follow your application shutdown runbook. Database engines, JVMs, and middleware should be stopped cleanly before reboot — orphan transactions on a 7.1 socket that comes up under 7.2 are exactly the kind of subtle bug that takes weeks to chase.</p>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">25</span>
+        <span class="step-title">Reboot onto the migrated rootvg</span>
+        <span class="step-tag tag-critical">REBOOT</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c25"><button class="copy-btn" onclick="copy('c25',this)">COPY</button><span class="kw">sync</span>; <span class="kw">sync</span>; <span class="kw">sync</span>
+<span class="kw">shutdown</span> <span class="flag">-Fr</span> now</div>
+        <p class="note">Have an HMC console open and visible during the reboot — first boot off a migrated rootvg is the moment things go sideways and you want to see LED codes immediately, not via the SSH timeout.</p>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">26</span>
+        <span class="step-title">First boot considerations</span>
+        <span class="step-tag tag-info">EXPECTED</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0"><strong>The first boot off the migrated 7.2 rootvg may:</strong></p>
+        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--text-dim); line-height:1.7">
+          <li>▸ Take longer than usual while the kernel re-syncs ODM and rebuilds device configuration.</li>
+          <li>▸ Drop to a console <code>TERM</code> prompt before login — enter <code>vt100</code> or <code>xterm</code> and continue. Subsequent boots will not prompt.</li>
+          <li>▸ Generate informational entries in <code>errpt</code> during initial config — review but expect some noise.</li>
+        </ul>
+        <p class="note note-info"><strong>Don't panic:</strong> Any of the above on the first boot is expected. Repeated occurrences on the second boot are not.</p>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">27</span>
+        <span class="step-title">Post-reboot verification</span>
+        <span class="step-tag tag-critical">VALIDATE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c27"><button class="copy-btn" onclick="copy('c27',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>
+<span class="c"># Expect: 7200-05-10-XXXX (your chosen target SP)</span>
+
+<span class="kw">oslevel</span> <span class="flag">-r</span>
+<span class="c"># Expect: 7200-05</span>
+
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML
+<span class="c"># Expect: All filesets for 7200-05_AIX_ML were found.</span>
+
+<span class="kw">lppchk</span> <span class="flag">-v</span>
+<span class="c"># MUST return clean</span>
+
+<span class="kw">errpt</span> | <span class="kw">head</span> <span class="flag">-30</span>
+<span class="c"># Compare against /tmp/errpt_pre.txt</span>
+
+<span class="kw">df</span> <span class="flag">-g</span>
+<span class="c"># /usr will have grown notably</span>
+<span class="kw">diff</span> /tmp/df_pre.txt &lt;(<span class="kw">df</span> <span class="flag">-g</span>) | <span class="kw">head</span>
+
+<span class="kw">lssrc</span> <span class="flag">-a</span> | <span class="kw">grep</span> <span class="flag">-i</span> inoperative
+<span class="c"># Anything that should be active but isn't?</span>
+
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
+<span class="c"># Expect: hdisk1 (the migrated disk is now your live rootvg)</span>
+
+<span class="kw">lspv</span>
+<span class="c"># hdisk0 will show as 'old_rootvg' -- this is your rollback</span>
+
+<span class="cmd-section">Check kernel extensions reloaded</span>
+<span class="kw">diff</span> /tmp/genkex_pre.txt &lt;(<span class="kw">genkex</span>) | <span class="kw">head</span></div>
+        <p class="note note-verify"><strong>✓ Acceptance:</strong> oslevel at target · lppchk clean · ML found · no inoperative subsystems · bootlist on hdisk1 · hdisk0 shows as <code>old_rootvg</code> · kernel extensions reloaded with no surprising drops.</p>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">28</span>
+        <span class="step-title">Application validation handoff</span>
+        <span class="step-tag tag-caution">HANDOFF</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--amber)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong> — don't run any of the cleanup steps in Phase 8 yet.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Phase 7</span> Rollback procedure</div>
+  <p class="note note-caution" style="margin-bottom:14px"><strong>Trigger conditions:</strong> client fails to boot off the migrated rootvg · <code>lppchk -v</code> reports broken filesets post-migration · new error classes in <code>errpt</code> linked to the migration · application owners report a regression that cannot be remediated in the maintenance window.</p>
+  <div class="steps">
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.1</span>
+        <span class="step-title">Rollback while booted on the migrated 7.2 rootvg</span>
+        <span class="step-tag tag-caution">ROLLBACK</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="rb1"><button class="copy-btn" onclick="copy('rb1',this)">COPY</button><span class="cmd-section">Repoint bootlist to the original 7.1 disk (now 'old_rootvg')</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal hdisk0
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>          <span class="c"># verify</span>
+
+<span class="kw">shutdown</span> <span class="flag">-Fr</span> now
+
+<span class="cmd-section">After reboot</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>                     <span class="c"># expect: 7100-05-12-2336</span>
+
+<span class="kw">lspv</span>
+<span class="c"># rootvg is back on hdisk0; the migrated 7.2 will show as</span>
+<span class="c"># altinst_rootvg or similar on hdisk1</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.2</span>
+        <span class="step-title">Rollback if the migrated system will not boot</span>
+        <span class="step-tag tag-critical">ROLLBACK</span>
+        <span class="run-on hmc">HMC</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <ol style="padding-left:20px; font-size:13px; line-height:1.8">
+          <li>Open a <strong>vterm</strong> to the LPAR.</li>
+          <li>Power off the LPAR (Operations → Shut Down → Immediate).</li>
+          <li>Activate the LPAR with profile, in <strong>SMS mode</strong>.</li>
+          <li>SMS Main Menu → "5. Select Boot Options" → "1. Select Install/Boot Device" → "5. Hard Drive" → select <code>hdisk0</code> (the original disk) → "2. Normal Mode Boot".</li>
+          <li>System boots from <code>hdisk0</code> (original 7.1 rootvg).</li>
+        </ol>
+        <p class="note">Then follow the RB.1 verification to confirm <code>oslevel -s</code> reports the pre-migration level and the bootlist sticks.</p>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.3</span>
+        <span class="step-title">Worst case: restore from mksysb via NIM</span>
+        <span class="step-tag tag-critical">DISASTER</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-critical" style="margin-top:0"><strong>If neither disk boots:</strong></p>
+        <div class="cmd" id="rb3"><button class="copy-btn" onclick="copy('rb3',this)">COPY</button><span class="kw">nim</span> <span class="flag">-o</span> bos_inst \
+    <span class="flag">-a</span> source=mksysb \
+    <span class="flag">-a</span> mksysb=lpar01_pre72_<span class="ph">&lt;date&gt;</span> \
+    <span class="flag">-a</span> spot=spot_aix71tl5sp12 \
+    <span class="flag">-a</span> no_client_boot=no \
+    lpar01</div>
+        <p class="note note-caution"><strong>This requires a 7.1 SPOT</strong> on the NIM master in addition to the 7.2 one created in step 04 — keep the old 7.1 SPOT around until burn-in is complete.</p>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.4</span>
+        <span class="step-title">Post-rollback cleanup</span>
+        <span class="step-tag tag-info">CLEANUP</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="rb4"><button class="copy-btn" onclick="copy('rb4',this)">COPY</button><span class="cmd-section">Once stable on the rolled-back rootvg</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> altinst_rootvg
+<span class="c"># Removes the failed 7.2 alt_rootvg</span></div>
+        <p class="note note-info"><strong>Preserve for IBM support:</strong></p>
+        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--text-dim); line-height:1.7">
+          <li>▸ <code>/var/log/nim/nimadm_lpar01_*.log</code> on the master</li>
+          <li>▸ <code>/var/adm/ras/nim.installp</code> on the client</li>
+          <li>▸ Any <code>errpt -a</code> output from the failed boot attempts</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 8 ════ -->
+  <div class="phase-label"><span>Phase 8</span> Cleanup · T+5 to T+14 days, after burn-in</div>
+  <p class="note note-caution" style="margin-bottom:14px"><strong>Only after</strong> the migrated system has run cleanly and application owners have signed off.</p>
+  <div class="steps">
+
+    <div class="step ph-cleanup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">29</span>
+        <span class="step-title">Client cleanup — free hdisk0 and archive logs</span>
+        <span class="step-tag tag-info">CLEANUP</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c29"><button class="copy-btn" onclick="copy('c29',this)">COPY</button><span class="cmd-section">Remove the old 7.1 rootvg clone, freeing hdisk0</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> old_rootvg
+
+<span class="kw">lspv</span>
+<span class="c"># hdisk0 should now show "None" in VG column.</span>
+
+<span class="cmd-section">Optional: extend rootvg onto hdisk0 for mirroring or growth</span>
+<span class="c"># extendvg rootvg hdisk0</span>
+<span class="c"># mirrorvg rootvg hdisk0</span>
+<span class="c"># bosboot -ad /dev/hdisk0</span>
+<span class="c"># bootlist -m normal hdisk1 hdisk0</span>
+
+<span class="cmd-section">Archive change logs for audit</span>
+<span class="kw">tar</span> <span class="flag">-cvf</span> /backup/change_$(<span class="kw">hostname</span>)_$(<span class="kw">date</span> +%Y%m%d).tar \
+    /tmp/preflight_*.log \
+    /tmp/errpt_pre.txt /tmp/lssrc_pre.txt /tmp/df_pre.txt \
+    /tmp/no_pre.txt /tmp/sys0_pre.txt /tmp/genkex_pre.txt</div>
+        <p class="note note-info"><strong>Mirroring is the high-value cleanup option:</strong> after burn-in, mirror the new 7.2 rootvg onto hdisk0 so you have redundancy on both disks again. Skip if your storage layer already provides redundancy.</p>
+      </div>
+    </div>
+
+    <div class="step ph-cleanup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">30</span>
+        <span class="step-title">NIM master cleanup</span>
+        <span class="step-tag tag-info">CLEANUP</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c30"><button class="copy-btn" onclick="copy('c30',this)">COPY</button><span class="cmd-section">Remove the pre-migration mksysb (after retention period)</span>
+<span class="kw">nim</span> <span class="flag">-o</span> remove lpar01_pre72_<span class="ph">&lt;date&gt;</span>
+<span class="kw">rm</span> /export/nim/mksysb/lpar01_pre72_<span class="ph">&lt;date&gt;</span>.mksysb
+
+<span class="cmd-section">Keep lpp_source / SPOT if more clients are pending migration</span>
+<span class="cmd-section">Otherwise:</span>
+<span class="c"># nim -o remove spot_aix72tl5sp10</span>
+<span class="c"># nim -o remove lpp_aix72tl5sp10</span>
+<span class="c"># rm -rf /export/nim/lpp_source/lpp_aix72tl5sp10</span>
+<span class="c"># rm -rf /export/nim/spot/spot_aix72tl5sp10</span>
+
+<span class="cmd-section">Working storage</span>
+<span class="c"># nimadmvg is cleaned automatically by nimadm on success</span></div>
+        <p class="note note-verify"><strong>Update the change ticket with completion timestamp and close.</strong> You earned it.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ APPENDIX ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Appendix A</span> NIM resource quick reference</div>
+  <div class="steps">
+    <div class="step ph-define">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">A.1</span>
+        <span class="step-title">NIM commands cheatsheet</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="a1"><button class="copy-btn" onclick="copy('a1',this)">COPY</button><span class="kw">lsnim</span>                          <span class="c"># List all NIM objects</span>
+<span class="kw">lsnim</span> <span class="flag">-l</span> <span class="ph">&lt;object&gt;</span>              <span class="c"># Show all attributes of an object</span>
+<span class="kw">lsnim</span> <span class="flag">-t</span> lpp_source            <span class="c"># List objects of type lpp_source</span>
+<span class="kw">lsnim</span> <span class="flag">-t</span> spot                  <span class="c"># List SPOTs</span>
+<span class="kw">lsnim</span> <span class="flag">-t</span> standalone            <span class="c"># List client (standalone) machines</span>
+
+<span class="kw">nim</span> <span class="flag">-o</span> check <span class="ph">&lt;resource&gt;</span>        <span class="c"># Re-validate a resource</span>
+<span class="kw">nim</span> <span class="flag">-o</span> remove <span class="ph">&lt;object&gt;</span>         <span class="c"># Delete a NIM object</span>
+<span class="kw">nim</span> <span class="flag">-o</span> reset <span class="ph">&lt;client&gt;</span>          <span class="c"># Clear stuck NIM state on a client</span>
+<span class="kw">nim</span> <span class="flag">-o</span> deallocate <span class="flag">-a</span> subclass=all <span class="ph">&lt;client&gt;</span>
+                               <span class="c"># Free all resources allocated to client</span>
+
+<span class="kw">nimadm</span> <span class="flag">-c</span> <span class="ph">&lt;client&gt;</span> <span class="flag">-P</span> 1 ...    <span class="c"># Run only phase 1 (validation)</span>
+<span class="kw">nimadm</span> <span class="flag">-c</span> <span class="ph">&lt;client&gt;</span> ...         <span class="c"># Full migration</span>
+<span class="kw">nimadm</span> <span class="flag">-B</span> <span class="flag">-c</span> <span class="ph">&lt;client&gt;</span>          <span class="c"># "BOS only" mode -- skip non-BOS filesets</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">A.2</span>
+        <span class="step-title">nimadm phase failure quick reference</span>
+        <span class="step-tag tag-caution">REFERENCE</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <thead><tr><th>Phase</th><th>Common failure</th><th>Remediation</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Client unreachable</td><td>Check network, ping, rpcinfo</td></tr>
+            <tr><td>1</td><td>lpp_source missing simages=yes</td><td>Re-add ISO 2 contents, <code>inutoc</code>, <code>nim -o check</code></td></tr>
+            <tr><td>1</td><td>Client lppchk -v not clean</td><td>Fix broken filesets on 7.1 first</td></tr>
+            <tr><td>3</td><td>Spare disk not free / wrong size</td><td>Confirm hdisk1 has VG=None and size ≥ hdisk0</td></tr>
+            <tr><td>4</td><td>NFS mount fails</td><td>Firewall between client and master, <code>/etc/exports</code></td></tr>
+            <tr><td>7</td><td>"Not enough space in /usr" (alt rootvg)</td><td>Increase rootvg size or use larger target disk</td></tr>
+            <tr><td>7</td><td>Fileset prereq missing in lpp_source</td><td>Add missing fileset to lpp_source, <code>inutoc</code>, restart</td></tr>
+            <tr><td>9</td><td>bosboot fails</td><td>Usually disk error; check <code>errpt</code> on client</td></tr>
+            <tr><td>11</td><td>Cannot wake alt_disk_install</td><td>Manual <code>alt_rootvg_op -W -d hdisk1</code> on client</td></tr>
+          </tbody>
+        </table>
+        <p class="note note-info"><strong>Restart options:</strong> If nimadm fails mid-run, it can usually be restarted from a specific phase using <code>-r</code> (resume) or <code>-P N</code> (run from phase N). Read the error message at the top of the failure for the suggested restart.</p>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">A.3</span>
+        <span class="step-title">Worked example — single command sequence</span>
+        <span class="step-tag tag-caution">REFERENCE</span>
+        <span class="run-on master">dr_nim_01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-caution" style="margin-top:0"><strong>Do not follow this blindly</strong> — values (level numbers, hostnames, hdisk names, dates) <em>will</em> change. This is a sequence reference, not a copy-paste recipe.</p>
+        <div class="cmd" id="a3"><button class="copy-btn" onclick="copy('a3',this)">COPY</button><span class="cmd-section">On NIM master · one-time setup</span>
+<span class="kw">mkdir</span> <span class="flag">-p</span> /export/nim/media/AIX_7.2_TL5_SP10
+<span class="c"># ... transfer ISOs here ...</span>
+
+<span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> lpp_source \
+    <span class="flag">-a</span> server=master \
+    <span class="flag">-a</span> location=/export/nim/lpp_source/lpp_aix72tl5sp10 \
+    <span class="flag">-a</span> source=/export/nim/media/AIX_7.2_TL5_SP10/AIX_7200-05-10_DVD_1_of_2.iso \
+    <span class="flag">-a</span> packages=all \
+    lpp_aix72tl5sp10
+<span class="c"># ... add ISO 2 contents via bffcreate, then inutoc and nim -o check ...</span>
+
+<span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> spot \
+    <span class="flag">-a</span> server=master \
+    <span class="flag">-a</span> location=/export/nim/spot \
+    <span class="flag">-a</span> source=lpp_aix72tl5sp10 \
+    spot_aix72tl5sp10
+
+<span class="cmd-section">On client · pre-flight</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>
+<span class="kw">lppchk</span> <span class="flag">-v</span>
+<span class="kw">lspv</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span> &gt; /tmp/bootlist_pre.txt
+<span class="kw">errpt</span> <span class="flag">-a</span> &gt; /tmp/errpt_pre.txt
+
+<span class="cmd-section">On NIM master · take pre-migration mksysb</span>
+<span class="kw">nim</span> <span class="flag">-o</span> define <span class="flag">-t</span> mksysb \
+    <span class="flag">-a</span> server=master \
+    <span class="flag">-a</span> location=/export/nim/mksysb/lpar01_pre72_$(<span class="kw">date</span> +%Y%m%d).mksysb \
+    <span class="flag">-a</span> source=lpar01 \
+    <span class="flag">-a</span> mk_image=yes \
+    lpar01_pre72_$(<span class="kw">date</span> +%Y%m%d)
+
+<span class="cmd-section">On NIM master · run migration</span>
+<span class="kw">script</span> /var/log/nim/nimadm_lpar01_$(<span class="kw">date</span> +%Y%m%d_%H%M).log
+<span class="kw">nimadm</span> <span class="flag">-c</span> lpar01 <span class="flag">-s</span> spot_aix72tl5sp10 <span class="flag">-l</span> lpp_aix72tl5sp10 \
+       <span class="flag">-j</span> nimadmvg <span class="flag">-d</span> hdisk1 <span class="flag">-Y</span>
+<span class="kw">exit</span>
+
+<span class="cmd-section">On client · reboot and verify</span>
+<span class="kw">shutdown</span> <span class="flag">-Fr</span> now
+<span class="c"># ... wait for reboot ...</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>                     <span class="c"># expect 7200-05-10-XXXX</span>
+<span class="kw">lppchk</span> <span class="flag">-v</span>
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML
+<span class="kw">errpt</span> | <span class="kw">head</span>
+
+<span class="cmd-section">On client · cleanup after burn-in</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> old_rootvg</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Command Summary</div>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
+      <tr><td>oslevel -s (master)</td><td>Confirm NIM master at ≥ target level</td><td>Hard gate — 7.1 master can't migrate to 7.2</td></tr>
+      <tr><td>nim -o define -t lpp_source</td><td>Register the AIX 7.2 fileset repository</td><td>Phase 2 step 03 — needs simages=yes</td></tr>
+      <tr><td>bffcreate -d ... -t ...</td><td>Layer ISO 2 filesets into the lpp_source</td><td>After ISO 1 has been defined</td></tr>
+      <tr><td>inutoc &lt;dir&gt;</td><td>Build .toc for the lpp_source</td><td>Re-run after every directory change</td></tr>
+      <tr><td>nim -o check &lt;resource&gt;</td><td>Re-validate an lpp_source or SPOT</td><td>Required after inutoc</td></tr>
+      <tr><td>nim -o define -t spot</td><td>Build the bootable SPOT mini-image</td><td>Phase 2 step 04 — 15-30 min</td></tr>
+      <tr><td>nim -o define -t mksysb -a mk_image=yes</td><td>Pull mksysb from client to master</td><td>Phase 4 step 14 — preferred backup</td></tr>
+      <tr><td>nimadm -c &lt;client&gt; -P 1 ...</td><td>Phase-1-only validation dry run</td><td>Cheap insurance before the real run</td></tr>
+      <tr><td>nimadm -c ... -s ... -l ... -j ... -d ... -Y</td><td>Run the full migration</td><td>Phase 5 step 19 — 90-180 min</td></tr>
+      <tr><td>nimadm -B ...</td><td>"BOS only" mode — skip non-BOS filesets</td><td>Faster but skips third-party filesets</td></tr>
+      <tr><td>bootlist -m normal -o</td><td>Confirm bootlist after migration</td><td>Should show hdisk1 post-Phase 12</td></tr>
+      <tr><td>oslevel -s (client, post-reboot)</td><td>Confirm migration succeeded</td><td>Expect 7200-05-10-XXXX</td></tr>
+      <tr><td>lppchk -v</td><td>Verify fileset consistency</td><td>MUST be clean pre and post</td></tr>
+      <tr><td>diff /tmp/genkex_pre.txt &lt;(genkex)</td><td>Confirm kernel extensions reloaded</td><td>Phase 6 step 27 — silent failure mode</td></tr>
+      <tr><td>bootlist -m normal hdisk0</td><td>Roll back to original 7.1 rootvg</td><td>RB.1 — old_rootvg becomes live again</td></tr>
+      <tr><td>nim -o bos_inst -a source=mksysb ...</td><td>Worst-case mksysb restore</td><td>RB.3 — needs 7.1 SPOT preserved</td></tr>
+      <tr><td>alt_rootvg_op -X old_rootvg</td><td>Free hdisk0 after burn-in</td><td>Phase 8 step 29 — only after sign-off</td></tr>
+      <tr><td>nim -o remove &lt;object&gt;</td><td>Delete NIM objects post-cleanup</td><td>Phase 8 step 30</td></tr>
+      <tr><td>nim -o reset &lt;client&gt;</td><td>Clear stuck NIM state on a client</td><td>Use if a failed nimadm leaves the client wedged</td></tr>
+    </table>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>The NIM master must be at or above the target client level. A 7.1 master cannot migrate clients to 7.2 — there is no in-flight upgrade path. Upgrade the master first.</li>
+      <li><code>simages = yes</code> on the lpp_source is non-negotiable. Without it, <code>nimadm</code> refuses to use the lpp_source. If absent, the lpp_source is incomplete — re-add ISO 2's filesets via <code>bffcreate</code>, run <code>inutoc</code>, and <code>nim -o check</code>.</li>
+      <li>Always run <code>nimadm -P 1</code> as a dry run before the real migration. Phase 1 is the validation phase — it catches misconfigured master/client/lpp_source without modifying the client.</li>
+      <li>Do not pre-clone with <code>alt_disk_copy</code>. nimadm <em>is</em> the clone operation; layering <code>alt_disk_copy</code> on top just consumes another disk for no benefit.</li>
+      <li>nimadmvg must be a separate VG (not rootvg) on the master, sized ≥ 2× the client's rootvg in free PPs. Skimping causes phase 7 failures partway through fileset migration — which is the longest phase to repeat.</li>
+      <li>Keep the old 7.1 SPOT around until burn-in is complete. RB.3 (worst-case <code>bos_inst</code> restore) needs a 7.1 SPOT in addition to the 7.2 one you built.</li>
+      <li>Third-party kernel extensions are the most common silent failure mode. Diff <code>genkex</code> pre and post — anything that doesn't reload on 7.2 needs vendor remediation before you sign off.</li>
+      <li>First boot off the migrated 7.2 rootvg can take longer than usual, drop to a TERM prompt, or generate informational <code>errpt</code> entries. Expected on the first boot, not on the second.</li>
+      <li>Treat the change as in-progress until application owners sign off. Do <em>not</em> run the cleanup steps in Phase 8 before that — your rollback (<code>old_rootvg</code> on hdisk0) needs to stay warm.</li>
+      <li>For 7.1 → 7.3 the procedure is identical — use a 7.3 NIM master and target a 7.3 lpp_source. Substitute throughout.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>RB-PATCH-AIX-002 · AIX 7.1 → 7.2 Migration · nimadm · single LPAR</span>
+  <span>NIM master ≥ 7.2 TL5 · client 7.1 TL5 SP12 → 7.2 TL5 SP10</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+
+</body>
+</html>
