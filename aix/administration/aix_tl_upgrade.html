@@ -744,7 +744,7 @@
   <div class="example">
     <div class="level-card from">
       <div class="level-role">Source level</div>
-      <div class="level-name">7100-05-11-2347</div>
+      <div class="level-name">7100-05-11-2246</div>
       <div class="level-tag">AIX 7.1 TL5 SP11</div>
       <div class="level-extra">running on hdisk0</div>
     </div>
@@ -754,9 +754,9 @@
     </div>
     <div class="level-card to">
       <div class="level-role">Target level</div>
-      <div class="level-name">7100-05-12-2336</div>
+      <div class="level-name">7100-05-12-2320</div>
       <div class="level-tag">AIX 7.1 TL5 SP12 — final 7.1 SP</div>
-      <div class="level-extra">bundle: 7100-05-12-2336-FP.tar</div>
+      <div class="level-extra">bundle: 7100-05-12-2320-FP.tar</div>
     </div>
   </div>
 
@@ -790,7 +790,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c01"><button class="copy-btn" onclick="copy('c01',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>                   <span class="c"># expect: 7100-05-11-2347</span>
+        <div class="cmd" id="c01"><button class="copy-btn" onclick="copy('c01',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>                   <span class="c"># expect: 7100-05-11-2246</span>
 <span class="kw">oslevel</span> <span class="flag">-r</span>                   <span class="c"># expect: 7100-05</span>
 <span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML         <span class="c"># all prior MLs/TLs cleanly applied?</span>
 <span class="kw">uname</span> <span class="flag">-a</span>
@@ -902,7 +902,7 @@
     <div class="step ph-backup">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">07</span>
-        <span class="step-title">Take an mksysb of rootvg</span>
+        <span class="step-title">Take a mksysb of rootvg</span>
         <span class="step-tag tag-critical">CRITICAL</span>
         <span class="run-on target">TARGET LPAR</span>
         <span class="step-chevron">▶</span>
@@ -916,7 +916,7 @@
 
 <span class="cmd-section">Verify the resulting file</span>
 <span class="kw">ls</span> <span class="flag">-l</span> /backup/$(<span class="kw">hostname</span>)_*.mksysb
-<span class="kw">lsmksysb</span> <span class="flag">-l -f</span> /backup/$(<span class="kw">hostname</span>)_*.mksysb | <span class="kw">head</span> <span class="flag">-40</span></div>
+<span class="kw">lsmksysb</span> <span class="flag">-l</span> /backup/$(<span class="kw">hostname</span>)_*.mksysb | <span class="kw">head</span> <span class="flag">-40</span></div>
         <table class="ref-table">
           <thead>
             <tr><th>Flag</th><th>Purpose</th></tr>
@@ -946,31 +946,26 @@
 <span class="c"># Expected: hdisk1  00f6...        None</span>
 
 <span class="cmd-section">Clone (10 — 30 min depending on rootvg size and disk speed)</span>
-<span class="kw">alt_disk_copy</span> <span class="flag">-B -d</span> hdisk1
+<span class="kw">alt_disk_copy</span> <span class="flag">-d</span> hdisk1
 
 <span class="cmd-section">Verify</span>
 <span class="kw">lspv</span>
 <span class="c"># Expected new line: hdisk1 ... altinst_rootvg active</span>
 <span class="kw">lsvg</span> altinst_rootvg</div>
-        <table class="ref-table">
-          <thead>
-            <tr><th>Flag</th><th>Purpose</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>-B</td><td>Do NOT update bootlist yet</td></tr>
-            <tr><td>-d</td><td>Destination disk</td></tr>
-          </tbody>
-        </table>
+        <p class="note note-caution" style="margin-top:14px"><strong>After the clone completes, verify and reset the bootlist if needed:</strong></p>
+        <div class="cmd" id="c08b"><button class="copy-btn" onclick="copy('c08b',this)">COPY</button><span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
+<span class="c"># Confirm hdisk0 (live rootvg). If alt_disk_copy moved it, reset:</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal hdisk0</div>
 
         <p class="note note-caution" style="margin-top:14px"><strong>Two strategies — pick one:</strong></p>
         <div class="option-grid">
           <div class="option-card">
-            <div class="option-header opt-a">A · with -B (this runbook)</div>
+            <div class="option-header opt-a">A · patch live · this runbook</div>
             <div class="option-desc"><strong>Patch the live rootvg on <code>hdisk0</code>.</strong> Clone on <code>hdisk1</code> stays cold as the rollback target. Simpler and more common.</div>
           </div>
           <div class="option-card">
-            <div class="option-header opt-b">B · without -B + alt_rootvg_op -W</div>
-            <div class="option-desc"><strong>Wake the clone, patch it offline, reboot onto patched clone.</strong> Original disk becomes the rollback. More steps, but the running system stays untouched until reboot.</div>
+            <div class="option-header opt-b">B · wake the clone · patch offline</div>
+            <div class="option-desc"><strong>Wake the clone with <code>alt_rootvg_op -W</code>, patch it offline, reboot onto patched clone.</strong> Original disk becomes the rollback. More steps, but the running system stays untouched until reboot.</div>
           </div>
         </div>
         <p class="note">This runbook follows pattern A.</p>
@@ -1008,11 +1003,11 @@
       </div>
       <div class="step-body">
         <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="cmd-section">From a jump host via SCP</span>
-<span class="kw">scp</span> 7100-05-12-2336-FP.tar root@<span class="ph">&lt;target&gt;</span>:/var/update_staging/7100-05-12/
+<span class="kw">scp</span> 7100-05-12-2320-FP.tar root@<span class="ph">&lt;target&gt;</span>:/var/update_staging/7100-05-12/
 
 <span class="cmd-section">Or via NFS-mounted update share</span>
 <span class="kw">mount</span> nfs-server:/aix_updates /mnt/updates
-<span class="kw">cp</span> /mnt/updates/7100-05-12-2336-FP.tar /var/update_staging/7100-05-12/</div>
+<span class="kw">cp</span> /mnt/updates/7100-05-12-2320-FP.tar /var/update_staging/7100-05-12/</div>
       </div>
     </div>
 
@@ -1025,7 +1020,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="kw">csum</span> <span class="flag">-h</span> SHA256 7100-05-12-2336-FP.tar</div>
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="kw">csum</span> <span class="flag">-h</span> SHA256 7100-05-12-2320-FP.tar</div>
         <p class="note note-verify"><strong>✓ Verify:</strong> Output checksum matches the value listed on Fix Central / ESS for this bundle. A mismatched bundle gets you mysterious <code>0503-005</code> errors mid-install — catch it here, not three hours into the window.</p>
       </div>
     </div>
@@ -1039,7 +1034,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="kw">tar</span> <span class="flag">-xvf</span> 7100-05-12-2336-FP.tar
+        <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="kw">tar</span> <span class="flag">-xvf</span> 7100-05-12-2320-FP.tar
 <span class="kw">ls</span> <span class="flag">-1</span> *.bff | <span class="kw">head</span>
 <span class="c"># Expect filenames like:</span>
 <span class="c">#   bos.64bit.7.1.5.41.bff</span>
@@ -1198,7 +1193,7 @@
       </div>
       <div class="step-body">
         <div class="cmd" id="c18"><button class="copy-btn" onclick="copy('c18',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>
-<span class="c"># Expect: 7100-05-12-2336</span>
+<span class="c"># Expect: 7100-05-12-2320</span>
 
 <span class="kw">oslevel</span> <span class="flag">-s -l</span> $(<span class="kw">oslevel</span> <span class="flag">-s</span>)
 <span class="c"># Expect: no output (no filesets below the reported level)</span>
@@ -1220,7 +1215,7 @@
 <span class="c"># Any subsystems that should be active but aren't?</span>
 
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
-<span class="c"># Should still show hdisk0 (we used -B during alt_disk_copy)</span></div>
+<span class="c"># Should still show hdisk0 — verify and re-set with 'bootlist -m normal hdisk0' if not</span></div>
         <p class="note note-verify"><strong>✓ Acceptance criteria:</strong> <code>oslevel -s</code> at target · <code>lppchk -v</code> clean · no new <code>errpt</code> classes · no inoperative subsystems · bootlist still on <code>hdisk0</code>. Anything else triggers Phase 7.</p>
       </div>
     </div>
@@ -1249,7 +1244,7 @@
 
 <span class="cmd-section">After reboot</span>
 <span class="kw">oslevel</span> <span class="flag">-s</span>
-<span class="c"># Expect: 7100-05-11-2347 (pre-patch level)</span>
+<span class="c"># Expect: 7100-05-11-2246 (pre-patch level)</span>
 
 <span class="kw">lspv</span>
 <span class="c"># rootvg is now on hdisk1; old (patched) rootvg shows as</span>
@@ -1345,7 +1340,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">A typical AIX 7.1 SP bundle (<code>7100-05-12-2336-FP.tar</code>) extracts to a flat directory of <code>.bff</code> files plus the <code>.toc</code> generated by <code>inutoc</code>.</p>
+        <p class="note" style="margin-top:0">A typical AIX 7.1 SP bundle (<code>7100-05-12-2320-FP.tar</code>) extracts to a flat directory of <code>.bff</code> files plus the <code>.toc</code> generated by <code>inutoc</code>.</p>
         <div class="cmd" id="a1"><button class="copy-btn" onclick="copy('a1',this)">COPY</button>/var/update_staging/7100-05-12/
     .toc                                          <span class="c">(built by inutoc)</span>
     bos.64bit.7.1.5.41.bff
@@ -1421,13 +1416,13 @@
 
 <span class="cmd-section">Backups</span>
 <span class="kw">mksysb</span> <span class="flag">-ipX</span> /backup/$(<span class="kw">hostname</span>)_$(<span class="kw">date</span> +%Y%m%d).mksysb
-<span class="kw">alt_disk_copy</span> <span class="flag">-B -d</span> hdisk1
+<span class="kw">alt_disk_copy</span> <span class="flag">-d</span> hdisk1
 <span class="kw">lspv</span>                                          <span class="c"># confirm altinst_rootvg</span>
 
 <span class="cmd-section">Stage</span>
 <span class="kw">mkdir</span> <span class="flag">-p</span> /var/update_staging/7100-05-12
 <span class="kw">cd</span> /var/update_staging/7100-05-12
-<span class="kw">tar</span> <span class="flag">-xvf</span> /tmp/7100-05-12-2336-FP.tar
+<span class="kw">tar</span> <span class="flag">-xvf</span> /tmp/7100-05-12-2320-FP.tar
 <span class="kw">inutoc</span> .
 
 <span class="cmd-section">Preview, then apply</span>
@@ -1439,7 +1434,7 @@
 <span class="cmd-section">Reboot and verify</span>
 <span class="kw">shutdown</span> <span class="flag">-Fr</span> now
 <span class="c"># ... wait for reboot ...</span>
-<span class="kw">oslevel</span> <span class="flag">-s</span>                                    <span class="c"># 7100-05-12-2336</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>                                    <span class="c"># 7100-05-12-2320</span>
 <span class="kw">lppchk</span> <span class="flag">-v</span>
 <span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML
 <span class="kw">errpt</span> | <span class="kw">head</span>
@@ -1465,7 +1460,7 @@
       <tr><td>lslpp -h &lt;fileset&gt;</td><td>Install history for a fileset</td><td>apply/commit/reject log</td></tr>
       <tr><td>lppchk -v</td><td>Verify fileset consistency</td><td>MUST be clean pre and post</td></tr>
       <tr><td>mksysb -ipX &lt;file&gt;</td><td>Bootable rootvg backup</td><td>Phase 3 — to NFS preferred</td></tr>
-      <tr><td>alt_disk_copy -B -d &lt;disk&gt;</td><td>Clone rootvg, do not change bootlist</td><td>Phase 3 — primary rollback</td></tr>
+      <tr><td>alt_disk_copy -d &lt;disk&gt;</td><td>Clone rootvg to spare disk</td><td>Phase 3 — primary rollback</td></tr>
       <tr><td>alt_rootvg_op -W -d &lt;disk&gt;</td><td>Wake an alt_rootvg for offline access</td><td>Pattern B alternative</td></tr>
       <tr><td>alt_rootvg_op -S</td><td>Sleep an alt_rootvg</td><td>After offline patching</td></tr>
       <tr><td>alt_rootvg_op -X &lt;vg&gt;</td><td>Remove an alt_rootvg definition</td><td>Cleanup or rollback discard</td></tr>
@@ -1489,7 +1484,8 @@
       <li>Always run the dry-run (<code>install_all_updates -p</code>) before the live apply. The preview exercises requisite resolution against the staged bundle — uncaught issues here become hard failures during the live run.</li>
       <li>Re-run <code>inutoc</code> after any change to the staging directory. A stale <code>.toc</code> is the most common cause of <em>0503-005 / 0504-203</em> errors during <code>install_all_updates</code>.</li>
       <li><code>lppchk -v</code> must be clean both before and after. A non-clean baseline means a previous half-applied update is still hanging around — fix it with <code>installp -C</code> first, or you are patching on top of a known-broken state.</li>
-      <li><code>alt_disk_copy -B</code> versus omitting <code>-B</code> is the key strategic choice. This runbook patches the live disk and keeps the clone cold for rollback (pattern A); for application LPARs where keeping the running system pristine matters, pattern B (wake, patch offline, reboot onto clone) is worth the extra steps.</li>
+      <li>Two strategic patterns to choose between: patch the live disk and keep the clone cold for rollback (pattern A — this runbook), or wake the clone with <code>alt_rootvg_op -W</code>, patch it offline, and reboot onto the patched clone (pattern B). For application LPARs where keeping the running system pristine matters, pattern B is worth the extra steps.</li>
+      <li>After <code>alt_disk_copy</code> completes, verify the bootlist still points at the live disk (<code>hdisk0</code>) before patching. If alt_disk_copy moved it to the clone, reset with <code>bootlist -m normal hdisk0</code> — patching is a no-op if you reboot onto the unpatched clone afterwards.</li>
       <li>Commit (<code>-c</code>) versus apply: commit halves the disk footprint but removes per-fileset rollback. With <code>alt_disk_copy</code> in place anyway, commit is the right default for SPs — your rollback is the clone, not <code>installp -r</code>.</li>
       <li>Hardware errors in <code>errpt</code> before patching <em>will</em> bite on the post-patch reboot. Resolve them at pre-flight, not at midnight.</li>
       <li>Never reboot on top of <code>FAILED</code> / <code>BROKEN</code> filesets in the install summary. A reboot on broken filesets converts a recoverable mistake into a rollback exercise.</li>
