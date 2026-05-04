@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIX 7.1 → 7.2 Migration · Boot Media</title>
+<meta name="description" content="Single-LPAR AIX 7.1 to 7.2 version migration performed from boot media (HMC virtual optical, physical DVD, or USB stick) by booting the BOS installer in SMS mode and selecting Migration Install. Offline migration; cutover is the install itself, with alt_disk_copy as the rollback.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.4);
+    background: rgba(88,201,232,.06);
+  }
+
+  .badge-amber {
+    color: var(--amber);
+    border-color: rgba(240,163,10,.4);
+    background: rgba(240,163,10,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* ── topology card ── */
+  .topology {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 20px;
+    animation: fadeUp .4s .05s ease both;
+    opacity: 0;
+  }
+
+  .host-card {
+    padding: 16px 18px;
+    border-radius: 4px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+  }
+
+  .host-card.hmc    { border-left-color: var(--purple); }
+  .host-card.client { border-left-color: var(--amber); }
+
+  .host-role {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .host-card.hmc    .host-role { color: var(--purple); }
+  .host-card.client .host-role { color: var(--amber); }
+
+  .host-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin-bottom: 4px;
+  }
+
+  .host-ip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .host-os {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+
+  .arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: center;
+    color: var(--text-dim);
+  }
+
+  .arrow .glyph {
+    font-size: 22px;
+    color: var(--cyan);
+  }
+
+  .arrow .label {
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── checklist ── */
+  .checklist {
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .35s ease both;
+  }
+
+  .checklist li {
+    padding: 11px 18px 11px 42px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .checklist li:last-child { border-bottom: none; }
+
+  .checklist li::before {
+    content: '☐';
+    position: absolute;
+    left: 18px;
+    top: 10px;
+    color: var(--green);
+    font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .checklist li strong { color: var(--text-hi); }
+
+  .checklist li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-prereq   { border-left-color: var(--cyan); }
+  .step.ph-validate { border-left-color: var(--cyan); }
+  .step.ph-stage    { border-left-color: var(--green); }
+  .step.ph-backup   { border-left-color: var(--purple); }
+  .step.ph-sms      { border-left-color: var(--purple); }
+  .step.ph-bos      { border-left-color: var(--red); }
+  .step.ph-install  { border-left-color: var(--red); }
+  .step.ph-verify   { border-left-color: var(--green); }
+  .step.ph-rollback { border-left-color: var(--amber); }
+  .step.ph-cleanup  { border-left-color: var(--text-dim); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+    flex-wrap: wrap;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 28px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+
+  .run-on {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .run-on.client { background: rgba(240,163,10,.08); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .run-on.hmc    { background: rgba(167,139,250,.08); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+  .run-on.vios   { background: rgba(88,201,232,.08); color: var(--cyan); border: 1px solid rgba(88,201,232,.25); }
+  .run-on.vterm  { background: rgba(224,92,92,.08); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--purple); }
+  .cmd .flag { color: var(--amber); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .pick { color: var(--green); font-weight: 600; }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-critical strong { color: var(--red); }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-info strong { color: var(--cyan); }
+
+  .note.note-verify {
+    border-left-color: var(--green);
+    background: rgba(57,211,83,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-verify strong { color: var(--green); }
+
+  /* ── inline reference table ── */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+
+  .ref-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  .ref-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .ref-table td:last-child {
+    color: var(--text-dim);
+  }
+
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  .ref-table code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── option grid (3-column for boot media options) ── */
+  .option-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .option-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  @media (max-width: 720px) {
+    .option-grid, .option-grid.three { grid-template-columns: 1fr; }
+  }
+
+  .option-card {
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .option-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    font-weight: 600;
+  }
+
+  .option-header.opt-a { background: rgba(57,211,83,.1);  color: var(--green);  border-bottom: 1px solid rgba(57,211,83,.2); }
+  .option-header.opt-b { background: rgba(240,163,10,.1); color: var(--amber);  border-bottom: 1px solid rgba(240,163,10,.2); }
+  .option-header.opt-c { background: rgba(167,139,250,.1); color: var(--purple); border-bottom: 1px solid rgba(167,139,250,.2); }
+
+  .option-desc {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .option-desc:last-child { border-bottom: none; }
+
+  .option-desc strong { color: var(--text-hi); font-weight: 600; }
+  .option-desc code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── SMS / BOS menu blocks ── */
+  .menu {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+
+  .menu .menu-title {
+    color: var(--cyan);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    display: block;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+
+  .menu .pick   { color: var(--green); font-weight: 600; }
+  .menu .danger { color: var(--red); font-weight: 600; }
+  .menu .dim    { color: var(--text-dim); }
+
+  /* ── summary table ── */
+  .summary-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .4s .5s ease both;
+    opacity: 0;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .summary-table td:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: 720px) {
+    .topology { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>AIX 7.1 → 7.2 Migration · Boot Media</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">BOOT MEDIA</span>
+    <span class="badge">AIX 7.1 → 7.2</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-PATCH-AIX-003</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Version migration · 7.1 → 7.2</div></div>
+    <div class="meta-cell"><div class="meta-label">Method</div><div class="meta-val mono">Boot media · Migration Install</div></div>
+    <div class="meta-cell"><div class="meta-label">Source level</div><div class="meta-val mono">7100-05-12-2336</div></div>
+    <div class="meta-cell"><div class="meta-label">Target level</div><div class="meta-val mono ok">7200-05-10</div></div>
+    <div class="meta-cell"><div class="meta-label">Client LPAR</div><div class="meta-val mono">lpar01</div></div>
+    <div class="meta-cell"><div class="meta-label">HMC</div><div class="meta-val mono">hmc01</div></div>
+    <div class="meta-cell"><div class="meta-label">Managed system</div><div class="meta-val mono">Server-9119-MME-SN12345AB</div></div>
+    <div class="meta-cell"><div class="meta-label">Spare disk</div><div class="meta-val mono">hdisk1 · ≥ rootvg</div></div>
+    <div class="meta-cell"><div class="meta-label">Window</div><div class="meta-val mono warn">4 — 5 hr</div></div>
+    <div class="meta-cell"><div class="meta-label">Install duration</div><div class="meta-val mono">90 — 180 min · offline</div></div>
+    <div class="meta-cell"><div class="meta-label">Rollback</div><div class="meta-val ok">alt_disk_copy + bootlist swap</div></div>
+  </div>
+
+  <!-- Topology -->
+  <div class="topology">
+    <div class="host-card hmc">
+      <div class="host-role">HMC</div>
+      <div class="host-name">hmc01</div>
+      <div class="host-ip">virtual media library · vterm console</div>
+      <div class="host-os">SMS-mode activation · ISO load/unload via VIOS</div>
+    </div>
+    <div class="arrow">
+      <div class="glyph">──▶</div>
+      <div class="label">SMS boot · BOS migration</div>
+    </div>
+    <div class="host-card client">
+      <div class="host-role">Client LPAR</div>
+      <div class="host-name">lpar01</div>
+      <div class="host-ip">offline during install</div>
+      <div class="host-os">hdisk0 = 7.1 → 7.2 in place · hdisk1 = alt clone (rollback)</div>
+    </div>
+  </div>
+
+  <p class="note note-info" style="margin-bottom:24px"><strong>Worked example:</strong> All commands assume <code>lpar01</code> as the client LPAR with <code>hdisk0</code> as the in-place migration target and <code>hdisk1</code> as the unassigned rollback disk. ISO 1 / ISO 2 from ESS are loaded into the HMC virtual media library on <code>hmc01</code>. Sub in your own values throughout.</p>
+
+  <p class="note note-caution" style="margin-bottom:24px"><strong>When to choose this method over nimadm:</strong> no NIM master available (and not feasible to build one) · LPAR is on an isolated network with no path to a NIM master · single, one-off migration where NIM setup overhead is not justified. <strong>For repeated or fleet migrations, nimadm is strongly preferred</strong> — see RB-PATCH-AIX-002.</p>
+
+  <p class="note note-critical" style="margin-bottom:32px"><strong>Console operator required for entire window.</strong> The BOS installer needs interactive input at multiple menu screens — do <em>not</em> plan to leave this unattended. The system is offline for 90 — 180 minutes during the install itself.</p>
+
+  <p class="note note-caution" style="margin-bottom:32px"><strong>Out of scope:</strong> new installations / "preservation" installs (different BOS menu selections; data-loss implications) · PowerHA / HACMP-clustered nodes (cluster must be quiesced; migrate one node at a time per IBM's PowerHA migration procedure). For 7.1 → 7.3 the procedure is identical — substitute 7.3 media throughout.</p>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Pre-change planning · T-7 to T-2 days</div>
+  <ul class="checklist">
+    <li><strong>Change ticket raised</strong> — CAB approval logged.</li>
+    <li><strong>Maintenance window agreed</strong> with application owners.</li>
+    <li><strong>AIX 7.2 entitlement confirmed</strong> in ESS.</li>
+    <li><strong>AIX 7.2 ISOs downloaded</strong> and SHA256 checksums verified.</li>
+    <li><strong>ISOs uploaded to HMC virtual media library</strong> (or DVD/USB ready).</li>
+    <li><strong>Free disk identified on client</strong> for <code>alt_disk_copy</code> rollback.</li>
+    <li><strong>HMC access tested</strong> — vterm to LPAR confirmed.</li>
+    <li><strong>Backup strategy confirmed</strong> — mksysb to NFS/TSM plus alt_disk_copy.</li>
+    <li><strong>Third-party software compatibility</strong> verified against AIX 7.2 (see note below).</li>
+    <li><strong>Rollback plan reviewed</strong> and signed off.</li>
+    <li><strong>Console operator booked</strong> for the entire window — BOS menus need interactive input.</li>
+  </ul>
+
+  <p class="note note-caution" style="margin-top:14px"><strong>Third-party compatibility matters more here than for an SP.</strong> Verify against AIX 7.2 TL5:</p>
+  <table class="ref-table">
+    <thead><tr><th>Component</th><th>What to check</th></tr></thead>
+    <tbody>
+      <tr><td>TSM / IBM Spectrum Protect client</td><td>IBM compatibility matrix for AIX 7.2 TL5 SPx supported client versions.</td></tr>
+      <tr><td>PowerHA / HACMP</td><td>Hard version dependency. Do not migrate clustered nodes ad-hoc.</td></tr>
+      <tr><td>Oracle, DB2, SAP</td><td>Each has its own AIX 7.2 certification matrix.</td></tr>
+      <tr><td>Kernel extensions</td><td><code>genkex</code> shows the loaded list — anything 3rd-party must be re-validated.</td></tr>
+      <tr><td>Java, OpenSSL, OpenSSH</td><td>Ship at newer baselines on 7.2.</td></tr>
+      <tr><td>Monitoring / AV agents</td><td>ITM, Nagios, Tanium, etc.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Phase 2</span> Boot media preparation</div>
+  <p class="note note-info" style="margin-bottom:14px"><strong>Three options, in order of practicality.</strong> Most modern environments use Option A (HMC virtual optical). Options B and C exist for edge cases.</p>
+
+  <div class="option-grid three" style="margin-bottom:18px">
+    <div class="option-card">
+      <div class="option-header opt-a">A · HMC virtual optical</div>
+      <div class="option-desc"><strong>Recommended.</strong> ISO held in HMC virtual media library, presented to LPAR as virtual optical via VIOS. Mid-install media swap is a CLI command on VIOS.</div>
+    </div>
+    <div class="option-card">
+      <div class="option-header opt-b">B · Physical DVD</div>
+      <div class="option-desc"><strong>Decreasingly common.</strong> LPAR profile must have the physical DVD drive attached (typically owned by VIOS, presented as virtual optical, or directly assigned via DLPAR).</div>
+    </div>
+    <div class="option-card">
+      <div class="option-header opt-c">C · Bootable USB stick</div>
+      <div class="option-desc"><strong>POWER8+.</strong> ISO written to ≥ 16 GB USB stick via <code>dd</code>. Fiddly — not all firmware levels handle multi-DVD installs cleanly from USB. Prefer A.</div>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <div class="step ph-stage open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Option A · upload ISOs to the HMC virtual media library</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on hmc">hmc01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-info" style="margin-top:0"><strong>Two paths:</strong> HMC GUI (slower for large ISOs but accessible) or HMC CLI via <code>viosvrcmd</code> (faster, scriptable).</p>
+
+        <p class="note" style="margin-top:14px"><strong>Via HMC GUI:</strong></p>
+        <ol style="padding-left:20px; font-size:12.5px; line-height:1.7; color:var(--text-dim)">
+          <li>HMC main menu → Systems Management → Servers → select managed system.</li>
+          <li>Configuration → Virtual Resources → Virtual Storage Management.</li>
+          <li>Select the VIOS that owns virtual optical for this LPAR.</li>
+          <li>"Optical Devices" tab → "Add" → "Add Existing File", or upload the ISO from your workstation (slow) or from an NFS share the HMC can reach (faster).</li>
+          <li>Repeat for ISO 2.</li>
+        </ol>
+
+        <p class="note" style="margin-top:14px"><strong>Via HMC CLI:</strong></p>
+        <div class="cmd" id="c01"><button class="copy-btn" onclick="copy('c01',this)">COPY</button><span class="cmd-section">SSH to the HMC as hscroot</span>
+<span class="kw">ssh</span> hscroot@hmc01
+
+<span class="cmd-section">Verify managed system</span>
+<span class="kw">lssyscfg</span> <span class="flag">-r</span> sys <span class="flag">-F</span> name
+
+<span class="cmd-section">List existing media library contents</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"lsrep"</span>
+
+<span class="cmd-section">Create the repository (only needed first time)</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"mkrep -sp rootvg -size 10G"</span>
+
+<span class="cmd-section">Upload an ISO to the VIOS media repository (from an NFS share)</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"mkvopt -name AIX72_TL5_SP10_DVD1 \
+                     -file /home/padmin/AIX_7200-05-10_DVD_1_of_2.iso \
+                     -ro"</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Option A · load ISO into the LPAR's virtual optical drive</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on vios">vios1</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c02"><button class="copy-btn" onclick="copy('c02',this)">COPY</button><span class="cmd-section">Identify the virtual optical device assigned to the client</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"lsmap -all -type file_opt"</span>
+<span class="c"># Look for the vtopt mapping to lpar01</span>
+
+<span class="cmd-section">Load ISO 1 into that virtual optical</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"loadopt -vtd vtopt0 -disk AIX72_TL5_SP10_DVD1"</span></div>
+        <p class="note note-info"><strong>Mid-install swap (when BOS prompts for ISO 2):</strong></p>
+        <div class="cmd" id="c02b"><button class="copy-btn" onclick="copy('c02b',this)">COPY</button><span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"unloadopt -vtd vtopt0"</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"loadopt -vtd vtopt0 -disk AIX72_TL5_SP10_DVD2"</span></div>
+        <p class="note">Have this command ready to paste before the install starts — at the swap prompt the install is paused and waiting on you.</p>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Option B · physical DVD prep</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <ol style="padding-left:20px; font-size:13px; line-height:1.8">
+          <li>Insert AIX 7.2 DVD 1 in the frame's DVD drive.</li>
+          <li>Confirm the LPAR has the DVD device assigned (via HMC partition profile or DLPAR add operation).</li>
+          <li>On the client (while still running 7.1):</li>
+        </ol>
+        <div class="cmd" id="c03"><button class="copy-btn" onclick="copy('c03',this)">COPY</button><span class="kw">lsdev</span> <span class="flag">-Cc</span> cdrom
+<span class="c"># Expect: cd0 Available ... IDE DVD-ROM Drive</span></div>
+        <p class="note note-caution"><strong>Shared DVD across LPARs:</strong> If the DVD is shared between LPARs via VIOS, ensure it's currently allocated to <code>lpar01</code> and not held by another partition. A held DVD is the most common reason an Option B install hangs at the BOS device-list screen.</p>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Option C · bootable USB stick prep</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on hmc">workstation</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">USB stick must be at least 16 GB. AIX 7.2 install ISO is hybrid — bootable as either DVD or USB.</p>
+
+        <p class="note" style="margin-top:12px"><strong>On a Linux workstation:</strong></p>
+        <div class="cmd" id="c04l"><button class="copy-btn" onclick="copy('c04l',this)">COPY</button><span class="cmd-section">Identify the USB device (NOT a disk you care about!)</span>
+<span class="kw">lsblk</span>
+<span class="c"># e.g. /dev/sdc</span>
+
+<span class="cmd-section">Write the ISO directly</span>
+<span class="kw">dd</span> if=AIX_7200-05-10_DVD_1_of_2.iso of=/dev/sdc bs=1M status=progress
+<span class="kw">sync</span></div>
+
+        <p class="note" style="margin-top:12px"><strong>On AIX 7.x (a system other than the one being migrated):</strong></p>
+        <div class="cmd" id="c04a"><button class="copy-btn" onclick="copy('c04a',this)">COPY</button><span class="cmd-section">Identify USB stick</span>
+<span class="kw">lsdev</span> <span class="flag">-Cc</span> disk | <span class="kw">grep</span> <span class="flag">-i</span> usb
+<span class="c"># e.g. usbms0</span>
+
+<span class="cmd-section">Write ISO</span>
+<span class="kw">dd</span> if=/path/to/AIX_7200-05-10_DVD_1_of_2.iso \
+   of=/dev/usbms0 \
+   bs=1m</div>
+        <p class="note note-critical"><strong>Triple-check the target device.</strong> A wrong <code>of=</code> destroys the disk it points at, no questions asked. <code>lsblk</code> / <code>lsdev -Cc disk | grep usb</code> first, every time.</p>
+        <p class="note note-caution"><strong>Caveat:</strong> Then physically plug the USB stick into a USB port on the frame allocated to the target LPAR. Not all firmware levels handle multi-DVD installs cleanly from USB — prefer Option A when available.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Verify the ISO checksum BEFORE attaching media</span>
+        <span class="step-tag tag-critical">VALIDATE</span>
+        <span class="run-on hmc">staging host</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Wherever the ISO is staged (HMC, DVD burn source, USB write source), verify the SHA256 against the value on the ESS download page.</p>
+        <div class="cmd" id="c05"><button class="copy-btn" onclick="copy('c05',this)">COPY</button><span class="kw">sha256sum</span> AIX_7200-05-10_DVD_*.iso     <span class="c"># Linux</span>
+<span class="kw">csum</span> <span class="flag">-h</span> SHA256 AIX_7200-05-10_DVD_*.iso  <span class="c"># AIX</span></div>
+        <p class="note note-critical"><strong>Why this matters:</strong> A corrupted install ISO causes failures partway through the install that look like hardware faults. By the time you see them you've burned an hour of the maintenance window. Catch corruption at the doorstep, not 60% through phase 7.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 3</span> Pre-flight checks on the client LPAR · T-0</div>
+  <p class="note note-info" style="margin-bottom:14px"><strong>Capture everything:</strong> Wrap the whole pre-flight in <code>script /tmp/preflight_$(date +%Y%m%d).log</code>. You will <em>not</em> have shell access to the running 7.1 system during the install — anything you forget to capture here is gone.</p>
+  <div class="steps">
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Capture current OS level and identity</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c06"><button class="copy-btn" onclick="copy('c06',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>                     <span class="c"># expect: 7100-05-12-2336</span>
+<span class="kw">oslevel</span> <span class="flag">-r</span>
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML
+<span class="kw">uname</span> <span class="flag">-a</span>
+<span class="kw">prtconf</span> | <span class="kw">head</span> <span class="flag">-30</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Verify fileset health</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c07"><button class="copy-btn" onclick="copy('c07',this)">COPY</button><span class="kw">lppchk</span> <span class="flag">-v</span>                      <span class="c"># MUST return clean</span>
+<span class="kw">lppchk</span> <span class="flag">-c</span>                      <span class="c"># checksum verify (optional)</span></div>
+        <p class="note note-critical"><strong>Stop condition:</strong> If <code>lppchk -v</code> reports issues, remediate before migration. The migration installer carries broken state forward and amplifies it.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Identify obsolete or problem filesets</span>
+        <span class="step-tag tag-caution">VALIDATE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c08"><button class="copy-btn" onclick="copy('c08',this)">COPY</button><span class="kw">lslpp</span> <span class="flag">-L</span> | <span class="kw">grep</span> <span class="flag">-i</span> obsolete
+<span class="kw">lslpp</span> <span class="flag">-L</span> bos.adt.libm bos.compat.libs perfagent.tools 2&gt;/dev/null</div>
+        <p class="note">Anything matched is worth confirming with the application team before migration. <code>perfagent.tools</code> in particular has historically caused post-migration noise.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">Confirm disk space</span>
+        <span class="step-tag tag-caution">VALIDATE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c09"><button class="copy-btn" onclick="copy('c09',this)">COPY</button><span class="kw">df</span> <span class="flag">-g</span> / /usr /var /opt /tmp /home</div>
+        <table class="ref-table">
+          <thead><tr><th>Filesystem</th><th>Min free</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>/</td><td>100 MB</td><td>Bootloader, ODM</td></tr>
+            <tr><td>/usr</td><td>3 GB</td><td>7.2 fileset footprint is materially larger than 7.1</td></tr>
+            <tr><td>/var</td><td>1 GB</td><td>Migration logs</td></tr>
+            <tr><td>/tmp</td><td>1 GB</td><td>installp scratch</td></tr>
+            <tr><td>/opt</td><td>500 MB</td><td>Optional product trees</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">10</span>
+        <span class="step-title">Verify rootvg health and rollback disk</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="kw">lsvg</span> rootvg
+<span class="kw">lsvg</span> <span class="flag">-p</span> rootvg
+<span class="kw">lsvg</span> <span class="flag">-l</span> rootvg
+
+<span class="kw">lspv</span>
+<span class="c"># Confirm hdisk1 shows "None" in VG column and is >= hdisk0 size.</span>
+
+<span class="kw">bootinfo</span> <span class="flag">-s</span> hdisk0             <span class="c"># size in MB</span>
+<span class="kw">bootinfo</span> <span class="flag">-s</span> hdisk1</div>
+        <p class="note note-verify"><strong>✓ Verify:</strong> <code>hdisk1</code> shows <code>None</code> in VG column · size ≥ <code>hdisk0</code> · all LVs in <code>lsvg -l rootvg</code> are <code>open/syncd</code>.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">11</span>
+        <span class="step-title">Snapshot bootlist and error log</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span> &gt; /tmp/bootlist_pre.txt
+<span class="kw">bootlist</span> <span class="flag">-m</span> service <span class="flag">-o</span> &gt;&gt; /tmp/bootlist_pre.txt
+
+<span class="kw">errpt</span> | <span class="kw">head</span> <span class="flag">-30</span>
+<span class="kw">errpt</span> <span class="flag">-a</span> &gt; /tmp/errpt_pre.txt</div>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">12</span>
+        <span class="step-title">Snapshot running state for post-migration diff</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="kw">lssrc</span> <span class="flag">-a</span> &gt; /tmp/lssrc_pre.txt
+<span class="kw">netstat</span> <span class="flag">-rn</span> &gt; /tmp/routing_pre.txt
+<span class="kw">df</span> <span class="flag">-g</span> &gt; /tmp/df_pre.txt
+<span class="kw">no</span> <span class="flag">-a</span> &gt; /tmp/no_pre.txt
+<span class="kw">lsattr</span> <span class="flag">-El</span> sys0 &gt; /tmp/sys0_pre.txt
+<span class="kw">genkex</span> &gt; /tmp/genkex_pre.txt</div>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">13</span>
+        <span class="step-title">Capture critical config files for three-way diff</span>
+        <span class="step-tag tag-caution">BASELINE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The migration installer preserves <code>/etc</code> but does three-way merges on some files. Capture pre-migration originals to diff against later.</p>
+        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="kw">mkdir</span> <span class="flag">-p</span> /tmp/etc_pre
+<span class="kw">cp</span> /etc/inittab           /tmp/etc_pre/
+<span class="kw">cp</span> /etc/inetd.conf        /tmp/etc_pre/
+<span class="kw">cp</span> /etc/services          /tmp/etc_pre/
+<span class="kw">cp</span> /etc/rc.tcpip          /tmp/etc_pre/
+<span class="kw">cp</span> /etc/security/limits   /tmp/etc_pre/
+<span class="kw">cp</span> /etc/filesystems       /tmp/etc_pre/</div>
+        <p class="note note-info"><strong>Why these specific files:</strong> The 7.2 installer adds new lines (new services, new inittab entries for 7.2 features) and may overwrite local customisations. Diffing pre vs post in step 32 is how you catch what was lost.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">14</span>
+        <span class="step-title">Capture console / network info for post-install recovery</span>
+        <span class="step-tag tag-critical">BASELINE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Record details you may need to bring up networking <em>from the console</em> if the ODM fails to migrate cleanly.</p>
+        <div class="cmd" id="c14"><button class="copy-btn" onclick="copy('c14',this)">COPY</button><span class="kw">netstat</span> <span class="flag">-rn</span> &gt; /tmp/routes_pre.txt
+<span class="kw">ifconfig</span> <span class="flag">-a</span> &gt; /tmp/ifconfig_pre.txt
+<span class="kw">cat</span> /etc/resolv.conf
+<span class="kw">cat</span> /etc/netsvc.conf
+<span class="kw">lsattr</span> <span class="flag">-El</span> inet0 &gt; /tmp/inet0_pre.txt</div>
+        <p class="note note-critical"><strong>Print these or store off-LPAR.</strong> You will not have access to the running 7.1 system during the install. If the migrated 7.2 comes up with no network, your only path back is the vterm console — and only with these values in hand.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Phase 4</span> Backups</div>
+  <div class="steps">
+
+    <div class="step ph-backup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">15</span>
+        <span class="step-title">Take an mksysb to NFS or local backup target</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c15"><button class="copy-btn" onclick="copy('c15',this)">COPY</button><span class="kw">df</span> <span class="flag">-g</span> /backup
+<span class="kw">mksysb</span> <span class="flag">-i -X</span> /backup/$(<span class="kw">hostname</span>)_pre72_$(<span class="kw">date</span> +%Y%m%d_%H%M).mksysb
+
+<span class="cmd-section">Verify the resulting file</span>
+<span class="kw">ls</span> <span class="flag">-l</span> /backup/$(<span class="kw">hostname</span>)_pre72_*.mksysb
+<span class="kw">lsmksysb</span> <span class="flag">-l -f</span> /backup/$(<span class="kw">hostname</span>)_pre72_*.mksysb | <span class="kw">head</span> <span class="flag">-40</span></div>
+        <p class="note note-info"><strong>Worst-case use:</strong> If both disks become unbootable post-migration, you'll boot the 7.1 install media in maintenance mode and restore this mksysb (RB.3). It's slow (1 — 3 hr) but it works.</p>
+      </div>
+    </div>
+
+    <div class="step ph-backup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">16</span>
+        <span class="step-title">alt_disk_copy clone — primary rollback</span>
+        <span class="step-tag tag-critical">NON-NEGOTIABLE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-critical" style="margin-top:0"><strong>Mandatory for boot-media migration.</strong> Without an alt_disk_copy clone your only rollback is mksysb restore — which itself requires booting from media in maintenance mode and takes 1 — 3 hours. With alt_disk_copy, rollback is a bootlist change and a reboot.</p>
+        <div class="cmd" id="c16"><button class="copy-btn" onclick="copy('c16',this)">COPY</button><span class="cmd-section">Confirm hdisk1 is free</span>
+<span class="kw">lspv</span> | <span class="kw">grep</span> hdisk1
+<span class="c"># Expected: hdisk1  00fXXXXXXXXXXXXX  None</span>
+
+<span class="cmd-section">Clone — 10-30 min depending on rootvg size and disk speed</span>
+<span class="kw">alt_disk_copy</span> <span class="flag">-B -d</span> hdisk1
+
+<span class="cmd-section">Verify</span>
+<span class="kw">lspv</span>
+<span class="c"># Expect new line: hdisk1 ... altinst_rootvg active</span>
+
+<span class="cmd-section">Confirm bootlist still points at hdisk0</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
+<span class="c"># Expect: hdisk0</span></div>
+        <table class="ref-table" style="margin-top:14px">
+          <thead><tr><th>Flag</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>-B</td><td>Do NOT change bootlist — we want to control that explicitly</td></tr>
+            <tr><td>-d</td><td>Destination disk</td></tr>
+          </tbody>
+        </table>
+        <p class="note note-critical"><strong>Confirm bootlist is on hdisk0, NOT hdisk1, before booting install media.</strong> The migration installer will offer hdisk0 as the target — if you accidentally pick hdisk1 (the clone), you'll overwrite your rollback. There is no undo.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Phase 5</span> Boot the install media via SMS</div>
+  <div class="steps">
+
+    <div class="step ph-sms">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">17</span>
+        <span class="step-title">Open vterm and shut down the LPAR cleanly</span>
+        <span class="step-tag tag-caution">CAUTION</span>
+        <span class="run-on hmc">hmc01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <ol style="padding-left:20px; font-size:13px; line-height:1.8">
+          <li>From HMC: open vterm (Selected → Console Window → Open Terminal Window). <strong>Open this <em>before</em> shutting down</strong> so you can watch the boot sequence.</li>
+          <li>From vterm, after application shutdown:</li>
+        </ol>
+        <div class="cmd" id="c17"><button class="copy-btn" onclick="copy('c17',this)">COPY</button><span class="kw">shutdown</span> <span class="flag">-F</span> now</div>
+        <p class="note note-caution"><strong>Use <code>-F</code> not <code>-Fr</code>.</strong> We want the LPAR to power off, not auto-reboot off the existing bootlist. <code>-Fr</code> would reboot you straight back into the live 7.1 system before you have a chance to enter SMS.</p>
+        <p class="note">Wait for the LPAR state in HMC to show <strong style="color:var(--text-hi)">Not Activated</strong>.</p>
+      </div>
+    </div>
+
+    <div class="step ph-sms">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">18</span>
+        <span class="step-title">Activate the LPAR in SMS mode</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on hmc">hmc01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0"><strong>Via HMC GUI:</strong></p>
+        <ol style="padding-left:20px; font-size:12.5px; line-height:1.7; color:var(--text-dim)">
+          <li>Right-click LPAR → Operations → Activate → Profile.</li>
+          <li>Select the appropriate profile.</li>
+          <li>Boot mode → <strong>SMS</strong>.</li>
+          <li>OK.</li>
+        </ol>
+        <p class="note" style="margin-top:14px"><strong>Via HMC CLI:</strong></p>
+        <div class="cmd" id="c18"><button class="copy-btn" onclick="copy('c18',this)">COPY</button><span class="kw">chsysstate</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB \
+           <span class="flag">-r</span> lpar <span class="flag">-o</span> on \
+           <span class="flag">-n</span> lpar01 \
+           <span class="flag">-f</span> default_profile \
+           <span class="flag">-b</span> sms</div>
+      </div>
+    </div>
+
+    <div class="step ph-sms">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">19</span>
+        <span class="step-title">Wait for the SMS Main Menu in vterm</span>
+        <span class="step-tag tag-info">EXPECTED</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">You'll see firmware POST output, then the SMS Main Menu:</p>
+        <div class="menu"><span class="menu-title">SMS Main Menu</span>PowerPC Firmware
+Version XXXX
+SMS 1.7 (c) Copyright IBM Corp.
+
+  Main Menu
+  1. Select Language
+  2. Setup Remote IPL (Initial Program Load)
+  3. Change SCSI Settings
+  4. Select Console
+  <span class="pick">5. Select Boot Options</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-sms">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">20</span>
+        <span class="step-title">Navigate to boot device selection</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="menu"><span class="menu-title">SMS · Path to install media</span><span class="pick">5. Select Boot Options</span>
+    <span class="pick">1. Select Install/Boot Device</span>
+        <span class="pick">7. List all Devices</span></div>
+        <p class="note" style="margin-top:0"><code>List all Devices</code> enumerates everything firmware can see. After a short scan you'll get a numbered list including hard disks, tape drives, network adapters, and the virtual optical (or DVD/USB).</p>
+        <p class="note note-info"><strong>What the install media looks like in the device list:</strong></p>
+        <table class="ref-table">
+          <thead><tr><th>Entry</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td>USB CD-ROM</td><td>Virtual optical via VIOS (Option A)</td></tr>
+            <tr><td>SATA CD-ROM</td><td>Physical DVD (Option B)</td></tr>
+            <tr><td>USB Mass Storage</td><td>USB stick (Option C)</td></tr>
+            <tr><td>IBM 9.5mm DVD-RAM Drive</td><td>Frame DVD drive direct</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="step ph-sms">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">21</span>
+        <span class="step-title">Boot from the media</span>
+        <span class="step-tag tag-caution">REBOOT</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Select the install media entry, then:</p>
+        <div class="menu"><span class="pick">2. Normal Mode Boot</span>
+<span class="pick">1. Yes (exit SMS)</span></div>
+        <p class="note">The LPAR will load the BOS installer kernel from the media. Expect 60 — 120 seconds of boot output, then the BOS installer's first prompt:</p>
+        <div class="menu">******* Please define the System Console. *******
+Type a 1 and press Enter to use this terminal as the
+system console.</div>
+        <p class="note note-info"><strong>Press 1 + Enter</strong> to claim the vterm as the system console.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Phase 6</span> BOS installer · Migration Install</div>
+  <p class="note note-critical" style="margin-bottom:14px"><strong>Critical menu choice ahead.</strong> The default option is "New and Complete Overwrite" which will <em>destroy your rootvg</em>. Do not pick "Start Install Now with Default Settings". The path is: 2 → 1 → 3 → select hdisk0 → 0 → 0.</p>
+  <div class="steps">
+
+    <div class="step ph-bos">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">22</span>
+        <span class="step-title">Language and locale</span>
+        <span class="step-tag tag-info">MENU</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="menu">Type the number of your choice and press Enter.
+    <span class="pick">1   Type 1 and press Enter to have English during install.</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-bos">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">23</span>
+        <span class="step-title">Installation and Maintenance menu — choose 2 (NOT 1)</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="menu"><span class="menu-title">Welcome to Base Operating System Installation and Maintenance</span>Type the number of your choice and press Enter. Choice is indicated by &gt;&gt;&gt;.
+
+<span class="danger">    1 Start Install Now with Default Settings</span>
+<span class="pick">&gt;&gt;&gt; 2 Change/Show Installation Settings and Install</span>
+    3 Start Maintenance Mode for System Recovery
+    4 Make Additional Disks Available
+    5 Select Storage Adapters</div>
+        <p class="note note-critical"><strong>DO NOT pick 1.</strong> The default is "New and Complete Overwrite" which destroys your rootvg. Always pick <strong style="color:var(--green)">2</strong> to get to the menu where you can switch to Migration Install.</p>
+      </div>
+    </div>
+
+    <div class="step ph-bos">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">24</span>
+        <span class="step-title">Installation and Settings menu — choose 1 (System Settings)</span>
+        <span class="step-tag tag-info">MENU</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="menu"><span class="menu-title">Installation and Settings</span>Either type 0 and press Enter to install with current settings,
+or type the number of the setting you want to change.
+
+<span class="pick">  1   System Settings:</span>
+        Method of Installation.............<span class="danger">New and Complete Overwrite</span>
+        Disk Where You Want to Install.....hdisk0
+  2   Primary Language Environment Settings (AFTER Install):
+  3   Security Model.....................Default
+  4   More Options
+  5   Select Edition</div>
+        <p class="note">Currently shows the default Method as "New and Complete Overwrite". We're going to change that next.</p>
+      </div>
+    </div>
+
+    <div class="step ph-bos">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">25</span>
+        <span class="step-title">Method of Installation — choose 3 (Migration Install)</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="menu"><span class="menu-title">Change Method of Installation</span>Type the number of your choice and press Enter.
+
+<span class="danger">  1 New and Complete Overwrite</span>
+    Overwrites EVERYTHING on the disk selected for installation.
+    Warning: Only use this method if the disk is totally empty
+    or if there is nothing on the disk you want to preserve.
+
+<span class="dim">  2 Preservation Install</span>
+    Preserves SOME of the existing data on the disk selected
+    for installation. Warning: This method overwrites the
+    usr (/usr), variable (/var), temporary (/tmp), and root
+    (/) file systems.
+
+<span class="pick">  3 Migration Install</span>
+    Upgrades the Base Operating System to current release.
+    Other product (applications) files and configuration data
+    are saved.</div>
+        <p class="note note-info"><strong>Migration Install</strong> upgrades BOS in place and preserves application data and configuration. This is the only correct choice for a 7.1 → 7.2 upgrade preserving the running system.</p>
+      </div>
+    </div>
+
+    <div class="step ph-bos">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">26</span>
+        <span class="step-title">Select target disk — choose hdisk0 (NOT hdisk1)</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="menu"><span class="menu-title">Change Disk(s) Where You Want to Install</span>  Name      Location Code      Size(MB)   VG Status        Bootable
+<span class="pick">&gt; 1 hdisk0  ...                XXXXX      rootvg           Yes</span>
+<span class="danger">  2 hdisk1  ...                XXXXX      altinst_rootvg   Yes</span></div>
+        <p class="note note-critical"><strong>hdisk1 is your alt_disk_copy rollback.</strong> If you select hdisk1 here you will destroy your rollback. The disk to select is the one currently labeled <code>rootvg</code> in the VG Status column — that's <code>hdisk0</code>.</p>
+        <p class="note">After selection a chevron <code>&gt;&gt;&gt;</code> appears next to <code>hdisk0</code> indicating it's selected. Press <strong style="color:var(--green)">0</strong> (zero) and Enter to continue.</p>
+      </div>
+    </div>
+
+    <div class="step ph-bos">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">27</span>
+        <span class="step-title">Confirm migration settings, optional 4 (More Options)</span>
+        <span class="step-tag tag-info">MENU</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">You'll be returned to the Installation and Settings menu, now showing:</p>
+        <div class="menu">  1   System Settings:
+        Method of Installation.............<span class="pick">Migration</span>
+        Disk Where You Want to Install.....<span class="pick">hdisk0</span></div>
+
+        <p class="note" style="margin-top:14px"><strong>Optional — select 4 (More Options) to review:</strong></p>
+        <table class="ref-table">
+          <thead><tr><th>Option</th><th>Recommended</th></tr></thead>
+          <tbody>
+            <tr><td>Trusted Computing Base</td><td>No (migration default)</td></tr>
+            <tr><td>Backup Configuration</td><td>No</td></tr>
+            <tr><td>Remote Services</td><td>No (typically)</td></tr>
+            <tr><td>64-bit Kernel</td><td>Yes (default on modern AIX)</td></tr>
+          </tbody>
+        </table>
+        <p class="note">When satisfied, press <strong style="color:var(--green)">0</strong> (Install with current settings).</p>
+      </div>
+    </div>
+
+    <div class="step ph-bos">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">28</span>
+        <span class="step-title">Final confirmation</span>
+        <span class="step-tag tag-caution">CONFIRM</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="menu"><span class="menu-title">Migration Confirmation</span>The following file systems will be migrated:
+  /
+  /usr
+  /var
+  /tmp
+  /home
+  /opt
+  /admin
+  ...
+
+Press Enter to continue.</div>
+        <p class="note note-info"><strong>Last sanity check:</strong> The list of filesystems should match what you saw in <code>df -g</code> at pre-flight. If something looks wrong (a filesystem missing, an extra one listed), abort now (Ctrl-C / power off via HMC) — recovery from a bad start is easier than recovery from a wrong-disk overwrite.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">29</span>
+        <span class="step-title">Installation runs · 60 — 120 minutes</span>
+        <span class="step-tag tag-critical">RUNNING</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="menu"><span class="menu-title">Installation Status</span>Approximate     Elapsed time
+% tasks complete  (in minutes)
+
+   2              0           Restoring base operating system
+   ...            ...         Installing additional software</div>
+        <p class="note">Phase takes 60 — 120 minutes depending on rootvg size and IO speed. The vterm is your only window into progress — keep it open and watched.</p>
+
+        <p class="note note-caution" style="margin-top:14px"><strong>Mid-install media swap (around 70 — 80%):</strong> If the install spans both DVDs, you'll be prompted:</p>
+        <div class="menu">Please remove volume 1 and insert volume 2.
+Press Enter to continue.</div>
+
+        <p class="note" style="margin-top:14px"><strong>For HMC virtual optical, switch to your HMC session and:</strong></p>
+        <div class="cmd" id="c29"><button class="copy-btn" onclick="copy('c29',this)">COPY</button><span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"unloadopt -vtd vtopt0"</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"loadopt -vtd vtopt0 -disk AIX72_TL5_SP10_DVD2"</span></div>
+        <p class="note">Then return to the vterm and press Enter. For physical DVD: open the drive, swap discs, close, press Enter.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">30</span>
+        <span class="step-title">Post-install reboot</span>
+        <span class="step-tag tag-caution">REBOOT</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">When the install completes, the LPAR reboots automatically. If the bootlist is set correctly (firmware will set it to the migrated disk), the system comes up on AIX 7.2.</p>
+        <p class="note note-caution"><strong>If it boots back into SMS or back off the install media:</strong> manually set the bootlist from SMS:</p>
+        <div class="menu"><span class="pick">SMS → 5. Select Boot Options</span>
+    <span class="pick">→ 2. Configure Boot Device Order</span>
+        <span class="pick">→ 1. Select 1st Boot Device</span>
+            <span class="pick">→ 5. Hard Drive</span>
+                <span class="pick">→ select hdisk0</span>
+<span class="pick">→ Exit SMS, normal boot.</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Phase 7</span> First boot and verification</div>
+  <div class="steps">
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">31</span>
+        <span class="step-title">First boot considerations</span>
+        <span class="step-tag tag-info">EXPECTED</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0"><strong>The first boot off the migrated 7.2 rootvg may:</strong></p>
+        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--text-dim); line-height:1.7">
+          <li>▸ Take longer than usual while the kernel re-syncs ODM and rebuilds device configuration.</li>
+          <li>▸ Drop to a console <code>TERM</code> prompt before login — enter <code>vt100</code> or <code>xterm</code> and continue. Subsequent boots will not prompt.</li>
+          <li>▸ Generate informational entries in <code>errpt</code> during initial config — review but expect some noise.</li>
+        </ul>
+        <p class="note note-info"><strong>Don't panic:</strong> Any of the above on the first boot is expected. Repeated occurrences on the second boot are not.</p>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">32</span>
+        <span class="step-title">Network bring-up if it doesn't come up automatically</span>
+        <span class="step-tag tag-caution">FALLBACK</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">In most cases, networking comes up cleanly from the migrated config. If it doesn't (no IP on the expected interface), use the captured config from step 14 to recreate it from the console.</p>
+        <div class="cmd" id="c32"><button class="copy-btn" onclick="copy('c32',this)">COPY</button><span class="kw">lsdev</span> <span class="flag">-Cc</span> adapter | <span class="kw">grep</span> <span class="flag">-i</span> ent
+<span class="kw">chdev</span> <span class="flag">-l</span> en0 <span class="flag">-a</span> netaddr=<span class="ph">A.B.C.D</span> <span class="flag">-a</span> netmask=<span class="ph">W.X.Y.Z</span> <span class="flag">-a</span> state=up
+<span class="kw">route</span> add 0 <span class="ph">GATEWAY_IP</span></div>
+        <p class="note note-caution"><strong>Then troubleshoot</strong> why the migration didn't preserve the network config — usually a stale ODM entry referencing a 7.1-only attribute, or an interface name change. Don't leave the LPAR running with hand-rolled config indefinitely.</p>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">33</span>
+        <span class="step-title">Post-reboot verification</span>
+        <span class="step-tag tag-critical">VALIDATE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c33"><button class="copy-btn" onclick="copy('c33',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>
+<span class="c"># Expect: 7200-05-10-XXXX</span>
+
+<span class="kw">oslevel</span> <span class="flag">-r</span>
+<span class="c"># Expect: 7200-05</span>
+
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML
+<span class="c"># Expect: All filesets for 7200-05_AIX_ML were found.</span>
+
+<span class="kw">lppchk</span> <span class="flag">-v</span>
+<span class="c"># MUST return clean</span>
+
+<span class="kw">errpt</span> | <span class="kw">head</span> <span class="flag">-30</span>
+<span class="c"># Compare against /tmp/errpt_pre.txt</span>
+
+<span class="kw">df</span> <span class="flag">-g</span>
+<span class="kw">diff</span> /tmp/df_pre.txt &lt;(<span class="kw">df</span> <span class="flag">-g</span>) | <span class="kw">head</span>
+
+<span class="kw">lssrc</span> <span class="flag">-a</span> | <span class="kw">grep</span> <span class="flag">-i</span> inoperative
+
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
+<span class="c"># Expect: hdisk0 (the migrated disk)</span>
+
+<span class="kw">lspv</span>
+<span class="c"># hdisk0 = rootvg (now 7.2)</span>
+<span class="c"># hdisk1 = altinst_rootvg (still 7.1, your rollback)</span>
+
+<span class="kw">diff</span> /tmp/genkex_pre.txt &lt;(<span class="kw">genkex</span>) | <span class="kw">head</span></div>
+        <p class="note note-verify"><strong>✓ Acceptance:</strong> oslevel at target · lppchk clean · ML found · no inoperative subsystems · bootlist on hdisk0 · hdisk1 still shows altinst_rootvg (rollback intact) · kernel extensions reloaded with no surprising drops.</p>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">34</span>
+        <span class="step-title">Diff captured config files</span>
+        <span class="step-tag tag-caution">VALIDATE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c34"><button class="copy-btn" onclick="copy('c34',this)">COPY</button><span class="kw">diff</span> /tmp/etc_pre/inittab     /etc/inittab
+<span class="kw">diff</span> /tmp/etc_pre/inetd.conf  /etc/inetd.conf
+<span class="kw">diff</span> /tmp/etc_pre/services    /etc/services
+<span class="kw">diff</span> /tmp/etc_pre/rc.tcpip    /etc/rc.tcpip
+<span class="kw">diff</span> /tmp/etc_pre/limits      /etc/security/limits
+<span class="kw">diff</span> /tmp/etc_pre/filesystems /etc/filesystems</div>
+        <p class="note note-caution"><strong>Expect changes — but review them.</strong> The migration installer will have added new lines (new services, new inittab entries for 7.2 features). Check for any local customisations that were lost in the merge and re-apply them. Common loss: custom <code>/etc/security/limits</code> stanzas for application users.</p>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">35</span>
+        <span class="step-title">Application validation handoff</span>
+        <span class="step-tag tag-caution">HANDOFF</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--amber)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong> — don't run any of the cleanup steps in Phase 9 yet.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 8 ════ -->
+  <div class="phase-label"><span>Phase 8</span> Rollback procedure</div>
+  <p class="note note-caution" style="margin-bottom:14px"><strong>Trigger conditions:</strong> LPAR fails to boot off the migrated rootvg · <code>lppchk -v</code> reports broken filesets post-migration · new error classes in <code>errpt</code> linked to the migration · application owners report a regression that cannot be remediated in the maintenance window.</p>
+  <div class="steps">
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.1</span>
+        <span class="step-title">Rollback while booted on the migrated 7.2 rootvg</span>
+        <span class="step-tag tag-caution">ROLLBACK</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-info" style="margin-top:0"><strong>Fast path</strong> — the reason alt_disk_copy was mandatory in step 16.</p>
+        <div class="cmd" id="rb1"><button class="copy-btn" onclick="copy('rb1',this)">COPY</button><span class="cmd-section">Repoint bootlist to the alt_disk_copy clone (pre-migration 7.1)</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal hdisk1
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
+
+<span class="kw">shutdown</span> <span class="flag">-Fr</span> now
+
+<span class="cmd-section">After reboot</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>                     <span class="c"># expect 7100-05-12-2336</span>
+
+<span class="kw">lspv</span>
+<span class="c"># rootvg now on hdisk1; the migrated 7.2 will show as</span>
+<span class="c"># old_rootvg or altinst_rootvg on hdisk0</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.2</span>
+        <span class="step-title">Rollback if the migrated system will not boot</span>
+        <span class="step-tag tag-critical">ROLLBACK</span>
+        <span class="run-on hmc">hmc01 + vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <ol style="padding-left:20px; font-size:13px; line-height:1.8">
+          <li>From HMC, vterm to LPAR.</li>
+          <li>Power off (Operations → Shut Down → Immediate).</li>
+          <li>Activate in <strong>SMS mode</strong>.</li>
+          <li>Navigate the SMS menu:</li>
+        </ol>
+        <div class="menu"><span class="pick">5. Select Boot Options</span>
+    <span class="pick">1. Select Install/Boot Device</span>
+        <span class="pick">5. Hard Drive</span>
+            List the hard drives, <span class="pick">select hdisk1</span> (the alt_disk_copy)
+<span class="pick">2. Normal Mode Boot</span>
+<span class="pick">1. Yes (exit SMS)</span></div>
+        <p class="note">System boots from <code>hdisk1</code> (pre-migration 7.1 clone). Then follow RB.1 verification.</p>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.3</span>
+        <span class="step-title">Worst case · no bootable disk · mksysb restore</span>
+        <span class="step-tag tag-critical">DISASTER</span>
+        <span class="run-on hmc">hmc01 + vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-critical" style="margin-top:0"><strong>If both disks are unbootable:</strong></p>
+        <ol style="padding-left:20px; font-size:13px; line-height:1.8">
+          <li>Re-attach the AIX <strong>7.1</strong> install media (NOT the 7.2 media — the 7.1 maintenance shell is needed to restore a 7.1 mksysb).</li>
+          <li>Boot the LPAR in SMS mode and boot from 7.1 install media.</li>
+          <li>From the BOS Installation menu:</li>
+        </ol>
+        <div class="menu"><span class="pick">3. Start Maintenance Mode for System Recovery</span>
+    <span class="pick">4. Install from a System Backup</span>
+        (select the device holding your mksysb —
+         network, tape, or another disk)</div>
+        <ol start="4" style="padding-left:20px; font-size:13px; line-height:1.8">
+          <li>The mksysb restore wizard walks through disk selection and network setup if the mksysb is on NFS.</li>
+        </ol>
+        <p class="note note-caution"><strong>This is slow</strong> (1 — 3 hours of restore plus reboot). It works, but it's why <code>alt_disk_copy</code> is the rollback you actually want to use. Keep your 7.1 install media accessible until burn-in is complete.</p>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.4</span>
+        <span class="step-title">Post-rollback cleanup</span>
+        <span class="step-tag tag-info">CLEANUP</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="rb4"><button class="copy-btn" onclick="copy('rb4',this)">COPY</button><span class="cmd-section">Once stable on the rolled-back rootvg</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> old_rootvg
+<span class="c"># OR (depending on what label the failed migration left)</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> altinst_rootvg</div>
+        <p class="note note-info"><strong>Preserve for IBM support before nuking the failed disk:</strong></p>
+        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--text-dim); line-height:1.7">
+          <li>▸ <code>/var/adm/ras/devinst.log</code></li>
+          <li>▸ <code>/var/adm/ras/bos.log</code></li>
+          <li>▸ <code>/var/adm/ras/bosinst.data</code></li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 9 ════ -->
+  <div class="phase-label"><span>Phase 9</span> Cleanup · T+5 to T+14 days, after burn-in</div>
+  <p class="note note-caution" style="margin-bottom:14px"><strong>Only after</strong> the migrated system has run cleanly and application owners have signed off.</p>
+  <div class="steps">
+
+    <div class="step ph-cleanup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">36</span>
+        <span class="step-title">Free hdisk1, detach media, archive logs</span>
+        <span class="step-tag tag-info">CLEANUP</span>
+        <span class="run-on client">lpar01 + hmc01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c36"><button class="copy-btn" onclick="copy('c36',this)">COPY</button><span class="cmd-section">On client · remove the alt_disk_copy clone, freeing hdisk1</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> altinst_rootvg
+
+<span class="kw">lspv</span>
+<span class="c"># hdisk1 should now show "None" in VG column.</span>
+
+<span class="cmd-section">Optional: extend rootvg onto hdisk1 for mirroring or growth</span>
+<span class="c"># extendvg rootvg hdisk1</span>
+<span class="c"># mirrorvg rootvg hdisk1</span>
+<span class="c"># bosboot -ad /dev/hdisk1</span>
+<span class="c"># bootlist -m normal hdisk0 hdisk1</span>
+
+<span class="cmd-section">On HMC / VIOS · detach the install ISO from the virtual optical</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"unloadopt -vtd vtopt0"</span>
+
+<span class="cmd-section">Optional: remove ISOs from VIOS media library if not needed</span>
+<span class="c"># viosvrcmd -m ... -c "rmvopt -name AIX72_TL5_SP10_DVD1"</span>
+<span class="c"># viosvrcmd -m ... -c "rmvopt -name AIX72_TL5_SP10_DVD2"</span>
+
+<span class="cmd-section">On client · archive change logs for audit</span>
+<span class="kw">tar</span> <span class="flag">-cvf</span> /backup/change_$(<span class="kw">hostname</span>)_$(<span class="kw">date</span> +%Y%m%d).tar \
+    /tmp/preflight_*.log \
+    /tmp/errpt_pre.txt /tmp/lssrc_pre.txt /tmp/df_pre.txt \
+    /tmp/no_pre.txt /tmp/sys0_pre.txt /tmp/genkex_pre.txt \
+    /tmp/etc_pre/</div>
+        <p class="note note-info"><strong>Mirroring is the high-value cleanup option:</strong> mirror the new 7.2 rootvg onto hdisk1 so you have redundancy on both disks again. Skip if your storage layer already provides redundancy.</p>
+        <p class="note note-verify"><strong>Update the change ticket with completion timestamp and close.</strong> You earned it.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ APPENDIX ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Appendix A</span> SMS menu navigation cheat sheet</div>
+  <div class="steps">
+    <div class="step ph-sms">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">A.1</span>
+        <span class="step-title">SMS navigation paths</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0"><strong>Boot from install media:</strong></p>
+        <div class="menu"><span class="pick">Main Menu</span>
+    <span class="pick">5. Select Boot Options</span>
+        <span class="pick">1. Select Install/Boot Device</span>
+            <span class="pick">7. List all Devices</span>              (or 3. CD/DVD, 6. USB)
+                &lt;select your media&gt;
+                <span class="pick">2. Normal Mode Boot</span>
+                    <span class="pick">1. Yes (exit SMS)</span></div>
+
+        <p class="note" style="margin-top:14px"><strong>Set permanent boot device order:</strong></p>
+        <div class="menu"><span class="pick">Main Menu</span>
+    <span class="pick">5. Select Boot Options</span>
+        <span class="pick">2. Configure Boot Device Order</span>
+            <span class="pick">1. Select 1st Boot Device</span>
+                <span class="pick">5. Hard Drive</span>
+                    &lt;list and select disk&gt;</div>
+
+        <p class="note" style="margin-top:14px"><strong>Boot from a specific hard disk one-time:</strong></p>
+        <div class="menu"><span class="pick">Main Menu</span>
+    <span class="pick">5. Select Boot Options</span>
+        <span class="pick">1. Select Install/Boot Device</span>
+            <span class="pick">5. Hard Drive</span>
+                &lt;select disk&gt;
+                <span class="pick">2. Normal Mode Boot</span>
+                    <span class="pick">1. Yes</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">A.2</span>
+        <span class="step-title">BOS installer common pitfalls</span>
+        <span class="step-tag tag-caution">REFERENCE</span>
+        <span class="run-on vterm">vterm</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <thead><tr><th>Symptom</th><th>Cause / Fix</th></tr></thead>
+          <tbody>
+            <tr><td>Default option is "New and Complete Overwrite"</td><td>Always pick "2. Change/Show Installation Settings", then change Method to Migration. Never "Start Install Now with Default Settings".</td></tr>
+            <tr><td>Migration option not offered</td><td>Target disk does not contain a recognised AIX rootvg, OR target version on media is older than installed version.</td></tr>
+            <tr><td>Install hangs at media swap</td><td>Virtual optical not actually swapped on VIOS, OR DVD not seated. Check <code>loadopt</code> status.</td></tr>
+            <tr><td>Reboot loops back to install media</td><td>Bootlist not set to hard disk. From SMS, set <code>hdisk0</code> as 1st boot device.</td></tr>
+            <tr><td>First boot drops to console "Set TERM" prompt</td><td>Normal on first boot post-migration. Type <code>vt100</code> or <code>xterm</code>.</td></tr>
+            <tr><td>First boot has no network</td><td>ODM did not migrate cleanly. Use captured config from step 14 to manually rebuild.</td></tr>
+            <tr><td><code>lppchk -v</code> reports broken filesets</td><td>A migration prerequisite failed silently. Try <code>installp -C</code> then re-run any specific failed filesets from a 7.2 lpp_source.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">A.3</span>
+        <span class="step-title">Worked example — single command sequence</span>
+        <span class="step-tag tag-caution">REFERENCE</span>
+        <span class="run-on client">lpar01</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-caution" style="margin-top:0"><strong>Do not follow this blindly</strong> — values (level numbers, hostnames, hdisk names, dates, managed-system serial) <em>will</em> change. This is a sequence reference, not a copy-paste recipe.</p>
+        <div class="cmd" id="a3"><button class="copy-btn" onclick="copy('a3',this)">COPY</button><span class="cmd-section">On client · pre-flight</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>
+<span class="kw">lppchk</span> <span class="flag">-v</span>
+<span class="kw">lspv</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span> &gt; /tmp/bootlist_pre.txt
+<span class="kw">errpt</span> <span class="flag">-a</span> &gt; /tmp/errpt_pre.txt
+<span class="kw">mkdir</span> <span class="flag">-p</span> /tmp/etc_pre
+<span class="kw">cp</span> /etc/{inittab,inetd.conf,services,rc.tcpip,filesystems} /tmp/etc_pre/
+
+<span class="cmd-section">On client · backups</span>
+<span class="kw">mksysb</span> <span class="flag">-i -X</span> /backup/$(<span class="kw">hostname</span>)_pre72_$(<span class="kw">date</span> +%Y%m%d).mksysb
+<span class="kw">alt_disk_copy</span> <span class="flag">-B -d</span> hdisk1
+<span class="kw">lspv</span>                                  <span class="c"># confirm altinst_rootvg on hdisk1</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>                 <span class="c"># confirm still hdisk0</span>
+
+<span class="cmd-section">On HMC · prepare media</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> <span class="ph">&lt;managed_system&gt;</span> <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"loadopt -vtd vtopt0 -disk AIX72_TL5_SP10_DVD1"</span>
+
+<span class="cmd-section">On client · shutdown</span>
+<span class="kw">shutdown</span> <span class="flag">-F</span> now
+
+<span class="cmd-section">On HMC · activate in SMS</span>
+<span class="kw">chsysstate</span> <span class="flag">-m</span> <span class="ph">&lt;managed_system&gt;</span> <span class="flag">-r</span> lpar <span class="flag">-o</span> on \
+           <span class="flag">-n</span> lpar01 <span class="flag">-f</span> default_profile <span class="flag">-b</span> sms
+
+<span class="cmd-section">On client vterm · in SMS</span>
+<span class="c"># 5 → 1 → 7 → select virtual optical → 2 → 1</span>
+<span class="c"># ... BOS installer launches ...</span>
+<span class="c"># Choose: 2 (Change settings) → 1 (System Settings)</span>
+<span class="c">#         → 3 (Migration Install) → select hdisk0 → 0</span>
+<span class="c">#         → 0 (Install) → Enter (confirm)</span>
+<span class="c"># ... wait 60-120 minutes, swap DVD if prompted ...</span>
+
+<span class="cmd-section">On HMC mid-install · swap DVD</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> <span class="ph">&lt;managed_system&gt;</span> <span class="flag">-p</span> vios1 <span class="flag">-c</span> <span class="str">"unloadopt -vtd vtopt0"</span>
+<span class="kw">viosvrcmd</span> <span class="flag">-m</span> <span class="ph">&lt;managed_system&gt;</span> <span class="flag">-p</span> vios1 \
+          <span class="flag">-c</span> <span class="str">"loadopt -vtd vtopt0 -disk AIX72_TL5_SP10_DVD2"</span>
+
+<span class="cmd-section">On client · post-reboot verify</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>                            <span class="c"># 7200-05-10-XXXX</span>
+<span class="kw">lppchk</span> <span class="flag">-v</span>
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML
+<span class="kw">errpt</span> | <span class="kw">head</span>
+
+<span class="cmd-section">On client · cleanup after burn-in</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> altinst_rootvg</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Command Summary</div>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
+      <tr><td>viosvrcmd ... "mkvopt -name ..."</td><td>Upload ISO into VIOS media library</td><td>Phase 2 step 01</td></tr>
+      <tr><td>viosvrcmd ... "loadopt -vtd vtopt0 -disk ..."</td><td>Load ISO into LPAR's virtual optical</td><td>Phase 2 step 02</td></tr>
+      <tr><td>viosvrcmd ... "unloadopt -vtd vtopt0"</td><td>Eject virtual optical</td><td>Mid-install media swap</td></tr>
+      <tr><td>dd if=&lt;iso&gt; of=/dev/sdc bs=1M</td><td>Write ISO to USB stick</td><td>Option C — triple-check target device</td></tr>
+      <tr><td>sha256sum / csum -h SHA256</td><td>Verify ISO integrity before attaching</td><td>Phase 2 step 05</td></tr>
+      <tr><td>alt_disk_copy -B -d hdisk1</td><td>Mandatory primary rollback clone</td><td>Phase 4 step 16 — non-negotiable</td></tr>
+      <tr><td>bootlist -m normal -o</td><td>Confirm bootlist points at hdisk0 pre-boot</td><td>Critical safety check after alt_disk_copy</td></tr>
+      <tr><td>shutdown -F now</td><td>Power off (NOT reboot) the LPAR</td><td>Phase 5 step 17 — -F not -Fr</td></tr>
+      <tr><td>chsysstate -m ... -b sms</td><td>Activate LPAR in SMS mode via HMC CLI</td><td>Phase 5 step 18</td></tr>
+      <tr><td>SMS · 5 → 1 → 7</td><td>List all devices · select install media</td><td>Phase 5 step 20</td></tr>
+      <tr><td>BOS · 2 → 1 → 3</td><td>Change settings → System Settings → Migration</td><td>Phase 6 — not 1 (default overwrite!)</td></tr>
+      <tr><td>BOS · select hdisk0</td><td>Pick the disk currently labelled rootvg</td><td>Phase 6 step 26 — never hdisk1</td></tr>
+      <tr><td>oslevel -s (post-reboot)</td><td>Confirm migration succeeded</td><td>Expect 7200-05-10-XXXX</td></tr>
+      <tr><td>lppchk -v</td><td>Verify fileset consistency</td><td>MUST be clean pre and post</td></tr>
+      <tr><td>diff /tmp/etc_pre/* /etc/*</td><td>Catch lost local customisations</td><td>Phase 7 step 34</td></tr>
+      <tr><td>diff /tmp/genkex_pre.txt &lt;(genkex)</td><td>Confirm kernel extensions reloaded</td><td>Silent failure mode</td></tr>
+      <tr><td>bootlist -m normal hdisk1</td><td>Roll back to alt_disk_copy clone</td><td>RB.1 — fast path</td></tr>
+      <tr><td>SMS · 5 → 1 → 5 → hdisk1</td><td>Boot from clone if migrated disk dead</td><td>RB.2</td></tr>
+      <tr><td>BOS · 3 → 4 (from 7.1 media)</td><td>Worst-case mksysb restore</td><td>RB.3 — slow but works</td></tr>
+      <tr><td>alt_rootvg_op -X altinst_rootvg</td><td>Free hdisk1 after burn-in</td><td>Phase 9 — only after sign-off</td></tr>
+    </table>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>This is the boot-media path — preferred only when nimadm is not available. For repeated or fleet migrations, RB-PATCH-AIX-002 (nimadm) is significantly faster, lower risk, and fully online until the final reboot.</li>
+      <li><code>alt_disk_copy</code> is non-negotiable. Without it, your only rollback is mksysb restore — which itself requires booting 7.1 media in maintenance mode and takes 1 — 3 hours. With <code>alt_disk_copy</code>, rollback is a bootlist swap and a reboot.</li>
+      <li>Confirm bootlist is on <code>hdisk0</code> (not <code>hdisk1</code>) before you boot the install media. The BOS installer offers <code>hdisk0</code> as the migration target — accidentally selecting <code>hdisk1</code> destroys your rollback. There is no undo.</li>
+      <li>In the BOS installer, never pick "1. Start Install Now with Default Settings". The default Method is "New and Complete Overwrite", which destroys rootvg. Always pick 2 → 1 → 3 to switch Method to Migration.</li>
+      <li>Use <code>shutdown -F</code> (not <code>-Fr</code>) before SMS-mode activation. <code>-Fr</code> would auto-reboot off the existing bootlist before you can enter SMS.</li>
+      <li>Verify ISO checksums before attaching media. A corrupted install ISO causes failures partway through that look like hardware faults — at the 60% mark of phase 7 it's the worst time to discover it.</li>
+      <li>Console operator required for the entire window. The BOS installer needs interactive input at multiple menu screens; do not plan to leave this unattended. If the install hangs at the media-swap prompt and nobody's watching, the window is wasted.</li>
+      <li>Capture <code>/etc</code> originals (<code>inittab</code>, <code>inetd.conf</code>, <code>services</code>, <code>rc.tcpip</code>, <code>limits</code>, <code>filesystems</code>) at pre-flight and diff them post-migration. The installer does three-way merges and can drop local customisations silently — <code>limits</code> stanzas for application users are a frequent loss.</li>
+      <li>Capture network config off-LPAR before the install. If 7.2 comes up with no network and you don't have routes / IP / netmask in hand, your only recovery path is the vterm — and it's a long one without those values.</li>
+      <li>First boot off the migrated 7.2 may take longer, drop to a TERM prompt, or generate informational <code>errpt</code> entries. Expected on the first boot, not on the second.</li>
+      <li>Keep the 7.1 install media accessible until burn-in is complete. RB.3 (worst-case mksysb restore) requires 7.1 maintenance shell, not 7.2.</li>
+      <li>Treat the change as in-progress until application owners sign off. Do not run Phase 9 cleanup before that — your <code>altinst_rootvg</code> on <code>hdisk1</code> needs to stay warm.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>RB-PATCH-AIX-003 · AIX 7.1 → 7.2 Migration · Boot Media · single LPAR</span>
+  <span>HMC virtual optical / DVD / USB · BOS Migration Install</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+
+</body>
+</html>
