@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIX 7.1 TL/SP Patching</title>
+<meta name="description" content="In-place AIX 7.1 Technology Level / Service Pack update on a single, non-clustered LPAR using install_all_updates against an alt_disk_copy clone of rootvg as the rollback mechanism.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.4);
+    background: rgba(88,201,232,.06);
+  }
+
+  .badge-amber {
+    color: var(--amber);
+    border-color: rgba(240,163,10,.4);
+    background: rgba(240,163,10,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* ── worked-example card ── */
+  .example {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 20px;
+    animation: fadeUp .4s .05s ease both;
+    opacity: 0;
+  }
+
+  .level-card {
+    padding: 16px 18px;
+    border-radius: 4px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+  }
+
+  .level-card.from { border-left-color: var(--amber); }
+  .level-card.to   { border-left-color: var(--green); }
+
+  .level-role {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .level-card.from .level-role { color: var(--amber); }
+  .level-card.to   .level-role { color: var(--green); }
+
+  .level-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin-bottom: 4px;
+  }
+
+  .level-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .level-extra {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+
+  .arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: center;
+    color: var(--text-dim);
+  }
+
+  .arrow .glyph {
+    font-size: 22px;
+    color: var(--cyan);
+  }
+
+  .arrow .label {
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── checklist ── */
+  .checklist {
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .35s ease both;
+  }
+
+  .checklist li {
+    padding: 11px 18px 11px 42px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .checklist li:last-child { border-bottom: none; }
+
+  .checklist li::before {
+    content: '☐';
+    position: absolute;
+    left: 18px;
+    top: 10px;
+    color: var(--green);
+    font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .checklist li strong { color: var(--text-hi); }
+
+  .checklist li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-prereq   { border-left-color: var(--cyan); }
+  .step.ph-validate { border-left-color: var(--cyan); }
+  .step.ph-stage    { border-left-color: var(--green); }
+  .step.ph-backup   { border-left-color: var(--purple); }
+  .step.ph-install  { border-left-color: var(--red); }
+  .step.ph-verify   { border-left-color: var(--green); }
+  .step.ph-rollback { border-left-color: var(--amber); }
+  .step.ph-cleanup  { border-left-color: var(--text-dim); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+    flex-wrap: wrap;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 28px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+
+  .run-on {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .run-on.target { background: rgba(88,201,232,.08); color: var(--cyan); border: 1px solid rgba(88,201,232,.25); }
+  .run-on.hmc    { background: rgba(167,139,250,.08); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+  .run-on.jump   { background: rgba(240,163,10,.08); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--purple); }
+  .cmd .flag { color: var(--amber); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-critical strong { color: var(--red); }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-info strong { color: var(--cyan); }
+
+  .note.note-verify {
+    border-left-color: var(--green);
+    background: rgba(57,211,83,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-verify strong { color: var(--green); }
+
+  /* ── inline reference table ── */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+
+  .ref-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  .ref-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .ref-table td:last-child {
+    color: var(--text-dim);
+  }
+
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  .ref-table code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── option grid (apply vs commit) ── */
+  .option-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  @media (max-width: 640px) {
+    .option-grid { grid-template-columns: 1fr; }
+  }
+
+  .option-card {
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .option-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    font-weight: 600;
+  }
+
+  .option-header.opt-a { background: rgba(57,211,83,.1); color: var(--green); border-bottom: 1px solid rgba(57,211,83,.2); }
+  .option-header.opt-b { background: rgba(240,163,10,.1); color: var(--amber); border-bottom: 1px solid rgba(240,163,10,.2); }
+
+  .option-desc {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .option-desc:last-child { border-bottom: none; }
+
+  .option-desc strong { color: var(--text-hi); font-weight: 600; }
+  .option-desc code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── summary table ── */
+  .summary-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .4s .5s ease both;
+    opacity: 0;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .summary-table td:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: 720px) {
+    .example { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>AIX 7.1 TL/SP Patching</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">ALT_DISK_COPY</span>
+    <span class="badge">AIX 7.1 · in-place</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-PATCH-AIX-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">In-place TL / SP update</div></div>
+    <div class="meta-cell"><div class="meta-label">Method</div><div class="meta-val mono">install_all_updates</div></div>
+    <div class="meta-cell"><div class="meta-label">OS</div><div class="meta-val">AIX 7.1</div></div>
+    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val">Single LPAR · non-clustered</div></div>
+    <div class="meta-cell"><div class="meta-label">Rollback</div><div class="meta-val ok">alt_disk_copy clone</div></div>
+    <div class="meta-cell"><div class="meta-label">Window (SP)</div><div class="meta-val mono">~90 min</div></div>
+    <div class="meta-cell"><div class="meta-label">Window (TL)</div><div class="meta-val mono warn">2 — 3 hr</div></div>
+    <div class="meta-cell"><div class="meta-label">Privileges</div><div class="meta-val">root / sudo-to-root</div></div>
+    <div class="meta-cell"><div class="meta-label">Spare disk</div><div class="meta-val mono">≥ rootvg size</div></div>
+  </div>
+
+  <!-- Worked example -->
+  <div class="example">
+    <div class="level-card from">
+      <div class="level-role">Source level</div>
+      <div class="level-name">7100-05-11-2347</div>
+      <div class="level-tag">AIX 7.1 TL5 SP11</div>
+      <div class="level-extra">running on hdisk0</div>
+    </div>
+    <div class="arrow">
+      <div class="glyph">──▶</div>
+      <div class="label">install_all_updates -Yc</div>
+    </div>
+    <div class="level-card to">
+      <div class="level-role">Target level</div>
+      <div class="level-name">7100-05-12-2336</div>
+      <div class="level-tag">AIX 7.1 TL5 SP12 — final 7.1 SP</div>
+      <div class="level-extra">bundle: 7100-05-12-2336-FP.tar</div>
+    </div>
+  </div>
+
+  <p class="note note-info" style="margin-bottom:24px"><strong>Worked example:</strong> All commands below assume <code>hdisk0</code> = live rootvg, <code>hdisk1</code> = unassigned spare for <code>alt_disk_copy</code>, staging dir <code>/var/update_staging/7100-05-12</code>. Sub in your own values — package names will differ per release.</p>
+
+  <p class="note note-caution" style="margin-bottom:32px"><strong>Out of scope:</strong> NIM-driven mass updates · PowerHA/HACMP-managed nodes · major-version migrations (7.1 → 7.2 / 7.2 → 7.3) — those are <em>migration installations</em>, see the companion <code>nimadm</code> and boot-media migration runbooks.</p>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Pre-change planning · T-7 to T-2 days</div>
+  <ul class="checklist">
+    <li><strong>Change ticket raised</strong> — CAB approval logged.</li>
+    <li><strong>Maintenance window agreed</strong> with the customer.</li>
+    <li><strong>Backup strategy confirmed</strong> — mksysb destination plus TSM file-level coverage of mksysb output and any datavgs.</li>
+    <li><strong>Free disk identified</strong> for <code>alt_disk_copy</code> — equal to or greater than rootvg size.</li>
+    <li><strong>Third-party software compatibility</strong> verified against the target TL/SP (Oracle, TSM/TDPO, monitoring agents, etc.).</li>
+    <li><strong>Update bundle downloaded</strong> from Fix Central / ESS and SHA256 checksum verified.</li>
+  </ul>
+  <p class="note note-caution"><strong>Window sizing:</strong> ~90 min for an SP, 2 — 3 hr for a TL. Network or SAN-attached storage operations (mksysb to NFS, alt_disk_copy onto a SAN LUN) can extend this materially — pad accordingly.</p>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Phase 2</span> Pre-flight checks · T-0, before window start</div>
+  <p class="note note-info" style="margin-bottom:14px"><strong>Capture everything:</strong> Wrap the whole pre-flight in <code>script /tmp/preflight_$(date +%Y%m%d).log</code> so the output lands in the change record automatically.</p>
+  <div class="steps">
+
+    <div class="step ph-validate open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Capture current OS level and hardware identity</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c01"><button class="copy-btn" onclick="copy('c01',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>                   <span class="c"># expect: 7100-05-11-2347</span>
+<span class="kw">oslevel</span> <span class="flag">-r</span>                   <span class="c"># expect: 7100-05</span>
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML         <span class="c"># all prior MLs/TLs cleanly applied?</span>
+<span class="kw">uname</span> <span class="flag">-a</span>
+<span class="kw">prtconf</span> | <span class="kw">head</span> <span class="flag">-30</span>           <span class="c"># CPU/memory/serial for change record</span></div>
+        <p class="note">Pin the source level into the change record. <code>instfix -i | grep ML</code> must show every prior ML as <em>complete</em> — anything missing means a half-applied prior update that needs cleaning up first.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Verify fileset consistency</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c02"><button class="copy-btn" onclick="copy('c02',this)">COPY</button><span class="kw">lppchk</span> <span class="flag">-v</span>                    <span class="c"># MUST return clean (no output)</span>
+<span class="kw">lppchk</span> <span class="flag">-c</span>                    <span class="c"># checksum verify (slower, optional)</span></div>
+        <p class="note note-critical"><strong>Stop condition:</strong> If <code>lppchk -v</code> reports broken or missing prerequisites, do not proceed. The most common cause is a previous half-applied update — clean it up with <code>installp -C</code> before patching.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Confirm disk space in rootvg filesystems</span>
+        <span class="step-tag tag-caution">CAUTION</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c03"><button class="copy-btn" onclick="copy('c03',this)">COPY</button><span class="kw">df</span> <span class="flag">-g</span> / /usr /var /opt /tmp /home /admin</div>
+        <table class="ref-table">
+          <thead>
+            <tr><th>Filesystem</th><th>Min free (SP)</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>/</td><td>100 MB</td><td>Bootloader, /etc, ODM</td></tr>
+            <tr><td>/usr</td><td>2 GB</td><td>Most filesets land here</td></tr>
+            <tr><td>/var</td><td>500 MB</td><td>Logs, lpp metadata, /var/adm/ras</td></tr>
+            <tr><td>/tmp</td><td>1 GB</td><td>installp scratch</td></tr>
+            <tr><td>/opt</td><td>500 MB</td><td>Optional product trees</td></tr>
+          </tbody>
+        </table>
+        <p class="note note-caution"><strong>For a TL update, double these.</strong> It is imperative that <code>/usr</code> has enough headroom — running it dry mid-install leaves filesets in a broken state. <code>/usr</code> is restartable via <code>chfs -a size=+1G /usr</code> and <code>install_all_updates</code> can be re-run, but only if you catch it.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Confirm rootvg is healthy and spare disk is free</span>
+        <span class="step-tag tag-info">VALIDATE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c04"><button class="copy-btn" onclick="copy('c04',this)">COPY</button><span class="kw">lsvg</span> rootvg                  <span class="c"># check FREE PPs</span>
+<span class="kw">lsvg</span> <span class="flag">-p</span> rootvg               <span class="c"># all PVs active?</span>
+<span class="kw">lsvg</span> <span class="flag">-l</span> rootvg               <span class="c"># any open/syncd issues?</span>
+<span class="kw">lspv</span>                         <span class="c"># confirm spare disk (hdisk1) is free</span></div>
+        <p class="note note-verify"><strong>✓ Verify:</strong> <code>hdisk1</code> shows <code>None</code> in the VG column of <code>lspv</code>. Every LV in <code>lsvg -l rootvg</code> should be <code>open/syncd</code> — anything in <code>stale</code> state needs <code>syncvg</code> before you clone.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Snapshot bootlist and error log</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c05"><button class="copy-btn" onclick="copy('c05',this)">COPY</button><span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span> &gt; /tmp/bootlist_pre.txt
+<span class="kw">bootlist</span> <span class="flag">-m</span> service <span class="flag">-o</span> &gt;&gt; /tmp/bootlist_pre.txt
+<span class="kw">cat</span> /tmp/bootlist_pre.txt    <span class="c"># expect hdisk0 in normal list</span>
+
+<span class="kw">errpt</span> | <span class="kw">head</span> <span class="flag">-30</span>             <span class="c"># any hardware errors? fix first</span>
+<span class="kw">errpt</span> <span class="flag">-a</span> | <span class="kw">head</span> <span class="flag">-100</span> &gt; /tmp/errpt_pre.txt</div>
+        <p class="note note-caution"><strong>Latent hardware errors:</strong> A failing path or disk that isn't bothering anyone in steady state will absolutely bite you on the post-patch reboot. Resolve hardware errors before continuing — or you'll be guessing whether the patch caused them.</p>
+      </div>
+    </div>
+
+    <div class="step ph-validate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Snapshot running services and routing</span>
+        <span class="step-tag tag-info">BASELINE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c06"><button class="copy-btn" onclick="copy('c06',this)">COPY</button><span class="kw">lssrc</span> <span class="flag">-a</span> &gt; /tmp/lssrc_pre.txt
+<span class="kw">netstat</span> <span class="flag">-rn</span> &gt; /tmp/routing_pre.txt
+<span class="kw">df</span> <span class="flag">-g</span> &gt; /tmp/df_pre.txt</div>
+        <p class="note">Known-good baseline to diff against post-patch. Any subsystem that was active before but inoperative after — or any route that disappeared — gets flagged immediately rather than weeks later.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 3</span> Backups</div>
+  <p class="note note-info" style="margin-bottom:14px"><strong>Both layers required for production.</strong> Standard pattern: <code>mksysb</code> to NIM / NFS, with TSM file-level grabbing the resulting mksysb file plus all datavgs. <code>alt_disk_copy</code> on top of that as the immediate online rollback.</p>
+  <div class="steps">
+
+    <div class="step ph-backup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Take an mksysb of rootvg</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c07"><button class="copy-btn" onclick="copy('c07',this)">COPY</button><span class="cmd-section">Verify destination has space (mksysb size ≈ used PPs in rootvg)</span>
+<span class="kw">df</span> <span class="flag">-g</span> /backup
+
+<span class="cmd-section">Take the bootable rootvg image</span>
+<span class="kw">mksysb</span> <span class="flag">-ipX</span> /backup/$(<span class="kw">hostname</span>)_$(<span class="kw">date</span> +%Y%m%d_%H%M).mksysb
+
+<span class="cmd-section">Verify the resulting file</span>
+<span class="kw">ls</span> <span class="flag">-l</span> /backup/$(<span class="kw">hostname</span>)_*.mksysb
+<span class="kw">lsmksysb</span> <span class="flag">-l -f</span> /backup/$(<span class="kw">hostname</span>)_*.mksysb | <span class="kw">head</span> <span class="flag">-40</span></div>
+        <table class="ref-table">
+          <thead>
+            <tr><th>Flag</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>-i</td><td>Regenerate <code>/image.data</code> — captures current LV layout</td></tr>
+            <tr><td>-X</td><td>Auto-extend <code>/tmp</code> if needed during backup</td></tr>
+            <tr><td>-p</td><td>Disable software packing</td></tr>
+          </tbody>
+        </table>
+        <p class="note">NFS-mounted destination preferred; local disk acceptable as a stopgap. Either way, confirm the file is readable and <code>lsmksysb -l</code> can enumerate it before continuing — a corrupt mksysb is worse than no mksysb.</p>
+      </div>
+    </div>
+
+    <div class="step ph-backup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Clone rootvg to the spare disk with alt_disk_copy</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-info" style="margin-top:0"><strong>Primary rollback mechanism.</strong> Clones rootvg to <code>hdisk1</code>, leaving you with a bootable pre-patch image one <code>bootlist</code> away.</p>
+        <div class="cmd" id="c08"><button class="copy-btn" onclick="copy('c08',this)">COPY</button><span class="cmd-section">Confirm hdisk1 is free</span>
+<span class="kw">lspv</span> | <span class="kw">grep</span> hdisk1
+<span class="c"># Expected: hdisk1  00f6...        None</span>
+
+<span class="cmd-section">Clone (10 — 30 min depending on rootvg size and disk speed)</span>
+<span class="kw">alt_disk_copy</span> <span class="flag">-B -d</span> hdisk1
+
+<span class="cmd-section">Verify</span>
+<span class="kw">lspv</span>
+<span class="c"># Expected new line: hdisk1 ... altinst_rootvg active</span>
+<span class="kw">lsvg</span> altinst_rootvg</div>
+        <table class="ref-table">
+          <thead>
+            <tr><th>Flag</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>-B</td><td>Do NOT update bootlist yet</td></tr>
+            <tr><td>-d</td><td>Destination disk</td></tr>
+          </tbody>
+        </table>
+
+        <p class="note note-caution" style="margin-top:14px"><strong>Two strategies — pick one:</strong></p>
+        <div class="option-grid">
+          <div class="option-card">
+            <div class="option-header opt-a">A · with -B (this runbook)</div>
+            <div class="option-desc"><strong>Patch the live rootvg on <code>hdisk0</code>.</strong> Clone on <code>hdisk1</code> stays cold as the rollback target. Simpler and more common.</div>
+          </div>
+          <div class="option-card">
+            <div class="option-header opt-b">B · without -B + alt_rootvg_op -W</div>
+            <div class="option-desc"><strong>Wake the clone, patch it offline, reboot onto patched clone.</strong> Original disk becomes the rollback. More steps, but the running system stays untouched until reboot.</div>
+          </div>
+        </div>
+        <p class="note">This runbook follows pattern A.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Phase 4</span> Stage the update bundle</div>
+  <div class="steps">
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">Create the staging directory</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c09"><button class="copy-btn" onclick="copy('c09',this)">COPY</button><span class="kw">mkdir</span> <span class="flag">-p</span> /var/update_staging/7100-05-12
+<span class="kw">cd</span> /var/update_staging/7100-05-12</div>
+        <p class="note">Keep staging under <code>/var</code> — that's where the update logs land too, so the whole change record stays in one place.</p>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">10</span>
+        <span class="step-title">Transfer the bundle to the LPAR</span>
+        <span class="step-tag tag-info">TRANSFER</span>
+        <span class="run-on jump">JUMP HOST</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="cmd-section">From a jump host via SCP</span>
+<span class="kw">scp</span> 7100-05-12-2336-FP.tar root@<span class="ph">&lt;target&gt;</span>:/var/update_staging/7100-05-12/
+
+<span class="cmd-section">Or via NFS-mounted update share</span>
+<span class="kw">mount</span> nfs-server:/aix_updates /mnt/updates
+<span class="kw">cp</span> /mnt/updates/7100-05-12-2336-FP.tar /var/update_staging/7100-05-12/</div>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">11</span>
+        <span class="step-title">Verify the SHA256 checksum before unpacking</span>
+        <span class="step-tag tag-caution">VALIDATE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="kw">csum</span> <span class="flag">-h</span> SHA256 7100-05-12-2336-FP.tar</div>
+        <p class="note note-verify"><strong>✓ Verify:</strong> Output checksum matches the value listed on Fix Central / ESS for this bundle. A mismatched bundle gets you mysterious <code>0503-005</code> errors mid-install — catch it here, not three hours into the window.</p>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">12</span>
+        <span class="step-title">Extract the bundle and build the .toc</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="kw">tar</span> <span class="flag">-xvf</span> 7100-05-12-2336-FP.tar
+<span class="kw">ls</span> <span class="flag">-1</span> *.bff | <span class="kw">head</span>
+<span class="c"># Expect filenames like:</span>
+<span class="c">#   bos.64bit.7.1.5.41.bff</span>
+<span class="c">#   bos.mp64.7.1.5.41.bff</span>
+<span class="c">#   bos.rte.7.1.5.41.bff</span>
+<span class="c">#   bos.rte.boot.7.1.5.41.bff</span>
+<span class="c">#   devices.common.IBM.fc.rte.7.1.5.40.bff</span>
+<span class="c">#   ... (typically 100 — 300 filesets in a full SP)</span>
+
+<span class="kw">inutoc</span> .
+<span class="kw">ls</span> <span class="flag">-l</span> .toc</div>
+        <p class="note note-critical"><strong>Critical:</strong> <code>inutoc</code> builds the table-of-contents file that <code>installp</code> reads. Without a current <code>.toc</code>, installp reports <em>"No filesets on the media"</em> and fails. Re-run <code>inutoc</code> after any change — adding, removing, or replacing files in the staging directory.</p>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">13</span>
+        <span class="step-title">Preview what will be installed (dry run)</span>
+        <span class="step-tag tag-info">PREVIEW</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="kw">install_all_updates</span> <span class="flag">-d</span> /var/update_staging/7100-05-12 <span class="flag">-p</span>
+<span class="c"># -p == preview only, no changes made</span></div>
+        <p class="note note-verify"><strong>✓ Review the output carefully. Confirm:</strong></p>
+        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--text-dim); line-height:1.7">
+          <li>▸ Target level matches expectation (<code>7.1.5.x</code>)</li>
+          <li>▸ No <strong style="color:var(--red)">FAILURES</strong> reported</li>
+          <li>▸ No unexpected filesets being downgraded</li>
+          <li>▸ Any <strong style="color:var(--amber)">REQUISITE</strong> warnings have a path to resolution</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Phase 5</span> Apply the update</div>
+  <div class="steps">
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">14</span>
+        <span class="step-title">Final pre-apply checks</span>
+        <span class="step-tag tag-caution">VALIDATE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c14"><button class="copy-btn" onclick="copy('c14',this)">COPY</button><span class="kw">date</span>                           <span class="c"># log start time</span>
+<span class="kw">who</span>                            <span class="c"># any other users logged in?</span>
+<span class="kw">ps</span> <span class="flag">-ef</span> | <span class="kw">grep</span> <span class="flag">-v</span> <span class="str">"^root\|^daemon\|^bin\|^sys"</span> | <span class="kw">head</span>
+                               <span class="c"># any application processes still up?</span></div>
+        <p class="note note-caution"><strong>Application halt:</strong> If application processes (Oracle, WebSphere, custom workloads) are still running, alert the application team and have them halt the database / app stack cleanly before <code>install_all_updates</code> kicks off. Patching a busy LPAR works in theory and stings in practice.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">15</span>
+        <span class="step-title">Run install_all_updates</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c15"><button class="copy-btn" onclick="copy('c15',this)">COPY</button><span class="kw">script</span> /var/update_staging/7100-05-12/install_$(<span class="kw">date</span> +%Y%m%d_%H%M).log
+
+<span class="kw">install_all_updates</span> \
+    <span class="flag">-d</span> /var/update_staging/7100-05-12 \
+    <span class="flag">-Y</span> \
+    <span class="flag">-c</span>
+
+<span class="c"># When complete: exit the script session</span>
+<span class="kw">exit</span></div>
+        <table class="ref-table">
+          <thead>
+            <tr><th>Flag</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>-d</td><td>Source directory (must contain <code>.toc</code>)</td></tr>
+            <tr><td>-Y</td><td>Accept software licenses non-interactively</td></tr>
+            <tr><td>-c</td><td>Commit (versus apply-only) — see below</td></tr>
+          </tbody>
+        </table>
+
+        <p class="note note-info" style="margin-top:14px"><strong>Apply vs commit:</strong></p>
+        <div class="option-grid">
+          <div class="option-card">
+            <div class="option-header opt-a">APPLY · default if -c omitted</div>
+            <div class="option-desc">Old fileset version retained on disk; can be <code>reject</code>ed to roll back individual filesets without rebooting. Consumes <strong>~2× disk space</strong> in <code>/usr</code>.</div>
+          </div>
+          <div class="option-card">
+            <div class="option-header opt-b">COMMIT · -c</div>
+            <div class="option-desc">Old version discarded. Smaller footprint. Rollback is via <code>alt_disk_copy</code> / <code>mksysb</code> only. <strong>Recommended for SPs</strong> where you have <code>alt_disk_copy</code> in place anyway.</div>
+          </div>
+        </div>
+        <p class="note">Expected runtime: 20 — 60 min for an SP, 60 — 120 min for a TL.</p>
+      </div>
+    </div>
+
+    <div class="step ph-install">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">16</span>
+        <span class="step-title">Interpret the summary table</span>
+        <span class="step-tag tag-critical">VALIDATE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0"><code>install_all_updates</code> ends with a summary table. The column to watch is <code>Result</code>.</p>
+        <table class="ref-table">
+          <thead>
+            <tr><th>Result</th><th>Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>SUCCESS</td><td>Fileset installed cleanly</td></tr>
+            <tr><td>ALREADY</td><td>Target version already present (skipped — fine)</td></tr>
+            <tr><td>FAILED · BROKEN · CANCELLED</td><td><strong style="color:var(--red)">Do not reboot.</strong> Investigate first.</td></tr>
+          </tbody>
+        </table>
+        <p class="note note-critical"><strong>If anything but SUCCESS / ALREADY appears:</strong> investigate via <code>/var/adm/ras/install_all_updates.log</code> and the per-fileset logs in <code>/var/adm/ras/</code> before any reboot. A reboot on top of broken filesets turns a recoverable mistake into a rollback exercise.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Phase 6</span> Reboot and verify</div>
+  <div class="steps">
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">17</span>
+        <span class="step-title">Reboot the LPAR</span>
+        <span class="step-tag tag-caution">REBOOT</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c17"><button class="copy-btn" onclick="copy('c17',this)">COPY</button><span class="kw">sync</span>; <span class="kw">sync</span>; <span class="kw">sync</span>    <span class="c"># flush pending disk writes</span>
+<span class="kw">shutdown</span> <span class="flag">-Fr</span> now</div>
+        <p class="note">Have HMC console up and visible during the reboot — if the LPAR hangs at an LED code, you want to see it immediately rather than wait for the SSH timeout.</p>
+      </div>
+    </div>
+
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">18</span>
+        <span class="step-title">Post-reboot verification</span>
+        <span class="step-tag tag-critical">VALIDATE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c18"><button class="copy-btn" onclick="copy('c18',this)">COPY</button><span class="kw">oslevel</span> <span class="flag">-s</span>
+<span class="c"># Expect: 7100-05-12-2336</span>
+
+<span class="kw">oslevel</span> <span class="flag">-s -l</span> $(<span class="kw">oslevel</span> <span class="flag">-s</span>)
+<span class="c"># Expect: no output (no filesets below the reported level)</span>
+<span class="c"># If filesets are listed, they were not in the bundle</span>
+
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML
+<span class="c"># Expect: "All filesets for 7100-05_AIX_ML were found."</span>
+
+<span class="kw">lppchk</span> <span class="flag">-v</span>
+<span class="c"># MUST return clean</span>
+
+<span class="kw">errpt</span> | <span class="kw">head</span> <span class="flag">-30</span>
+<span class="c"># Compare against /tmp/errpt_pre.txt — any new error classes?</span>
+
+<span class="kw">df</span> <span class="flag">-g</span>
+<span class="c"># Compare against /tmp/df_pre.txt — /usr will have grown</span>
+
+<span class="kw">lssrc</span> <span class="flag">-a</span> | <span class="kw">grep</span> <span class="flag">-i</span> inoperative
+<span class="c"># Any subsystems that should be active but aren't?</span>
+
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
+<span class="c"># Should still show hdisk0 (we used -B during alt_disk_copy)</span></div>
+        <p class="note note-verify"><strong>✓ Acceptance criteria:</strong> <code>oslevel -s</code> at target · <code>lppchk -v</code> clean · no new <code>errpt</code> classes · no inoperative subsystems · bootlist still on <code>hdisk0</code>. Anything else triggers Phase 7.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Phase 7</span> Rollback procedure</div>
+  <p class="note note-caution" style="margin-bottom:14px"><strong>Trigger conditions:</strong> <code>lppchk -v</code> reports broken filesets after reboot, or LPAR fails to boot cleanly off <code>hdisk0</code>.</p>
+  <div class="steps">
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.1</span>
+        <span class="step-title">Rollback while system is booted</span>
+        <span class="step-tag tag-caution">ROLLBACK</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="rb1"><button class="copy-btn" onclick="copy('rb1',this)">COPY</button><span class="cmd-section">Repoint bootlist to the pre-patch clone on hdisk1</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal hdisk1
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>          <span class="c"># verify</span>
+
+<span class="kw">shutdown</span> <span class="flag">-Fr</span> now
+
+<span class="cmd-section">After reboot</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>
+<span class="c"># Expect: 7100-05-11-2347 (pre-patch level)</span>
+
+<span class="kw">lspv</span>
+<span class="c"># rootvg is now on hdisk1; old (patched) rootvg shows as</span>
+<span class="c"># old_rootvg on hdisk0</span>
+
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal hdisk1      <span class="c"># confirm bootlist sticks for next boot</span></div>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.2</span>
+        <span class="step-title">Rollback if the system will not boot</span>
+        <span class="step-tag tag-critical">ROLLBACK</span>
+        <span class="run-on hmc">HMC</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <ol style="padding-left:20px; font-size:13px; line-height:1.8">
+          <li>Activate the LPAR from the HMC in <strong>SMS mode</strong>.</li>
+          <li>Select boot device, choose <code>hdisk1</code>.</li>
+          <li>Boot normally.</li>
+        </ol>
+        <p class="note">Then follow the RB.1 verification steps to confirm <code>oslevel -s</code> reports the pre-patch level and the bootlist is persisted.</p>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.3</span>
+        <span class="step-title">Post-rollback cleanup</span>
+        <span class="step-tag tag-info">CLEANUP</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="rb3"><button class="copy-btn" onclick="copy('rb3',this)">COPY</button><span class="cmd-section">Once stable on the rollback disk</span>
+<span class="c"># Remove the failed alt_rootvg (the patched one, now on hdisk0)</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> old_rootvg</div>
+        <p class="note note-info"><strong>Preserve:</strong> Keep <code>/var/adm/ras/install_all_updates.log</code> and the per-fileset logs in <code>/var/adm/ras/</code> before raising a PMR. IBM support will need them to diagnose why the patch broke the system.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 8 ════ -->
+  <div class="phase-label"><span>Phase 8</span> Cleanup · T+3 to T+7 days, after burn-in</div>
+  <div class="steps">
+
+    <div class="step ph-cleanup">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">19</span>
+        <span class="step-title">Clear down the alt_disk_copy clone and archive logs</span>
+        <span class="step-tag tag-info">CLEANUP</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-caution" style="margin-top:0"><strong>Only after burn-in.</strong> If patching has completed successfully and nobody has raised an issue, you're good to clear down the alt_disk_copy clone — but not before.</p>
+        <div class="cmd" id="c19"><button class="copy-btn" onclick="copy('c19',this)">COPY</button><span class="cmd-section">Free hdisk1 by removing the clone definition</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> altinst_rootvg
+
+<span class="kw">lspv</span>
+<span class="c"># hdisk1 should now show "None" in VG column</span>
+
+<span class="cmd-section">Remove staged update files</span>
+<span class="kw">rm</span> <span class="flag">-rf</span> /var/update_staging/7100-05-12
+
+<span class="cmd-section">Archive change logs for audit</span>
+<span class="kw">tar</span> <span class="flag">-cvf</span> /backup/change_$(<span class="kw">hostname</span>)_$(<span class="kw">date</span> +%Y%m%d).tar \
+    /tmp/preflight_*.log \
+    /tmp/errpt_pre.txt /tmp/lssrc_pre.txt /tmp/df_pre.txt \
+    /var/update_staging/7100-05-12/install_*.log \
+    /var/adm/ras/install_all_updates.log
+
+<span class="cmd-section">Optional: remove the mksysb if alt_disk_copy + TSM cover you</span>
+<span class="c"># ls -l /backup/$(hostname)_*.mksysb</span></div>
+        <p class="note note-verify"><strong>Now close the change.</strong> You earned it.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ APPENDIX A ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Appendix A</span> Sample Fix Central bundle contents</div>
+  <div class="steps">
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">A.1</span>
+        <span class="step-title">Typical AIX 7.1 SP bundle layout</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">A typical AIX 7.1 SP bundle (<code>7100-05-12-2336-FP.tar</code>) extracts to a flat directory of <code>.bff</code> files plus the <code>.toc</code> generated by <code>inutoc</code>.</p>
+        <div class="cmd" id="a1"><button class="copy-btn" onclick="copy('a1',this)">COPY</button>/var/update_staging/7100-05-12/
+    .toc                                          <span class="c">(built by inutoc)</span>
+    bos.64bit.7.1.5.41.bff
+    bos.acct.7.1.5.40.bff
+    bos.mp64.7.1.5.41.bff
+    bos.net.tcp.client.7.1.5.41.bff
+    bos.net.tcp.server.7.1.5.41.bff
+    bos.perf.libperfstat.7.1.5.41.bff
+    bos.perf.perfstat.7.1.5.41.bff
+    bos.perf.tools.7.1.5.41.bff
+    bos.rte.7.1.5.41.bff
+    bos.rte.boot.7.1.5.41.bff
+    bos.rte.install.7.1.5.41.bff
+    bos.rte.libc.7.1.5.41.bff
+    bos.rte.security.7.1.5.41.bff
+    clic.rte.kernext.4.10.0.4.bff
+    devices.common.IBM.ethernet.rte.7.1.5.41.bff
+    devices.common.IBM.fc.rte.7.1.5.40.bff
+    devices.common.IBM.scsi.rte.7.1.5.41.bff
+    devices.fcp.disk.rte.7.1.5.40.bff
+    <span class="c">... (typically 150 — 300 filesets total)</span></div>
+
+        <p class="note note-info" style="margin-top:14px"><strong>Naming convention:</strong></p>
+        <div class="cmd" id="a1n"><button class="copy-btn" onclick="copy('a1n',this)">COPY</button>&lt;package&gt;.&lt;subpackage&gt;.&lt;V&gt;.&lt;R&gt;.&lt;M&gt;.&lt;F&gt;.bff
+    V = Version (7)
+    R = Release (1)
+    M = Modification / TL (5)
+    F = Fix / SP build (41)</div>
+        <p class="note">Not all filesets in a bundle ship at the same V.R.M.F — some sub-components update infrequently, which is why mixed <code>.40</code> and <code>.41</code> levels appear in the same SP. Expected, not a problem.</p>
+      </div>
+    </div>
+
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">A.2</span>
+        <span class="step-title">Common errors and remediation</span>
+        <span class="step-tag tag-caution">REFERENCE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Symptom</th><th>Cause / Fix</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>installp: 0503-005 ... could not access toc</td><td>Run <code>inutoc .</code> in the staging dir.</td></tr>
+            <tr><td>0504-203 No filesets on the media</td><td>Same root cause — missing or stale <code>.toc</code>.</td></tr>
+            <tr><td>0503-409 ... requisite is missing</td><td>A prereq fileset isn't in the bundle. Check <code>oslevel -s -l</code> and download the missing fileset, or use a fuller bundle.</td></tr>
+            <tr><td>0503-464 ... cannot install over a newer version</td><td>Fileset on disk is newer than what's in the bundle. Skip with <code>installp -ag</code> (apply, ignore requisites) only if you understand <em>why</em>.</td></tr>
+            <tr><td>lppchk -v reports BROKEN filesets post-patch</td><td>Run <code>installp -C</code> to clean uncommitted state, then re-run the update for affected filesets only.</td></tr>
+            <tr><td>LPAR hangs at LED 0c31 or similar on boot</td><td>Boot from rollback disk via SMS (see RB.2). File a PMR.</td></tr>
+            <tr><td>/usr fills mid-install</td><td><code>chfs -a size=+1G /usr</code>, then re-run <code>install_all_updates</code>. installp is restartable.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="step ph-stage">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">A.3</span>
+        <span class="step-title">Worked example — single command sequence</span>
+        <span class="step-tag tag-caution">REFERENCE</span>
+        <span class="run-on target">TARGET LPAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-caution" style="margin-top:0"><strong>Do not follow this blindly</strong> — the worked-example values (level numbers, hdisk names, bundle filename) <em>will</em> change for your actual change. This is a sequence reference, not a copy-paste recipe.</p>
+        <div class="cmd" id="a3"><button class="copy-btn" onclick="copy('a3',this)">COPY</button><span class="cmd-section">Pre-flight</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>; <span class="kw">lppchk</span> <span class="flag">-v</span>; <span class="kw">df</span> <span class="flag">-g</span> /usr; <span class="kw">lspv</span>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span> &gt; /tmp/bootlist_pre.txt
+<span class="kw">errpt</span> <span class="flag">-a</span> &gt; /tmp/errpt_pre.txt
+
+<span class="cmd-section">Backups</span>
+<span class="kw">mksysb</span> <span class="flag">-ipX</span> /backup/$(<span class="kw">hostname</span>)_$(<span class="kw">date</span> +%Y%m%d).mksysb
+<span class="kw">alt_disk_copy</span> <span class="flag">-B -d</span> hdisk1
+<span class="kw">lspv</span>                                          <span class="c"># confirm altinst_rootvg</span>
+
+<span class="cmd-section">Stage</span>
+<span class="kw">mkdir</span> <span class="flag">-p</span> /var/update_staging/7100-05-12
+<span class="kw">cd</span> /var/update_staging/7100-05-12
+<span class="kw">tar</span> <span class="flag">-xvf</span> /tmp/7100-05-12-2336-FP.tar
+<span class="kw">inutoc</span> .
+
+<span class="cmd-section">Preview, then apply</span>
+<span class="kw">install_all_updates</span> <span class="flag">-d</span> . <span class="flag">-p</span>
+<span class="kw">script</span> ./install_$(<span class="kw">date</span> +%Y%m%d_%H%M).log
+<span class="kw">install_all_updates</span> <span class="flag">-d</span> . <span class="flag">-Yc</span>
+<span class="kw">exit</span>
+
+<span class="cmd-section">Reboot and verify</span>
+<span class="kw">shutdown</span> <span class="flag">-Fr</span> now
+<span class="c"># ... wait for reboot ...</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>                                    <span class="c"># 7100-05-12-2336</span>
+<span class="kw">lppchk</span> <span class="flag">-v</span>
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML
+<span class="kw">errpt</span> | <span class="kw">head</span>
+
+<span class="cmd-section">Cleanup (after burn-in, days later)</span>
+<span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> altinst_rootvg
+<span class="kw">rm</span> <span class="flag">-rf</span> /var/update_staging/7100-05-12</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Command Summary</div>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
+      <tr><td>oslevel -s</td><td>Current TL/SP level</td><td>Full V.R.M.F-build</td></tr>
+      <tr><td>oslevel -s -l &lt;level&gt;</td><td>Filesets below a given level</td><td>Empty output = at level</td></tr>
+      <tr><td>oslevel -r</td><td>Just the TL portion</td><td>e.g. 7100-05</td></tr>
+      <tr><td>instfix -i</td><td>Installed ML/TL inventory</td><td>grep ML for milestones</td></tr>
+      <tr><td>lslpp -L</td><td>Full fileset inventory</td><td>State + level per fileset</td></tr>
+      <tr><td>lslpp -h &lt;fileset&gt;</td><td>Install history for a fileset</td><td>apply/commit/reject log</td></tr>
+      <tr><td>lppchk -v</td><td>Verify fileset consistency</td><td>MUST be clean pre and post</td></tr>
+      <tr><td>mksysb -ipX &lt;file&gt;</td><td>Bootable rootvg backup</td><td>Phase 3 — to NFS preferred</td></tr>
+      <tr><td>alt_disk_copy -B -d &lt;disk&gt;</td><td>Clone rootvg, do not change bootlist</td><td>Phase 3 — primary rollback</td></tr>
+      <tr><td>alt_rootvg_op -W -d &lt;disk&gt;</td><td>Wake an alt_rootvg for offline access</td><td>Pattern B alternative</td></tr>
+      <tr><td>alt_rootvg_op -S</td><td>Sleep an alt_rootvg</td><td>After offline patching</td></tr>
+      <tr><td>alt_rootvg_op -X &lt;vg&gt;</td><td>Remove an alt_rootvg definition</td><td>Cleanup or rollback discard</td></tr>
+      <tr><td>inutoc &lt;dir&gt;</td><td>Build .toc for an installp directory</td><td>Re-run after every dir change</td></tr>
+      <tr><td>install_all_updates -d &lt;dir&gt; -p</td><td>Preview update</td><td>Phase 4 — must be clean</td></tr>
+      <tr><td>install_all_updates -d &lt;dir&gt; -Yc</td><td>Apply and commit</td><td>Phase 5 — the real run</td></tr>
+      <tr><td>installp -C</td><td>Clean up failed/half-applied state</td><td>Use before re-running</td></tr>
+      <tr><td>installp -s</td><td>List filesets in APPLIED (uncommitted) state</td><td>Apply-mode rollback target</td></tr>
+      <tr><td>installp -c &lt;fileset&gt;</td><td>Commit a specific applied fileset</td><td>Promote apply → commit</td></tr>
+      <tr><td>installp -r &lt;fileset&gt;</td><td>Reject (roll back) an applied fileset</td><td>Apply-mode only — no reboot</td></tr>
+      <tr><td>bootlist -m normal -o</td><td>Show normal-mode bootlist</td><td>Pre/post snapshot</td></tr>
+      <tr><td>bootlist -m normal &lt;disk&gt;</td><td>Set normal-mode bootlist</td><td>Rollback flip in RB.1</td></tr>
+      <tr><td>bosboot -ad /dev/&lt;disk&gt;</td><td>Rebuild boot image on disk</td><td>If boot-image corruption suspected</td></tr>
+    </table>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>Always run the dry-run (<code>install_all_updates -p</code>) before the live apply. The preview exercises requisite resolution against the staged bundle — uncaught issues here become hard failures during the live run.</li>
+      <li>Re-run <code>inutoc</code> after any change to the staging directory. A stale <code>.toc</code> is the most common cause of <em>0503-005 / 0504-203</em> errors during <code>install_all_updates</code>.</li>
+      <li><code>lppchk -v</code> must be clean both before and after. A non-clean baseline means a previous half-applied update is still hanging around — fix it with <code>installp -C</code> first, or you are patching on top of a known-broken state.</li>
+      <li><code>alt_disk_copy -B</code> versus omitting <code>-B</code> is the key strategic choice. This runbook patches the live disk and keeps the clone cold for rollback (pattern A); for application LPARs where keeping the running system pristine matters, pattern B (wake, patch offline, reboot onto clone) is worth the extra steps.</li>
+      <li>Commit (<code>-c</code>) versus apply: commit halves the disk footprint but removes per-fileset rollback. With <code>alt_disk_copy</code> in place anyway, commit is the right default for SPs — your rollback is the clone, not <code>installp -r</code>.</li>
+      <li>Hardware errors in <code>errpt</code> before patching <em>will</em> bite on the post-patch reboot. Resolve them at pre-flight, not at midnight.</li>
+      <li>Never reboot on top of <code>FAILED</code> / <code>BROKEN</code> filesets in the install summary. A reboot on broken filesets converts a recoverable mistake into a rollback exercise.</li>
+      <li>Major-version migrations (7.1 → 7.2 / 7.2 → 7.3) are <em>not</em> updates — they are migration installations. Use the companion <code>nimadm</code> or boot-media migration runbooks instead.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>RB-PATCH-AIX-001 · AIX 7.1 TL/SP Patching · single LPAR · alt_disk_copy rollback</span>
+  <span>AIX 7.1 · install_all_updates</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+
+</body>
+</html>
