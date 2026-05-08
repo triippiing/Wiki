@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RHEL Licensing Cheat Sheet — subscription-manager Reference</title>
+<meta name="description" content="Subscription-manager command reference for registering RHEL systems, attaching subscriptions, enabling repos, and diagnosing licensing failure states.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-red {
+    color: var(--red);
+    border-color: rgba(224,92,92,.3);
+    background: rgba(224,92,92,.06);
+  }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* meta */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell { background: var(--surface); padding: 14px 18px; }
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .meta-val { font-size: 13px; color: var(--text-hi); font-weight: 600; }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.bad  { color: var(--red); }
+
+  /* primer */
+  .primer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 6px 6px 0;
+    margin: 32px 0 12px;
+    overflow: hidden;
+    animation: fadeUp .4s .1s ease both;
+    opacity: 0;
+  }
+
+  .primer-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    padding: 10px 18px;
+    background: rgba(88,201,232,.04);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .primer-header span {
+    background: rgba(88,201,232,.12);
+    color: var(--cyan);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  .primer-body { padding: 18px 20px; }
+  .primer-body p {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+  .primer-body p:last-child { margin-bottom: 0; }
+  .primer-body code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+  .primer-body strong { color: var(--text-hi); font-weight: 600; }
+
+  .flow-diagram {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    margin: 12px 0;
+    color: var(--text);
+    text-align: center;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .flow-diagram .stage   { color: var(--cyan); font-weight: 600; }
+  .flow-diagram .arrow   { color: var(--text-dim); margin: 0 12px; }
+  .flow-diagram .endgoal { color: var(--green); font-weight: 600; }
+
+  /* phase divider */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* steps */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  .step.ph-register { border-left-color: var(--cyan); }
+  .step.ph-audit    { border-left-color: var(--purple); }
+  .step.ph-fix      { border-left-color: var(--amber); }
+  .step.ph-health   { border-left-color: var(--green); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+  .step:nth-child(7)  { animation-delay: .28s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);   border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green);  border: 1px solid rgba(57,211,83,.25); }
+  .tag-action   { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber);  border: 1px solid rgba(240,163,10,.3); }
+  .tag-critical { background: rgba(224,92,92,.15);  color: var(--red);    border: 1px solid rgba(224,92,92,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body { display: none; padding: 16px; }
+  .step.open .step-body { display: block; }
+
+  /* code blocks */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd + .cmd { margin-top: 10px; }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+  .cmd .ok   { color: var(--green); }
+  .cmd .bad  { color: var(--red); }
+
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child { border-top: none; margin-top: -4px; }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* notes */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  .note.note-info     { border-left-color: var(--cyan);  background: rgba(88,201,232,.03); border-radius: 0 4px 4px 0; }
+  .note.note-caution  { border-left-color: var(--amber); background: rgba(240,163,10,.04); border-radius: 0 4px 4px 0; }
+  .note.note-critical { border-left-color: var(--red);   background: rgba(224,92,92,.04);  border-radius: 0 4px 4px 0; }
+  .note.note-ok       { border-left-color: var(--green); background: rgba(57,211,83,.04);  border-radius: 0 4px 4px 0; }
+  .note.note-info strong     { color: var(--cyan); }
+  .note.note-caution strong  { color: var(--amber); }
+  .note.note-critical strong { color: var(--red); }
+  .note.note-ok strong       { color: var(--green); }
+
+  /* tables */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-top: 4px;
+  }
+
+  .ref-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-size: 12.5px;
+  }
+
+  .ref-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .ref-table td.ok   { color: var(--green); }
+  .ref-table td.warn { color: var(--amber); }
+  .ref-table td.bad  { color: var(--red); }
+  .ref-table td code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  /* checklist */
+  .checklist {
+    list-style: none;
+    padding: 4px 0 0;
+    margin: 0;
+  }
+  .checklist li {
+    font-size: 13px;
+    color: var(--text);
+    padding: 6px 0 6px 26px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .checklist li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    color: var(--green);
+    font-weight: 700;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  .checklist li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* warn box */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>RHEL Licensing Cheat Sheet</h1>
+  <div class="header-badges">
+    <span class="badge badge-red">RHEL</span>
+    <span class="badge">subscription-manager</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Tool</div><div class="meta-val">subscription-manager</div></div>
+    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val info">Register → Patchable</div></div>
+    <div class="meta-cell"><div class="meta-label">Reg Methods</div><div class="meta-val">User/pass · Activation key</div></div>
+    <div class="meta-cell"><div class="meta-label">Required Repos</div><div class="meta-val">BaseOS · AppStream</div></div>
+    <div class="meta-cell"><div class="meta-label">Pass Marker</div><div class="meta-val ok">status = Current</div></div>
+    <div class="meta-cell"><div class="meta-label">Final Test</div><div class="meta-val info">dnf repolist</div></div>
+  </div>
+
+  <!-- ════ MENTAL MODEL ════ -->
+  <div class="primer">
+    <div class="primer-header">
+      <span>Mental Model</span>
+      The licensing chain
+    </div>
+    <div class="primer-body">
+      <p>RHEL licensing is a <strong>chain</strong> — each link must be in place for the next to function. If <code>dnf</code> doesn't return repos at the end, licensing is effectively broken regardless of what intermediate status fields say.</p>
+      <div class="flow-diagram"><span class="stage">Register</span><span class="arrow">→</span><span class="stage">Attach</span><span class="arrow">→</span><span class="stage">Enable repos</span><span class="arrow">→</span><span class="endgoal">Patchable</span></div>
+      <p>Read it left-to-right when troubleshooting. Find the first link that fails — that's the one to fix. Everything downstream will recover once it's repaired.</p>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 1 — REGISTER & ATTACH ════ -->
+  <div class="phase-label"><span>Phase 1</span> Register, attach, enable repos</div>
+  <div class="steps">
+
+    <div class="step ph-register open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Register the system</span>
+        <span class="step-tag tag-info">REGISTER</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="cmd-section">Username / password — interactive only</span>
+<span class="kw">subscription-manager</span> register <span class="flag">--username</span>=<span class="ph">&lt;user&gt;</span> <span class="flag">--password</span>=<span class="ph">&lt;pass&gt;</span>
+
+<span class="cmd-section">Activation key — enterprise standard</span>
+<span class="kw">subscription-manager</span> register <span class="flag">--org</span>=<span class="ph">&lt;org_id&gt;</span> <span class="flag">--activationkey</span>=<span class="ph">&lt;key&gt;</span></div>
+        <p class="note note-info"><strong>Use activation keys</strong> for any automated build pipeline. They scope cleanly to a subscription pool, don't expose user credentials in process lists or logs, and survive password rotations. User/pass registration is fine for ad-hoc work but not for golden-image bake-outs or kickstart files.</p>
+      </div>
+    </div>
+
+    <div class="step ph-register">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Attach a subscription</span>
+        <span class="step-tag tag-action">ATTACH</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># Auto-attach picks the best-matching subscription from available pools</span>
+<span class="kw">subscription-manager</span> attach <span class="flag">--auto</span>
+
+<span class="c"># If entitlements are stale or you've recently changed pools</span>
+<span class="kw">subscription-manager</span> refresh</div>
+        <p class="note"><strong>Activation keys</strong> usually attach a subscription pool automatically at registration time, so this step is often not needed. Run it only if <code>list --consumed</code> shows nothing attached.</p>
+      </div>
+    </div>
+
+    <div class="step ph-register">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Enable required repos</span>
+        <span class="step-tag tag-ok">ENABLE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># BaseOS + AppStream — the minimum for a patchable RHEL 8/9 system</span>
+<span class="kw">subscription-manager</span> repos \
+  <span class="flag">--enable</span>=rhel-8-for-x86_64-baseos-rpms \
+  <span class="flag">--enable</span>=rhel-8-for-x86_64-appstream-rpms
+
+<span class="c"># Adjust the version (8 / 9) and arch (x86_64 / aarch64 / ppc64le) as needed</span></div>
+        <p class="note note-info"><strong>RHEL 9</strong> uses <code>rhel-9-for-x86_64-baseos-rpms</code> / <code>rhel-9-for-x86_64-appstream-rpms</code>. List all available repos for the attached subscription with <code>subscription-manager repos --list</code> if you're unsure of the exact name.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 2 — AUDIT ════ -->
+  <div class="phase-label"><span>Phase 2</span> Quick audit</div>
+  <div class="steps">
+
+    <div class="step ph-audit open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Run the full audit</span>
+        <span class="step-tag tag-action">AUDIT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="c"># Run all five — each answers a different question about the chain</span>
+<span class="kw">subscription-manager</span> identity            <span class="c"># Is it registered?</span>
+<span class="kw">subscription-manager</span> status              <span class="c"># Is it Current / Invalid / Unknown?</span>
+<span class="kw">subscription-manager</span> list <span class="flag">--consumed</span>      <span class="c"># What's actually attached?</span>
+<span class="kw">subscription-manager</span> repos <span class="flag">--list-enabled</span>  <span class="c"># Are the right repos turned on?</span>
+<span class="kw">dnf</span> repolist                                <span class="c"># Does dnf actually see them?</span></div>
+        <p class="note note-info"><strong>Run all five, in this order.</strong> Each line is a checkpoint along the chain. The first one that fails is your starting point for repair — don't bother fixing later steps until the earlier ones come back clean.</p>
+      </div>
+    </div>
+
+    <div class="step ph-audit">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Interpret the output</span>
+        <span class="step-tag tag-info">READ</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <tr>
+            <th>Command</th>
+            <th>OK signal</th>
+            <th>Failure signal</th>
+          </tr>
+          <tr>
+            <td>identity</td>
+            <td class="ok">Shows system UUID + org</td>
+            <td class="bad">"This system is not yet registered"</td>
+          </tr>
+          <tr>
+            <td>status</td>
+            <td class="ok"><code>Current</code></td>
+            <td class="bad"><code>Invalid</code> / <code>Unknown</code></td>
+          </tr>
+          <tr>
+            <td>list --consumed</td>
+            <td class="ok"><code>Status: Subscribed</code> + valid <code>Expires</code> date</td>
+            <td class="bad">No output / no consumed pools</td>
+          </tr>
+          <tr>
+            <td>repos --list-enabled</td>
+            <td class="ok">BaseOS &amp; AppStream listed</td>
+            <td class="bad">Empty — nothing entitled</td>
+          </tr>
+          <tr>
+            <td>dnf repolist</td>
+            <td class="ok">Returns repos with package counts</td>
+            <td class="bad">Empty / network error / 403</td>
+          </tr>
+        </table>
+        <p class="note note-caution"><strong>The <code>dnf repolist</code> check is the ground truth.</strong> Everything above it can be green and this can still fail (proxy, DNS, certificate path, network ACL). If <code>dnf</code> doesn't return repos, the system is unpatchable — regardless of what subscription-manager says.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 3 — FIX ════ -->
+  <div class="phase-label"><span>Phase 3</span> Common fixes</div>
+  <div class="steps">
+
+    <div class="step ph-fix open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Repair by failure mode</span>
+        <span class="step-tag tag-caution">FIX</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">Not registered</span>
+<span class="kw">subscription-manager</span> register <span class="flag">--org</span>=<span class="ph">&lt;org&gt;</span> <span class="flag">--activationkey</span>=<span class="ph">&lt;key&gt;</span>
+
+<span class="cmd-section">No subscription attached</span>
+<span class="kw">subscription-manager</span> attach <span class="flag">--auto</span>
+
+<span class="cmd-section">Expired or stale entitlements</span>
+<span class="kw">subscription-manager</span> refresh
+
+<span class="cmd-section">Repos missing from list</span>
+<span class="kw">subscription-manager</span> repos <span class="flag">--enable</span>=<span class="ph">&lt;repo&gt;</span></div>
+        <p class="note"><strong>After any fix</strong>, re-run the audit (Step 04). Don't skip the verification — a green status doesn't always mean <code>dnf</code> is happy, and the goal is patchability, not green dashboards.</p>
+      </div>
+    </div>
+
+    <div class="step ph-fix">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Failure-state matrix</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <tr>
+            <th>Symptom</th>
+            <th>Cause</th>
+            <th>Fix</th>
+          </tr>
+          <tr>
+            <td>Not registered</td>
+            <td>No identity</td>
+            <td><code>register</code></td>
+          </tr>
+          <tr>
+            <td>status: Unknown</td>
+            <td>No entitlement</td>
+            <td><code>attach --auto</code></td>
+          </tr>
+          <tr>
+            <td>No consumed subs</td>
+            <td>Nothing attached to pool</td>
+            <td><code>attach --auto</code></td>
+          </tr>
+          <tr>
+            <td>No repos enabled</td>
+            <td>No valid subscription / wrong arch</td>
+            <td><code>repos --enable</code></td>
+          </tr>
+          <tr>
+            <td>dnf repolist empty</td>
+            <td>Network / proxy / cert issue</td>
+            <td>Check <code>/etc/rhsm/rhsm.conf</code>, proxy, firewall</td>
+          </tr>
+          <tr>
+            <td>SSL cert errors</td>
+            <td>Stale CA / wrong system clock</td>
+            <td><code>refresh</code> · check <code>date</code> / NTP</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 4 — HEALTH CHECK ════ -->
+  <div class="phase-label"><span>Phase 4</span> Health check &amp; pass criteria</div>
+  <div class="steps">
+
+    <div class="step ph-health open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">One-liner health check</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="c"># Combines status + dnf check — useful for kickstart post-scripts and CI gates</span>
+<span class="kw">if</span> <span class="kw">subscription-manager</span> status 2&gt;<span class="str">/dev/null</span> <span class="flag">|</span> <span class="kw">grep</span> <span class="flag">-q</span> <span class="str">"Current"</span> <span class="flag">&amp;&amp;</span> \
+   <span class="kw">dnf</span> repolist 2&gt;<span class="str">/dev/null</span> <span class="flag">|</span> <span class="kw">grep</span> <span class="flag">-q</span> <span class="str">"repo id"</span>; <span class="kw">then</span>
+    <span class="kw">echo</span> <span class="ok">"LICENSE: OK"</span>
+<span class="kw">else</span>
+    <span class="kw">echo</span> <span class="bad">"LICENSE: FAIL"</span>
+<span class="kw">fi</span></div>
+        <p class="note note-ok"><strong>Use this in build pipelines.</strong> Both checks must pass — status alone is not enough. The <code>grep "repo id"</code> half catches network/proxy issues that <code>subscription-manager</code> can't see.</p>
+      </div>
+    </div>
+
+    <div class="step ph-health">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">Minimal pass criteria</span>
+        <span class="step-tag tag-ok">CHECKLIST</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <ul class="checklist">
+          <li>Registered — <code>subscription-manager identity</code> returns a UUID</li>
+          <li>Status — <code>status</code> reports <code>Current</code></li>
+          <li>Subscription attached — <code>list --consumed</code> shows an active pool with a future <code>Expires</code> date</li>
+          <li>BaseOS &amp; AppStream enabled — <code>repos --list-enabled</code></li>
+          <li>Repos resolvable — <code>dnf repolist</code> returns one or more repos</li>
+        </ul>
+        <p class="note note-info"><strong>All five must be true</strong> for the system to be considered patchable. Anything less and you're rolling the dice on the next <code>dnf update</code>.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li><strong>Activation keys, not user/pass, in automation.</strong> Credentials in kickstart files or CI logs are an audit failure waiting to happen. Activation keys scope cleanly and rotate independently.</li>
+      <li><strong><code>dnf repolist</code> is the ground truth.</strong> Subscription-manager can be green while the system is still unpatchable due to proxy, DNS, or cert path issues. Always finish the audit at the dnf layer.</li>
+      <li><strong>System clock matters.</strong> Subscription certificates are signed and time-bounded — a clock skew of more than a few minutes will cause SSL errors that look like network failures. Check <code>date</code> and NTP first when seeing certificate errors.</li>
+      <li><strong>Repo names include the major version.</strong> <code>rhel-8-for-x86_64-baseos-rpms</code> ≠ <code>rhel-9-for-x86_64-baseos-rpms</code>. After in-place upgrades, repos must be re-enabled for the new major version.</li>
+      <li><strong><code>refresh</code> is cheap, run it after any subscription change.</strong> Updating pool membership in the Red Hat portal does not automatically update what's cached on the host — <code>refresh</code> pulls the new entitlements.</li>
+      <li><strong>Don't unregister to "fix" things.</strong> Unregistering returns the entitlement to the pool but immediately disables repos and breaks patching. Try <code>refresh</code>, <code>attach --auto</code>, or repo re-enable first.</li>
+      <li><strong>Proxies need <code>/etc/rhsm/rhsm.conf</code>.</strong> The <code>http_proxy</code> environment variable is not enough for subscription-manager — it reads its own config. Edit <code>[server] proxy_hostname / proxy_port</code> and restart <code>rhsmcertd</code>.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>RHEL · subscription-manager · BaseOS / AppStream</span>
+  <span>register / attach / repos / status / dnf repolist</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>
