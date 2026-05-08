@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux Log Housekeeping — Free Space &amp; Configure Logrotate</title>
+<meta name="description" content="Reactive disk-space recovery on Linux servers (truncate, compress, clear caches) and long-term logrotate policy to prevent recurrence.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px var(--amber);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-amber {
+    color: var(--amber);
+    border-color: rgba(240,163,10,.3);
+    background: rgba(240,163,10,.06);
+  }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* meta */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell { background: var(--surface); padding: 14px 18px; }
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .meta-val { font-size: 13px; color: var(--text-hi); font-weight: 600; }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.warn { color: var(--amber); }
+
+  /* primer */
+  .primer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 6px 6px 0;
+    margin: 32px 0 12px;
+    overflow: hidden;
+    animation: fadeUp .4s .1s ease both;
+    opacity: 0;
+  }
+
+  .primer-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    padding: 10px 18px;
+    background: rgba(88,201,232,.04);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .primer-header span {
+    background: rgba(88,201,232,.12);
+    color: var(--cyan);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  .primer-body { padding: 18px 20px; }
+  .primer-body p {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+  .primer-body p:last-child { margin-bottom: 0; }
+  .primer-body code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+  .primer-body strong { color: var(--text-hi); font-weight: 600; }
+
+  /* phase divider */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* steps */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  .step.ph-react { border-left-color: var(--amber); }
+  .step.ph-rotate { border-left-color: var(--green); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+  .step:nth-child(7)  { animation-delay: .28s; }
+  .step:nth-child(8)  { animation-delay: .32s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);   border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green);  border: 1px solid rgba(57,211,83,.25); }
+  .tag-action   { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber);  border: 1px solid rgba(240,163,10,.3); }
+  .tag-critical { background: rgba(224,92,92,.15);  color: var(--red);    border: 1px solid rgba(224,92,92,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body { display: none; padding: 16px; }
+  .step.open .step-body { display: block; }
+
+  /* code blocks */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd + .cmd { margin-top: 10px; }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child { border-top: none; margin-top: -4px; }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* notes */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-ok {
+    border-left-color: var(--green);
+    background: rgba(57,211,83,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-info strong     { color: var(--cyan); }
+  .note.note-caution strong  { color: var(--amber); }
+  .note.note-critical strong { color: var(--red); }
+  .note.note-ok strong       { color: var(--green); }
+
+  /* warn box */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>Linux Log Housekeeping</h1>
+  <div class="header-badges">
+    <span class="badge badge-amber">ADMIN</span>
+    <span class="badge">LOG MGMT</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val">Free space + rotation</div></div>
+    <div class="meta-cell"><div class="meta-label">Part 1</div><div class="meta-val warn">Reactive cleanup</div></div>
+    <div class="meta-cell"><div class="meta-label">Part 2</div><div class="meta-val ok">Logrotate policy</div></div>
+    <div class="meta-cell"><div class="meta-label">Distro</div><div class="meta-val">RHEL / Debian family</div></div>
+    <div class="meta-cell"><div class="meta-label">Trigger</div><div class="meta-val info">/etc/cron.daily/logrotate</div></div>
+    <div class="meta-cell"><div class="meta-label">Restart</div><div class="meta-val ok">None required</div></div>
+  </div>
+
+  <!-- ════ PRIMER ════ -->
+  <div class="primer">
+    <div class="primer-header">
+      <span>Why two parts</span>
+      Reactive vs preventative
+    </div>
+    <div class="primer-body">
+      <p><strong>Part 1</strong> is the response when a Linux server is full now: truncate, compress, delete, clear caches. It restores capacity but does nothing to stop recurrence.</p>
+      <p><strong>Part 2</strong> is the fix: drop a config file under <code>/etc/logrotate.d/</code> and the daily cron hook handles rotation, compression, and retention going forward — no service restart, no manual intervention.</p>
+      <p>If you only ever do Part 1, you'll be back here in a fortnight. Always close the loop with Part 2 once the immediate fire is out.</p>
+    </div>
+  </div>
+
+  <!-- ════ PART 1 ════ -->
+  <div class="phase-label"><span>Part 1</span> Free space now</div>
+  <div class="steps">
+
+    <div class="step ph-react open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Triage — find what's actually using the space</span>
+        <span class="step-tag tag-info">DISCOVER</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># Filesystem-level view — confirm which mount is full</span>
+<span class="kw">df</span> <span class="flag">-h</span>
+
+<span class="c"># Top 20 directories under /var/log by size</span>
+<span class="kw">du</span> <span class="flag">-shx</span> <span class="str">/var/log/*</span> <span class="flag">| sort -h | tail -20</span>
+
+<span class="c"># Top files under /var across the whole subtree</span>
+<span class="kw">du</span> <span class="flag">-ahx</span> <span class="str">/var</span> 2&gt;<span class="str">/dev/null</span> <span class="flag">| sort -h | tail -20</span></div>
+        <p class="note note-info"><strong>Tip:</strong> the <code>-x</code> flag stops <code>du</code> crossing into other filesystems — useful when <code>/</code> and <code>/var</code> sit on different mounts and you want to attribute usage correctly.</p>
+      </div>
+    </div>
+
+    <div class="step ph-react">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Truncate active system logs</span>
+        <span class="step-tag tag-action">CLEAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># Truncate to zero bytes — preserves inode and any open file handles</span>
+<span class="kw">truncate</span> <span class="flag">-s</span> 0 <span class="str">/var/log/syslog</span> <span class="str">/var/log/messages</span>
+
+<span class="c"># Alternative — for logs not actively being written to</span>
+<span class="kw">echo</span> &gt; <span class="str">/var/log/<span class="ph">somelogname</span>.log</span>
+
+<span class="c"># Clear lastlog (read first if needed: lastlog | less)</span>
+<span class="kw">cp</span> <span class="str">/dev/null</span> <span class="str">/var/log/lastlog</span></div>
+        <p class="note note-caution"><strong>Use <code>truncate</code>, not <code>rm</code></strong> on logs the kernel or a daemon has open. Removing the file leaves the process writing to a now-orphaned inode — the bytes still exist, the file is "gone" from <code>ls</code>, and <code>df</code> won't recover until the holder is restarted. Truncation preserves the inode and frees space immediately.</p>
+      </div>
+    </div>
+
+    <div class="step ph-react">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Clear application logs</span>
+        <span class="step-tag tag-action">CLEAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># Itheon application logs — safe to delete on systems we manage</span>
+<span class="kw">rm</span> <span class="flag">-f</span> <span class="str">/opt/iAM/server/*</span>
+
+<span class="c"># Other historical logs no longer needed</span>
+<span class="kw">rm</span> <span class="flag">-f</span> <span class="str">/var/log/<span class="ph">oldunusedlog</span>.log</span></div>
+        <p class="note"><strong>Always confirm</strong> a log can be removed before deleting it. Application logs may be required for audit, support cases, or compliance — when in doubt, archive off the system first (rsync/scp to a retention host) and remove only after the copy is verified.</p>
+      </div>
+    </div>
+
+    <div class="step ph-react">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Compress logs being kept for reference</span>
+        <span class="step-tag tag-info">COMPRESS</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Compress — replaces .log with .log.gz</span>
+<span class="kw">gzip</span> <span class="str">/var/log/<span class="ph">somelogname</span>.log</span>
+
+<span class="cmd-section">Read without decompressing</span>
+<span class="kw">zcat</span> <span class="str">/var/log/<span class="ph">somelogname</span>.log.gz</span>
+
+<span class="cmd-section">Decompress — removes the .gz</span>
+<span class="kw">gunzip</span> <span class="str">/var/log/<span class="ph">somelogname</span>.log.gz</span>
+
+<span class="cmd-section">Decompress — keep both files</span>
+<span class="kw">gzip</span> <span class="flag">-d</span> <span class="flag">-c</span> <span class="str">/var/log/<span class="ph">somelogname</span>.log.gz</span> &gt; <span class="str">/var/log/<span class="ph">somelogname</span>.log</span></div>
+        <p class="note note-info"><strong>Use <code>gzip -9</code></strong> for maximum compression. Best applied to old logs retained for audit — compressed files cannot be appended to or monitored without decompression, so don't compress logs that anything is still writing to.</p>
+      </div>
+    </div>
+
+    <div class="step ph-react">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Clean package cache and old kernels</span>
+        <span class="step-tag tag-action">CLEAR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="cmd-section">Package cache</span>
+<span class="c"># Ubuntu / Debian</span>
+<span class="kw">apt-get</span> clean
+
+<span class="c"># RHEL / Rocky / Alma / OL</span>
+<span class="kw">dnf</span> clean all
+
+<span class="cmd-section">Old kernels — keep at least one backup</span>
+<span class="c"># Ubuntu / Debian</span>
+<span class="kw">apt</span> autoremove <span class="flag">--purge</span>
+
+<span class="c"># RHEL / Rocky / Alma / OL</span>
+<span class="kw">package-cleanup</span> <span class="flag">--oldkernels</span> <span class="flag">--count</span>=1
+
+<span class="cmd-section">Other quick wins</span>
+<span class="c"># Inspect /tmp and clear what's safe to remove</span>
+<span class="kw">ls</span> <span class="flag">-la</span> <span class="str">/tmp</span></div>
+        <p class="note note-caution"><strong>Always keep one backup kernel.</strong> If the running kernel develops a problem after a future update, that backup is what you boot into to recover. <code>--count=1</code> on RHEL family and <code>autoremove --purge</code> on Debian both respect this by default — but verify with <code>uname -r</code> and <code>ls /boot</code> afterwards.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PART 2 ════ -->
+  <div class="phase-label"><span>Part 2</span> Configure logrotate</div>
+  <div class="steps">
+
+    <div class="step ph-rotate open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Create the logrotate config drop-in</span>
+        <span class="step-tag tag-ok">CREATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="c"># Confirm logrotate is present and the daily cron hook is in place</span>
+<span class="kw">which</span> logrotate
+<span class="kw">ls</span> <span class="flag">-la</span> <span class="str">/etc/cron.daily/logrotate</span>
+
+<span class="c"># Drop-in config — picked up automatically by the daily cron hook</span>
+<span class="kw">vi</span> <span class="str">/etc/logrotate.d/<span class="ph">somelogfilename</span></span></div>
+        <p class="note note-info"><strong>No service restart needed.</strong> Files in <code>/etc/logrotate.d/</code> are read every time logrotate runs. The default cron hook fires it daily — for size-driven rotation you can also invoke logrotate from a more frequent cron entry, but for typical log volumes daily is sufficient.</p>
+      </div>
+    </div>
+
+    <div class="step ph-rotate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Config contents — annotated template</span>
+        <span class="step-tag tag-info">TEMPLATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="c"># Author: Your Name // Change Number: CRXXXXXX</span>
+<span class="c"># Service Express 2024</span>
+<span class="c"># -----------------------------------------------------------------------------</span>
+
+<span class="str">/path/to/your/log/file.log</span> {
+    missingok          <span class="c"># Skip rotation if the log file is missing.</span>
+    notifempty         <span class="c"># Don't rotate if the log is empty.</span>
+    weekly             <span class="c"># Cadence: daily / weekly / monthly / yearly.</span>
+    rotate <span class="ph">4</span>           <span class="c"># Keep the last 4 archives, delete older.</span>
+    compress           <span class="c"># Compress rotated archives to save space.</span>
+    create <span class="ph">0644</span> root root  <span class="c"># Create new log file post-rotation.</span>
+    <span class="c"># size 100M        # Rotate on size rather than schedule (commented).</span>
+    maxsize <span class="ph">100M</span>       <span class="c"># Force rotation if log hits this size before schedule.</span>
+    postrotate
+        &gt; <span class="str">/path/to/your/log/file.log</span>  <span class="c"># Truncate after rotation.</span>
+    endscript
+}</div>
+        <p class="note note-caution"><strong>Replace <code>/path/to/your/log/file.log</code></strong> with the real log path before saving. The truncate (<code>&gt; /path...</code>) inside <code>postrotate</code> is only needed when the writing process holds the file open and won't reopen on rotation — for most well-behaved daemons, <code>create</code> on its own is sufficient. Use <code>copytruncate</code> instead of <code>create</code>+<code>postrotate</code> when in doubt.</p>
+      </div>
+    </div>
+
+    <div class="step ph-rotate">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Validate, then force a real run</span>
+        <span class="step-tag tag-ok">VERIFY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="cmd-section">Dry run — checks syntax and reports what would happen</span>
+<span class="kw">sudo</span> logrotate <span class="flag">-d</span> <span class="str">/etc/logrotate.d/<span class="ph">somelogfilename</span></span>
+
+<span class="cmd-section">Force a real run</span>
+<span class="kw">sudo</span> logrotate <span class="flag">-f</span> <span class="str">/etc/logrotate.d/<span class="ph">somelogfilename</span></span>
+
+<span class="cmd-section">Verify</span>
+<span class="c"># Confirm rotated archives appeared</span>
+<span class="kw">ls</span> <span class="flag">-la</span> <span class="str">/var/log/<span class="ph">somelogname</span>*</span>
+
+<span class="c"># Confirm the state file recorded the rotation</span>
+<span class="kw">grep</span> <span class="ph">somelogname</span> <span class="str">/var/lib/logrotate/logrotate.status</span></div>
+        <p class="note note-ok"><strong>Always dry-run first.</strong> <code>-d</code> shows the actions logrotate <em>would</em> take without making changes — read the output before forcing. <code>-f</code> bypasses the schedule check, so use it only after the dry run looks correct.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li><strong>Truncate, don't <code>rm</code>, on open logs.</strong> A removed file held open by a daemon does not free space until the daemon closes the handle — typically a restart. <code>truncate -s 0</code> frees space immediately and preserves the inode.</li>
+      <li><strong>Always close Part 1 with Part 2.</strong> Reactive cleanup buys time; logrotate prevents recurrence. Don't leave the loop open.</li>
+      <li><strong><code>copytruncate</code> vs <code>create</code>.</strong> Use <code>create</code> for daemons that reopen log handles on rotation (most syslog implementations, journald-shipped logs). Use <code>copytruncate</code> for application scripts that append with <code>&gt;&gt;</code> and never reopen.</li>
+      <li><strong><code>delaycompress</code> avoids gzipping a file in flight.</strong> Skips compression on the most recent rotation. Worth adding to any policy where the writing process may briefly continue writing post-rotation.</li>
+      <li><strong>Always dry-run before forcing.</strong> <code>logrotate -d</code> is harmless; <code>logrotate -f</code> rotates regardless of schedule. Read the dry-run output first, every time.</li>
+      <li><strong>Keep at least one backup kernel</strong> when running <code>package-cleanup --oldkernels</code> or <code>apt autoremove --purge</code>. The default <code>--count=1</code> respects this — confirm with <code>ls /boot</code> after.</li>
+      <li><strong>If <code>df</code> shows full but <code>du</code> doesn't account for it</strong>, look for deleted-but-open files: <code>lsof | grep deleted</code>. Restarting the holder reclaims the space.</li>
+      <li><strong>Don't compress active logs.</strong> Gzipped files cannot be appended to or tailed without decompression. Compression is for retention, not in-flight rotation.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>Linux · Log management · Reactive + preventative</span>
+  <span>truncate / gzip / logrotate</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>

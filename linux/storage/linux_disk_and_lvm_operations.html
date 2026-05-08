@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux Disk &amp; LVM Operations — Extend / Recover Workflows</title>
+<meta name="description" content="LVM workflows on Linux — scanning new disks, extending rootvg, importing and recovering existing LVM disks, and resizing per-filesystem.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.3);
+    background: rgba(88,201,232,.06);
+  }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* meta */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell { background: var(--surface); padding: 14px 18px; }
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .meta-val { font-size: 13px; color: var(--text-hi); font-weight: 600; }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.warn { color: var(--amber); }
+
+  /* concept primer (FS matrix) */
+  .primer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 6px 6px 0;
+    margin: 32px 0 12px;
+    overflow: hidden;
+    animation: fadeUp .4s .1s ease both;
+    opacity: 0;
+  }
+
+  .primer-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    padding: 10px 18px;
+    background: rgba(88,201,232,.04);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .primer-header span {
+    background: rgba(88,201,232,.12);
+    color: var(--cyan);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  .primer-body { padding: 18px 20px; }
+  .primer-body p {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+  .primer-body p:last-child { margin-bottom: 0; }
+  .primer-body code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+  .primer-body strong { color: var(--text-hi); font-weight: 600; }
+
+  .primer-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 4px;
+    font-size: 12.5px;
+  }
+  .primer-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 12px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+  .primer-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-size: 12.5px;
+  }
+  .primer-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+  .primer-table td code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+  .primer-table tr:last-child td { border-bottom: none; }
+
+  /* phase divider */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* steps */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  .step.ph-common  { border-left-color: var(--cyan); }
+  .step.ph-extend  { border-left-color: var(--green); }
+  .step.ph-recover { border-left-color: var(--purple); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+  .step:nth-child(7)  { animation-delay: .28s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);   border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green);  border: 1px solid rgba(57,211,83,.25); }
+  .tag-action   { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber);  border: 1px solid rgba(240,163,10,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body { display: none; padding: 16px; }
+  .step.open .step-body { display: block; }
+
+  /* code blocks */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd + .cmd { margin-top: 10px; }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child { border-top: none; margin-top: -4px; }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* notes */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-info strong    { color: var(--cyan); }
+  .note.note-caution strong { color: var(--amber); }
+  .note.note-critical strong{ color: var(--red); }
+
+  /* warn box */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>Linux Disk &amp; LVM Operations</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">STORAGE</span>
+    <span class="badge">LVM</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val">Extend &amp; Recover</div></div>
+    <div class="meta-cell"><div class="meta-label">Workflow A</div><div class="meta-val ok">Extend rootvg</div></div>
+    <div class="meta-cell"><div class="meta-label">Workflow B</div><div class="meta-val info">Recover foreign disk</div></div>
+    <div class="meta-cell"><div class="meta-label">Filesystems</div><div class="meta-val">XFS / ext4 / reiserfs</div></div>
+    <div class="meta-cell"><div class="meta-label">Reboot</div><div class="meta-val ok">Not required</div></div>
+    <div class="meta-cell"><div class="meta-label">Platform</div><div class="meta-val">vSphere VM</div></div>
+  </div>
+
+  <!-- ════ FILESYSTEM PRIMER ════ -->
+  <div class="primer">
+    <div class="primer-header">
+      <span>Reference</span>
+      Filesystem command matrix
+    </div>
+    <div class="primer-body">
+      <p>Both workflows below need filesystem-aware commands at the resize/repair stage. Pick the row matching the LV's filesystem — confirm with <code>blkid</code> or <code>findmnt</code> if unsure.</p>
+      <table class="primer-table">
+        <tr>
+          <th>Filesystem</th>
+          <th>Typical distro</th>
+          <th>Grow</th>
+          <th>Repair</th>
+          <th>UUID regen</th>
+        </tr>
+        <tr>
+          <td>XFS</td>
+          <td>RHEL / Rocky / Alma / OL</td>
+          <td><code>xfs_growfs &lt;mp&gt;</code></td>
+          <td><code>xfs_repair -L</code></td>
+          <td><code>xfs_admin -U generate</code></td>
+        </tr>
+        <tr>
+          <td>ext4</td>
+          <td>Debian / Ubuntu</td>
+          <td><code>resize2fs &lt;dev&gt;</code></td>
+          <td><code>e2fsck -y</code></td>
+          <td><code>tune2fs -U random</code></td>
+        </tr>
+        <tr>
+          <td>reiserfs</td>
+          <td>SLES (legacy)</td>
+          <td><code>resize_reiserfs &lt;dev&gt;</code></td>
+          <td>(see SUSE docs)</td>
+          <td>(see SUSE docs)</td>
+        </tr>
+      </table>
+      <p><strong>XFS quirk:</strong> <code>xfs_growfs</code> takes a <em>mountpoint</em>, not a device — the FS must be mounted to grow it. <code>resize2fs</code> takes either, and works mounted or unmounted.</p>
+    </div>
+  </div>
+
+  <!-- ════ COMMON ════ -->
+  <div class="phase-label"><span>Common</span> Scan for the new disk</div>
+  <div class="steps">
+
+    <div class="step ph-common open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Trigger SCSI rescan and identify the new device</span>
+        <span class="step-tag tag-info">DISCOVER</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="cmd-section">Quick rescan</span>
+<span class="c"># Tells the kernel to re-enumerate every SCSI host adapter</span>
+<span class="kw">echo</span> <span class="str">"- - -"</span> | <span class="kw">sudo</span> <span class="kw">tee</span> <span class="str">/sys/class/scsi_host/host*/scan</span>
+<span class="kw">lsblk</span>
+
+<span class="cmd-section">Verbose rescan — list /dev/sd* in one pass</span>
+<span class="kw">for</span> host <span class="kw">in</span> <span class="str">/sys/class/scsi_host/*</span>; <span class="kw">do</span>
+  <span class="kw">echo</span> <span class="str">"- - -"</span> | <span class="kw">sudo</span> <span class="kw">tee</span> $host/scan
+  <span class="kw">ls</span> <span class="str">/dev/sd*</span>
+<span class="kw">done</span></div>
+        <p class="note note-info"><strong>The new disk</strong> appears at the bottom of <code>lsblk</code> with no partition or mount entries. Examples below assume <code>/dev/sdf</code> (extend) or <code>/dev/sdb</code> (recovery) — substitute the actual device returned by your rescan before running anything destructive.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ WORKFLOW A — EXTEND ════ -->
+  <div class="phase-label"><span>Workflow A</span> Extend rootvg with a new disk</div>
+  <div class="steps">
+
+    <div class="step ph-extend open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Add the new disk to the volume group</span>
+        <span class="step-tag tag-ok">EXTEND</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># Initialise the new disk as an LVM physical volume</span>
+<span class="kw">pvcreate</span> <span class="str">/dev/<span class="ph">sdf</span></span>
+
+<span class="c"># Confirm the existing volume group name</span>
+<span class="kw">vgs</span>
+
+<span class="c"># Example output:</span>
+<span class="c">#   VG  #PV #LV #SN Attr   VSize   VFree</span>
+<span class="c">#   vg   3   1   0 wz--n- 233.51g &lt;34.00g</span>
+
+<span class="c"># Extend the VG with the new PV</span>
+<span class="kw">vgextend</span> <span class="ph">vg</span> <span class="str">/dev/<span class="ph">sdf</span></span></div>
+        <p class="note"><strong>Note:</strong> the VG name in the example above is <code>vg</code> — your real name will differ (commonly <code>rootvg</code>, <code>system</code>, or distro-specific). Always read the actual name from <code>vgs</code> before running <code>vgextend</code>.</p>
+      </div>
+    </div>
+
+    <div class="step ph-extend">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Extend the logical volume and grow the filesystem</span>
+        <span class="step-tag tag-ok">RESIZE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="cmd-section">EXT4 — Debian / Ubuntu</span>
+<span class="kw">lvextend</span> <span class="flag">-l</span> <span class="ph">+100%FREE</span> <span class="str">/dev/mapper/vg-root</span>
+<span class="kw">resize2fs</span> <span class="str">/dev/mapper/vg-root</span>
+
+<span class="cmd-section">XFS — RHEL / Rocky / Alma / OL</span>
+<span class="kw">lvextend</span> <span class="flag">-l</span> <span class="ph">+100%FREE</span> <span class="str">/dev/mapper/vg-root</span>
+<span class="kw">xfs_growfs</span> <span class="str">/dev/mapper/vg-root</span>
+
+<span class="cmd-section">reiserfs — SLES</span>
+<span class="kw">lvextend</span> <span class="flag">-l</span> <span class="ph">+100%FREE</span> <span class="str">/dev/mapper/vg-root</span>
+<span class="kw">resize_reiserfs</span> <span class="str">/dev/mapper/vg-root</span></div>
+        <p class="note note-info"><strong><code>+100%FREE</code></strong> consumes everything available in the VG. To grow by a fixed amount, use <code>lvextend -L +20G</code> (absolute growth) instead. Always include the <code>+</code> sign — bare <code>-L 20G</code> sets the absolute size and will <em>shrink</em> a larger LV.</p>
+      </div>
+    </div>
+
+    <div class="step ph-extend">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Verify</span>
+        <span class="step-tag tag-info">VERIFY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="c"># Block-level view — new size should be reflected on the LV</span>
+<span class="kw">lsblk</span>
+
+<span class="c"># PV-level view — new disk visible, allocated to the VG</span>
+<span class="kw">pvs</span>
+
+<span class="c"># Filesystem-level view — used / available figures should reflect the new size</span>
+<span class="kw">df</span> <span class="flag">-h</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ WORKFLOW B — RECOVERY ════ -->
+  <div class="phase-label"><span>Workflow B</span> Attach &amp; recover an existing LVM disk</div>
+  <div class="steps">
+
+    <div class="step ph-recover open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Import the foreign VG under a fresh name</span>
+        <span class="step-tag tag-action">IMPORT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># Use vgimportclone — assigns a new VG name and renames PVs accordingly.</span>
+<span class="c"># The filter clause stops LVM picking up the host's own PVs during import.</span>
+<span class="kw">vgimportclone</span> <span class="flag">--basevgname</span> <span class="ph">newvg2</span> \
+  <span class="flag">--config</span> <span class="str">'devices { filter = [ "a|/dev/<span class="ph">sdb</span>|", "r|.*|" ] }'</span> \
+  <span class="str">/dev/<span class="ph">sdb2</span></span> <span class="str">/dev/<span class="ph">sdb3</span></span></div>
+        <p class="note note-caution"><strong>Why <code>vgimportclone</code> and not <code>vgchange -ay</code> directly:</strong> the recovered disk almost certainly carries the same VG name and UUIDs as another active VG (often <code>rootvg</code>). Activating it as-is risks LVM picking the wrong PVs at boot. <code>vgimportclone</code> renames the VG and rewrites the PV UUIDs in one atomic step, eliminating the collision.</p>
+      </div>
+    </div>
+
+    <div class="step ph-recover">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Activate the imported VG and rename the LV</span>
+        <span class="step-tag tag-action">ACTIVATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="c"># Activate the renamed VG</span>
+<span class="kw">vgchange</span> <span class="flag">-ay</span> <span class="ph">newvg2</span>
+
+<span class="c"># Rename the imported root LV to something descriptive</span>
+<span class="kw">lvrename</span> <span class="str">/dev/<span class="ph">newvg2</span>/root</span> <span class="str">/dev/<span class="ph">newvg2</span>/<span class="ph">recovroot</span></span>
+
+<span class="c"># Sanity-check VG and LV state before proceeding</span>
+<span class="kw">vgs</span>
+<span class="kw">lvs</span></div>
+        <p class="note"><strong>Naming:</strong> <code>newvg2</code> and <code>recovroot</code> are placeholders. Use anything that does not conflict with existing names on the host. Both become part of the device-mapper path: <code>/dev/mapper/newvg2-recovroot</code>.</p>
+      </div>
+    </div>
+
+    <div class="step ph-recover">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Repair the filesystem and regenerate its UUID</span>
+        <span class="step-tag tag-caution">REPAIR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="cmd-section">XFS — RHEL / CentOS / Alma / Rocky / OL</span>
+<span class="kw">xfs_repair</span> <span class="flag">-L</span> <span class="str">/dev/mapper/<span class="ph">newvg2</span>-<span class="ph">recovroot</span></span>
+<span class="kw">xfs_admin</span> <span class="flag">-U</span> generate <span class="str">/dev/mapper/<span class="ph">newvg2</span>-<span class="ph">recovroot</span></span>
+
+<span class="cmd-section">ext4 — Debian / Ubuntu</span>
+<span class="kw">e2fsck</span> <span class="flag">-y</span> <span class="str">/dev/mapper/<span class="ph">newvg2</span>-<span class="ph">recovroot</span></span>
+<span class="kw">tune2fs</span> <span class="flag">-U</span> random <span class="str">/dev/mapper/<span class="ph">newvg2</span>-<span class="ph">recovroot</span></span></div>
+        <p class="note note-critical"><strong><code>xfs_repair -L</code> zeroes the log.</strong> Any in-flight transactions on the recovered FS are discarded. Acceptable for a recovery scenario where the source system is gone, but never run on a healthy mounted filesystem.</p>
+        <p class="note note-caution"><strong>UUID regen is not optional.</strong> If the recovered FS shares a UUID with the host's own root, mounts, <code>/etc/fstab</code> entries, and initramfs lookups all become ambiguous — this is the single most common cause of "host boots into the wrong root" after a recovery.</p>
+      </div>
+    </div>
+
+    <div class="step ph-recover">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Mount and verify</span>
+        <span class="step-tag tag-info">VERIFY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="c"># Create a temporary mount point</span>
+<span class="kw">mkdir</span> <span class="flag">-p</span> <span class="str">/mnt/tmp</span>
+
+<span class="c"># Mount the recovered LV</span>
+<span class="kw">mount</span> <span class="str">/dev/<span class="ph">newvg2</span>/<span class="ph">recovroot</span></span> <span class="str">/mnt/tmp</span>
+
+<span class="c"># Confirm it is mounted and accessible</span>
+<span class="kw">df</span> <span class="flag">-h</span>
+<span class="kw">ls</span> <span class="str">/mnt/tmp</span></div>
+        <p class="note note-info"><strong>Recovery is now complete.</strong> The original filesystem tree is browseable under <code>/mnt/tmp</code>. Once you've extracted what you need, <code>umount /mnt/tmp</code> and detach the disk from the VM in vSphere.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li><strong>Always re-read disk identity from <code>lsblk</code>.</strong> The <code>/dev/sdX</code> letter assigned to a freshly-attached disk is order-of-discovery — what was <code>sdb</code> on the source system may be <code>sdf</code> on the recovery host.</li>
+      <li><strong><code>+100%FREE</code> vs <code>-L 20G</code>.</strong> The first consumes all VG free space. The second <em>sets</em> absolute size if you forget the leading <code>+</code> — and will shrink an existing LV without warning.</li>
+      <li><strong>XFS cannot shrink.</strong> Once <code>xfs_growfs</code> has expanded a filesystem there is no supported way to make it smaller. Plan growth deliberately.</li>
+      <li><strong><code>vgimportclone</code> is the safe path for recovery.</strong> Activating a foreign VG by hand risks colliding with the host's own VG names and UUIDs. The clone tool exists exactly to handle this.</li>
+      <li><strong>UUID regen is mandatory after recovery.</strong> Skip it and the next reboot may pick the recovered FS as root. Run <code>xfs_admin -U generate</code> or <code>tune2fs -U random</code> before mounting.</li>
+      <li><strong><code>xfs_repair -L</code> destroys the log.</strong> Acceptable for recovery, never on a healthy production FS — fix mount issues first, log replay only as last resort.</li>
+      <li><strong>If <code>lsblk</code> doesn't show the new disk</strong> after <code>echo "- - -"</code>, the SCSI host enumeration may need a reboot — but check virt-layer hot-add is enabled first; rebooting a VM you're trying to recover into is a bad order of operations.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>Linux · LVM · vSphere</span>
+  <span>pvcreate / vgextend / lvextend / vgimportclone</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>
