@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux Networking — Interfaces, Routes, NetworkManager, firewalld</title>
+<meta name="description" content="Reference for everyday Linux network admin on RHEL 8/9 (and derivatives) using NetworkManager + firewalld. Covers identifying NICs, assigning addresses, creating connections, persistent routes, DNS, and host-firewall rules.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.4);
+    background: rgba(88,201,232,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-ref       { border-left-color: var(--cyan); }
+  .step.ph-create    { border-left-color: var(--green); }
+  .step.ph-remove    { border-left-color: var(--red); }
+  .step.ph-group-add { border-left-color: var(--green); }
+  .step.ph-group-mod { border-left-color: var(--purple); }
+  .step.ph-group-rm  { border-left-color: var(--red); }
+
+  .step.ph-identify      { border-left-color: var(--cyan); }
+  .step.ph-fundamentals  { border-left-color: var(--cyan); }
+  .step.ph-config-dhcp   { border-left-color: var(--green); }
+  .step.ph-config-static { border-left-color: var(--green); }
+  .step.ph-modify        { border-left-color: var(--purple); }
+  .step.ph-nmtui         { border-left-color: var(--cyan); }
+  .step.ph-routes        { border-left-color: var(--purple); }
+  .step.ph-dns           { border-left-color: var(--cyan); }
+  .step.ph-bonding       { border-left-color: var(--purple); }
+  .step.ph-vlan          { border-left-color: var(--purple); }
+  .step.ph-fw-state      { border-left-color: var(--amber); }
+  .step.ph-fw-add        { border-left-color: var(--amber); }
+  .step.ph-fw-rich       { border-left-color: var(--amber); }
+  .step.ph-fw-remove     { border-left-color: var(--red); }
+  .step.ph-verify        { border-left-color: var(--cyan); }
+  .step.ph-fail          { border-left-color: var(--red); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+  .step:nth-child(7)  { animation-delay: .28s; }
+  .step:nth-child(8)  { animation-delay: .32s; }
+  .step:nth-child(9)  { animation-delay: .36s; }
+  .step:nth-child(10) { animation-delay: .40s; }
+  .step:nth-child(11) { animation-delay: .44s; }
+  .step:nth-child(12) { animation-delay: .48s; }
+  .step:nth-child(13) { animation-delay: .52s; }
+  .step:nth-child(14) { animation-delay: .56s; }
+  .step:nth-child(15) { animation-delay: .60s; }
+  .step:nth-child(16) { animation-delay: .64s; }
+  .step:nth-child(17) { animation-delay: .68s; }
+  .step:nth-child(18) { animation-delay: .72s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── flag reference table ── */
+  .flag-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .flag-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .flag-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .flag-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--purple);
+    white-space: nowrap;
+    width: 60px;
+  }
+
+  .flag-table td:nth-child(2) {
+    font-size: 12.5px;
+    color: var(--text);
+  }
+
+  .flag-table tr:last-child td { border-bottom: none; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* ── summary table ── */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-top: 0;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .summary-table td:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── collapse controls ── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    justify-content: flex-end;
+  }
+
+  .ctrl-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    color: var(--text-dim);
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+
+  .ctrl-btn:hover { background: var(--border-hi); color: var(--text-hi); }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot" style="color:var(--cyan)"></div>
+  <h1>Linux Networking — Interfaces, Routes, NetworkManager, firewalld</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">REFERENCE</span>
+    <span class="badge">RHEL 8 / 9</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val info">Network admin (interfaces, routes, firewall)</div></div>
+    <div class="meta-cell"><div class="meta-label">Privilege</div><div class="meta-val warn">root / sudo</div></div>
+    <div class="meta-cell"><div class="meta-label">NIC Manager</div><div class="meta-val">NetworkManager</div></div>
+    <div class="meta-cell"><div class="meta-label">Primary Tools</div><div class="meta-val">nmcli · nmtui · ip · firewall-cmd</div></div>
+    <div class="meta-cell"><div class="meta-label">Firewall</div><div class="meta-val">firewalld (nftables)</div></div>
+    <div class="meta-cell"><div class="meta-label">Distro</div><div class="meta-val ok">RHEL 8 / 9 + derivatives</div></div>
+  </div>
+
+  <p class="note note-info" style="margin-top:0; margin-bottom:24px;">Reference for everyday Linux network administration on RHEL 8/9 (and derivatives) using <strong>NetworkManager</strong> + <strong>firewalld</strong>. Covers identifying NICs, assigning addresses, creating new connections, persistent routes, DNS, and host-firewall rules. On RHEL 9 the legacy <code>network-scripts</code> package is gone — do <em>not</em> hand-edit <code>ifcfg-*</code> files while NetworkManager is running; everything below treats NetworkManager as the source of truth.</p>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Identify</span> What you have</div>
+  <div class="steps">
+    <div class="step ph-identify open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Inventory NICs, addresses, drivers, link state</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># Link-layer view: NIC names, MAC, link state</span>
+<span class="kw">ip</span> <span class="flag">link</span>
+
+<span class="c"># All addresses on all interfaces</span>
+<span class="kw">ip</span> <span class="flag">-br addr</span>
+
+<span class="c"># NetworkManager view (the source of truth on modern RHEL)</span>
+<span class="kw">nmcli</span> <span class="flag">device status</span>
+<span class="kw">nmcli</span> <span class="flag">connection show</span>
+
+<span class="c"># PCI / hardware mapping</span>
+<span class="kw">lspci</span> | <span class="kw">grep</span> <span class="flag">-i</span> <span class="str">ether</span>
+<span class="kw">lshw</span> <span class="flag">-class</span> <span class="str">network</span> <span class="flag">-short</span>
+
+<span class="c"># Driver / firmware</span>
+<span class="kw">ethtool</span> <span class="flag">-i</span> <span class="str">eth0</span>
+<span class="kw">ethtool</span> <span class="str">eth0</span>          <span class="c"># link speed / duplex</span></div>
+        <p class="note">Naming on RHEL 8/9 follows the predictable scheme — <code>ens192</code>, <code>eno1</code>, <code>enp0s3</code> — substitute your actual interface name everywhere below. <code>nmcli device status</code> and <code>nmcli connection show</code> are the two commands you'll keep open in another pane while making changes.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>NetworkManager</span> Fundamentals</div>
+  <div class="steps">
+    <div class="step ph-fundamentals">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Devices vs connections, where profiles live, three edit modes</span>
+        <span class="step-tag tag-info">CONCEPT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-info" style="margin-top:0;">NetworkManager separates two concepts: a <strong>device</strong> is the physical or virtual NIC (<code>eth0</code>, <code>ens192</code>, <code>bond0</code>); a <strong>connection</strong> is a saved profile that, when "up", configures a device. A device can have many saved connections — only one is active at a time. Profiles live in <code>/etc/NetworkManager/system-connections/*.nmconnection</code>.</p>
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="kw">systemctl</span> <span class="flag">status</span> <span class="str">NetworkManager</span>
+<span class="kw">nmcli</span> <span class="flag">general status</span>
+
+<span class="c"># List connections (saved profiles) and devices (hardware)</span>
+<span class="kw">nmcli</span> <span class="flag">connection show</span>
+<span class="kw">nmcli</span> <span class="flag">device status</span>
+
+<span class="c"># Profiles on disk</span>
+<span class="kw">ls</span> <span class="flag">-l</span> /etc/NetworkManager/system-connections/</div>
+        <p class="note">Three ways to edit a connection: (1) <code>nmcli</code> — scriptable, idempotent, what you use 90% of the time; (2) <code>nmtui</code> — curses TUI, good for one-off changes on a console; (3) edit the <code>.nmconnection</code> file directly, then <code>nmcli connection reload</code>.</p>
+        <p class="note note-caution"><strong>Do not mix NetworkManager with manual <code>ifcfg-*</code> edits on RHEL 9.</strong> The legacy <code>network-scripts</code> package is gone in RHEL 9 — there is no fall-back parser. Treat the <code>.nmconnection</code> profile as the only on-disk truth.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Configure</span> DHCP interface</div>
+  <div class="steps">
+    <div class="step ph-config-dhcp open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Add a new ethernet connection on DHCP</span>
+        <span class="step-tag tag-ok">CREATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># Simplest case — new NIC plugged in, want it on DHCP</span>
+<span class="kw">nmcli</span> <span class="flag">connection add</span> \
+    type <span class="str">ethernet</span> \
+    con-name <span class="str">eth1</span> \
+    ifname <span class="str">eth1</span> \
+    ipv4.method <span class="str">auto</span> \
+    ipv6.method <span class="str">auto</span> \
+    autoconnect <span class="str">yes</span>
+
+<span class="kw">nmcli</span> <span class="flag">connection up</span> <span class="str">eth1</span>
+
+<span class="c"># Verify</span>
+<span class="kw">ip</span> <span class="flag">-br addr show</span> <span class="str">eth1</span>
+<span class="kw">nmcli</span> <span class="flag">-p connection show</span> <span class="str">eth1</span> | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">"ipv4|state"</span></div>
+        <p class="note">A new ethernet connection with DHCP gets you a working interface in three moves: <em>add</em>, <em>up</em>, <em>verify</em>. <code>autoconnect yes</code> means the connection will come up automatically on boot whenever the underlying device is present.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Configure</span> Static IPv4</div>
+  <div class="steps">
+    <div class="step ph-config-static">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Add a static IPv4 connection (address, gateway, DNS)</span>
+        <span class="step-tag tag-ok">CREATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="kw">nmcli</span> <span class="flag">connection add</span> \
+    type <span class="str">ethernet</span> \
+    con-name <span class="str">ens224</span> \
+    ifname <span class="str">ens224</span> \
+    ipv4.method <span class="str">manual</span> \
+    ipv4.addresses <span class="str">10.20.30.40/24</span> \
+    ipv4.gateway <span class="str">10.20.30.1</span> \
+    ipv4.dns <span class="str">"10.20.30.5 10.20.30.6"</span> \
+    ipv4.dns-search <span class="str">"corp.example.com"</span> \
+    ipv6.method <span class="str">disabled</span> \
+    autoconnect <span class="str">yes</span>
+
+<span class="kw">nmcli</span> <span class="flag">connection up</span> <span class="str">ens224</span></div>
+        <p class="note"><code>ipv4.addresses</code> accepts a comma-separated list to assign multiple IPs to one interface — useful for service migrations and floating addresses.</p>
+        <p class="note note-caution"><strong>Only one connection per default-route table should set <code>ipv4.gateway</code></strong> — usually the management NIC. Two connections each declaring a default gateway will produce two <code>default via</code> routes and unstable egress (see <em>Common failures</em>).</p>
+        <p class="note">Set <code>ipv6.method disabled</code> if your shop is IPv4-only; otherwise leave defaults so SLAAC / DHCPv6 still work.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Modify</span> Change addresses, DNS, etc.</div>
+  <div class="steps">
+    <div class="step ph-modify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Edit addresses, append/remove with +/-, switch DHCP → static</span>
+        <span class="step-tag tag-caution">MODIFY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># Change IP / gateway / DNS</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.addresses <span class="str">10.0.0.50/24</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.gateway <span class="str">10.0.0.1</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.dns <span class="str">"10.0.0.5"</span>
+
+<span class="c"># Append a second IP</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> +ipv4.addresses <span class="str">10.0.0.51/24</span>
+
+<span class="c"># Remove an IP</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> -ipv4.addresses <span class="str">10.0.0.51/24</span>
+
+<span class="c"># Switch DHCP → static</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.method <span class="str">manual</span>
+
+<span class="c"># Apply changes (re-up the connection)</span>
+<span class="kw">nmcli</span> <span class="flag">connection down</span> <span class="str">ens192</span> &amp;&amp; <span class="kw">nmcli</span> <span class="flag">connection up</span> <span class="str">ens192</span></div>
+        <p class="note">Changes are written to <code>/etc/NetworkManager/system-connections/&lt;name&gt;.nmconnection</code> immediately — the <code>up</code>/<code>down</code> cycle is what makes the kernel reflect them. Use the <code>+</code> / <code>-</code> prefix to append or remove individual entries from list-typed properties (addresses, routes, DNS).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Tooling</span> nmtui</div>
+  <div class="steps">
+    <div class="step ph-nmtui">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Console-only TUI for editing connections and hostname</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="kw">nmtui</span></div>
+        <p class="note"><strong>Edit a connection</strong> → pick connection → tab to fields → fill IPv4 / IPv6 / Routes → OK. <strong>Activate a connection</strong> → toggles up/down. <strong>Set system hostname</strong> → updates <code>/etc/hostname</code> and notifies <code>systemd-hostnamed</code>.</p>
+        <p class="note">nmtui writes the same <code>.nmconnection</code> files as nmcli — safe to alternate between the two. Useful when you're at a serial console and don't want to type out a full <code>nmcli</code> incantation.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Routing</span> Persistent routes</div>
+  <div class="steps">
+    <div class="step ph-routes">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Add a single static route to a connection</span>
+        <span class="step-tag tag-ok">ADD</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="c"># Route 192.168.50.0/24 via 10.0.0.254, attached to ens192</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> +ipv4.routes <span class="str">"192.168.50.0/24 10.0.0.254"</span>
+
+<span class="c"># Reload to apply</span>
+<span class="kw">nmcli</span> <span class="flag">connection up</span> <span class="str">ens192</span>
+
+<span class="c"># Verify</span>
+<span class="kw">ip</span> <span class="flag">route</span>
+<span class="kw">ip</span> <span class="flag">route show</span> <span class="str">192.168.50.0/24</span></div>
+        <p class="note">A single <code>+ipv4.routes</code> entry is the cleanest way to attach a persistent next-hop to one connection. The route is bound to the connection profile — when the connection comes up, the kernel installs the route; when it goes down, the route disappears. This is exactly the persistence you want.</p>
+      </div>
+    </div>
+
+    <div class="step ph-routes">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Multiple routes, metric, table, delete — and what's on disk</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="c"># Route with explicit metric</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> +ipv4.routes <span class="str">"192.168.50.0/24 10.0.0.254 100"</span>
+<span class="c"># Form: "&lt;dest&gt;/&lt;prefix&gt; &lt;gateway&gt; [&lt;metric&gt;] [table=&lt;id&gt;]"</span>
+
+<span class="c"># Replace the entire route list (no leading +)</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.routes \
+    <span class="str">"192.168.50.0/24 10.0.0.254, 192.168.60.0/24 10.0.0.254, 172.16.0.0/16 10.0.0.253"</span>
+
+<span class="c"># Delete a single route</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> -ipv4.routes <span class="str">"192.168.50.0/24 10.0.0.254"</span>
+
+<span class="cmd-section">On disk — /etc/NetworkManager/system-connections/ens192.nmconnection</span>
+<span class="c">[ipv4]</span>
+<span class="c">method=manual</span>
+<span class="c">addresses1=10.0.0.50/24,10.0.0.1</span>
+<span class="c">routes1=192.168.50.0/24,10.0.0.254</span>
+<span class="c">dns=10.0.0.5;</span></div>
+        <p class="note note-caution"><strong>Bare <code>ipv4.routes</code> replaces the list</strong> — use <code>+ipv4.routes</code> to append and <code>-ipv4.routes</code> to remove a single entry. Forgetting the <code>+</code> when you meant to append will silently drop every other static route on the connection.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 8 ════ -->
+  <div class="phase-label"><span>DNS</span> Resolution</div>
+  <div class="steps">
+    <div class="step ph-dns">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">Per-connection DNS, ignore-auto-dns, verification</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c9"><button class="copy-btn" onclick="copy('c9',this)">COPY</button><span class="c"># Set DNS servers and search domains on a connection</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.dns <span class="str">"10.0.0.5 10.0.0.6"</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.dns-search <span class="str">"corp.example.com lab.example.com"</span>
+
+<span class="c"># Override DNS from this connection only — ignore DHCP-supplied DNS</span>
+<span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.ignore-auto-dns <span class="str">yes</span>
+
+<span class="c"># Re-up to apply</span>
+<span class="kw">nmcli</span> <span class="flag">connection up</span> <span class="str">ens192</span>
+
+<span class="cmd-section">Verify</span>
+<span class="kw">resolvectl</span> <span class="flag">status</span>                   <span class="c"># if systemd-resolved is enabled</span>
+<span class="kw">cat</span> /etc/resolv.conf
+<span class="kw">getent</span> <span class="flag">hosts</span> <span class="str">mail.corp.example.com</span>
+<span class="kw">dig</span> <span class="flag">+short</span> <span class="str">corp.example.com</span></div>
+        <p class="note note-caution"><strong>Do not edit <code>/etc/resolv.conf</code> by hand while NetworkManager is running.</strong> On RHEL it's typically a managed file (or a symlink to a stub maintained by <code>systemd-resolved</code>) — manual edits are clobbered the next time a connection comes up. Set DNS via <code>nmcli</code> on the connection profile instead.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 9 ════ -->
+  <div class="phase-label"><span>Bonding</span> LACP / active-backup</div>
+  <div class="steps">
+    <div class="step ph-bonding">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">10</span>
+        <span class="step-title">Two NICs into bond0 with two enslaved ports</span>
+        <span class="step-tag tag-caution">SWITCH-SIDE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="c"># Create the bond</span>
+<span class="kw">nmcli</span> <span class="flag">connection add</span> type <span class="str">bond</span> \
+    con-name <span class="str">bond0</span> ifname <span class="str">bond0</span> \
+    mode <span class="str">802.3ad</span> miimon <span class="str">100</span> \
+    ipv4.method <span class="str">manual</span> \
+    ipv4.addresses <span class="str">10.0.0.50/24</span> \
+    ipv4.gateway <span class="str">10.0.0.1</span> \
+    ipv4.dns <span class="str">10.0.0.5</span>
+
+<span class="c"># Enslave the two physical NICs</span>
+<span class="kw">nmcli</span> <span class="flag">connection add</span> type <span class="str">ethernet</span> slave-type <span class="str">bond</span> \
+    con-name <span class="str">bond0-port1</span> ifname <span class="str">ens192</span> master <span class="str">bond0</span>
+<span class="kw">nmcli</span> <span class="flag">connection add</span> type <span class="str">ethernet</span> slave-type <span class="str">bond</span> \
+    con-name <span class="str">bond0-port2</span> ifname <span class="str">ens224</span> master <span class="str">bond0</span>
+
+<span class="c"># Bring it up (NM handles slave→master ordering automatically)</span>
+<span class="kw">nmcli</span> <span class="flag">connection up</span> <span class="str">bond0</span>
+
+<span class="cmd-section">Verify</span>
+<span class="kw">cat</span> /proc/net/bonding/bond0
+<span class="kw">ip</span> <span class="flag">-br link</span></div>
+        <p class="note">Common modes: <code>active-backup</code>, <code>802.3ad</code> (LACP), <code>balance-tlb</code>, <code>balance-alb</code>. Match what the switch supports.</p>
+        <p class="note note-caution"><strong>Switch-side configuration must match the bond mode.</strong> Running the bond as <code>802.3ad</code> while the switch port is configured for static aggregation (or vice versa) gives you a bond that "comes up" on the host but never passes traffic — confirm with <code>cat /proc/net/bonding/bond0</code> and look for "Currently Active Slave" / LACP partner state.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 10 ════ -->
+  <div class="phase-label"><span>VLAN</span> Tagging</div>
+  <div class="steps">
+    <div class="step ph-vlan">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">11</span>
+        <span class="step-title">Tag VLAN 200 on ens192 as a child interface</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="kw">nmcli</span> <span class="flag">connection add</span> type <span class="str">vlan</span> \
+    con-name <span class="str">ens192.200</span> \
+    ifname <span class="str">ens192.200</span> \
+    dev <span class="str">ens192</span> \
+    id <span class="str">200</span> \
+    ipv4.method <span class="str">manual</span> \
+    ipv4.addresses <span class="str">10.200.0.10/24</span>
+
+<span class="kw">nmcli</span> <span class="flag">connection up</span> <span class="str">ens192.200</span></div>
+        <p class="note">The trunk side of the switch port must be configured to allow VLAN 200, or the child interface will be up but isolated. The naming convention <code>&lt;parent&gt;.&lt;vlan-id&gt;</code> isn't required, but it's the standard you'll find on every Linux host.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 11 ════ -->
+  <div class="phase-label"><span>firewalld</span> State and zones</div>
+  <div class="steps">
+    <div class="step ph-fw-state open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">12</span>
+        <span class="step-title">Inspect state, default zone, active zones, current rules</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-info" style="margin-top:0;">firewalld is a stateful zone-based wrapper around <strong>nftables</strong> (or iptables on older systems). The default zone on RHEL is <code>public</code>. Each interface lives in exactly one zone; rules are evaluated per-zone.</p>
+        <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="kw">systemctl</span> <span class="flag">status</span> <span class="str">firewalld</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--state</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--get-default-zone</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--get-active-zones</span>
+
+<span class="c"># Rules in the default zone</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--list-all</span>
+
+<span class="c"># Rules in a specific zone</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--zone=</span><span class="str">public</span> <span class="flag">--list-all</span></div>
+        <p class="note">Service definitions live in <code>/usr/lib/firewalld/services/*.xml</code> (defaults, do not edit) and <code>/etc/firewalld/services/*.xml</code> (your overrides). Use <code>firewall-cmd --info-service=&lt;name&gt;</code> to see what a named service expands to.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 12 ════ -->
+  <div class="phase-label"><span>firewalld</span> Open a port / allow a service</div>
+  <div class="steps">
+    <div class="step ph-fw-add">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">13</span>
+        <span class="step-title">Add a port or named service permanently and reload</span>
+        <span class="step-tag tag-ok">ADD</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="c"># Open a port — write to config, then reload to make active</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--permanent --zone=</span><span class="str">public</span> <span class="flag">--add-port=</span><span class="str">8080/tcp</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--reload</span>
+
+<span class="c"># Verify</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--zone=</span><span class="str">public</span> <span class="flag">--list-ports</span>
+
+<span class="cmd-section">Allow a named service</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--permanent --add-service=</span><span class="str">https</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--reload</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--list-services</span>
+
+<span class="c"># What does that service expand to?</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--info-service=</span><span class="str">https</span></div>
+        <p class="note note-caution"><strong>Forgetting <code>--permanent</code> + <code>--reload</code> is the #1 firewalld footgun.</strong> Without <code>--permanent</code> the change is runtime only and disappears on reload or reboot. With <code>--permanent</code> alone the change is on disk but not yet active — you still need <code>--reload</code> for the live ruleset to pick it up. Pair them every time, or use <code>firewall-cmd --runtime-to-permanent</code> after testing live.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 13 ════ -->
+  <div class="phase-label"><span>firewalld</span> Restrict to source / change zone</div>
+  <div class="steps">
+    <div class="step ph-fw-rich">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">14</span>
+        <span class="step-title">Rich rule for source-restriction; move a NIC to a different zone</span>
+        <span class="step-tag tag-caution">RICH RULE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c14"><button class="copy-btn" onclick="copy('c14',this)">COPY</button><span class="c"># Allow SSH only from 10.0.0.0/24</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--permanent --zone=</span><span class="str">public</span> <span class="flag">--add-rich-rule=</span><span class="str">'
+    rule family="ipv4"
+    source address="10.0.0.0/24"
+    port port="22" protocol="tcp"
+    accept'</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--reload</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--list-rich-rules</span>
+
+<span class="cmd-section">Move a NIC to a more-trusted zone</span>
+<span class="c"># Move ens224 from 'public' to 'internal'</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--permanent --zone=</span><span class="str">internal</span> <span class="flag">--change-interface=</span><span class="str">ens224</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--reload</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--get-active-zones</span></div>
+        <p class="note">Rich rules give you the full nftables-flavoured grammar — source/destination address, port + protocol, action, optional logging — without needing to touch nftables directly. Keep them readable; multi-line quoted form is supported and recommended.</p>
+        <p class="note">An interface lives in exactly one zone at a time. <code>--change-interface</code> is the right verb when you want a NIC to be evaluated against a different rule set (e.g. trusted management LAN moves to <code>internal</code>; DMZ-facing NIC stays on <code>public</code>).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 14 ════ -->
+  <div class="phase-label"><span>firewalld</span> Remove rules</div>
+  <div class="steps">
+    <div class="step ph-fw-remove">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">15</span>
+        <span class="step-title">Remove a port / service, save runtime ruleset to permanent</span>
+        <span class="step-tag tag-critical">REMOVE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c15"><button class="copy-btn" onclick="copy('c15',this)">COPY</button><span class="c"># Remove a port</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--permanent --zone=</span><span class="str">public</span> <span class="flag">--remove-port=</span><span class="str">8080/tcp</span>
+
+<span class="c"># Remove a named service</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--permanent --remove-service=</span><span class="str">cockpit</span>
+
+<span class="c"># Apply</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--reload</span>
+
+<span class="cmd-section">Save what you tested live to permanent</span>
+<span class="c"># If you've been adding rules WITHOUT --permanent and want to keep them</span>
+<span class="kw">firewall-cmd</span> <span class="flag">--runtime-to-permanent</span></div>
+        <p class="note note-critical"><strong>Removing a service can lock you out of an in-flight session.</strong> Always confirm you have an alternate route in (console, OOB, secondary NIC in a different zone) before <code>--remove-service=ssh</code> or <code>--remove-port=22/tcp</code> on the management interface.</p>
+        <p class="note"><code>--runtime-to-permanent</code> snapshots the live ruleset to disk — handy when iterating without <code>--permanent</code>, then committing once you're happy.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 15 ════ -->
+  <div class="phase-label"><span>Verification</span> Toolkit</div>
+  <div class="steps">
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">16</span>
+        <span class="step-title">Addresses, routes, ARP, reachability, path, sockets, DNS, NM log</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c16"><button class="copy-btn" onclick="copy('c16',this)">COPY</button><span class="cmd-section">Addresses + routes</span>
+<span class="kw">ip</span> <span class="flag">-br addr</span>
+<span class="kw">ip</span> <span class="flag">-br link</span>
+<span class="kw">ip</span> <span class="flag">route</span>
+<span class="kw">ip</span> <span class="flag">-6 route</span>
+
+<span class="cmd-section">ARP / neighbor table</span>
+<span class="kw">ip</span> <span class="flag">neigh</span>
+
+<span class="cmd-section">Reachability</span>
+<span class="kw">ping</span> <span class="flag">-c</span> <span class="str">3</span> <span class="str">10.0.0.1</span>
+<span class="kw">ping</span> <span class="flag">-c</span> <span class="str">3</span> <span class="str">8.8.8.8</span>
+
+<span class="cmd-section">Path</span>
+<span class="kw">tracepath</span> <span class="str">8.8.8.8</span>
+<span class="kw">mtr</span> <span class="flag">-rwc</span> <span class="str">20</span> <span class="str">8.8.8.8</span>
+
+<span class="cmd-section">Listening sockets</span>
+<span class="kw">ss</span> <span class="flag">-tlnp</span>
+<span class="kw">ss</span> <span class="flag">-tunp</span>
+
+<span class="cmd-section">DNS</span>
+<span class="kw">resolvectl</span> <span class="flag">status</span>
+<span class="kw">dig</span> <span class="flag">+short</span> <span class="str">corp.example.com</span>
+<span class="kw">getent</span> <span class="flag">hosts</span> <span class="str">host.corp.example.com</span>
+
+<span class="cmd-section">NetworkManager event log</span>
+<span class="kw">journalctl</span> <span class="flag">-u</span> <span class="str">NetworkManager</span> <span class="flag">--since</span> <span class="str">"10 min ago"</span></div>
+        <p class="note">Work top-to-bottom when something is broken: confirm the address is on the interface, confirm a route exists toward the destination, confirm the host is reachable, confirm the path looks sensible, confirm the service is listening, confirm DNS resolves. Skipping a layer wastes time.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 16 ════ -->
+  <div class="phase-label"><span>Failures</span> Common patterns</div>
+  <div class="steps">
+    <div class="step ph-fail">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">17</span>
+        <span class="step-title">Symptom → first check → likely cause</span>
+        <span class="step-tag tag-critical">TROUBLESHOOT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="flag-table">
+          <tr><th style="width:auto">Symptom</th><th style="width:auto">First check</th><th style="width:auto">Likely cause</th></tr>
+          <tr>
+            <td style="width:auto; color:var(--text-hi); white-space:normal"><code>nmcli con up</code> returns "device not ready"</td>
+            <td style="color:var(--text)"><code>nmcli device status</code> shows <code>unmanaged</code></td>
+            <td style="color:var(--text-dim)">Device managed by another tool, or <code>NM_CONTROLLED=no</code> legacy ifcfg</td>
+          </tr>
+          <tr>
+            <td style="width:auto; color:var(--text-hi); white-space:normal">Two default routes, traffic flapping</td>
+            <td style="color:var(--text)"><code>ip route</code> shows two <code>default via</code></td>
+            <td style="color:var(--text-dim)">Two connections set <code>ipv4.gateway</code> — clear one</td>
+          </tr>
+          <tr>
+            <td style="width:auto; color:var(--text-hi); white-space:normal">Static route disappears on reboot</td>
+            <td style="color:var(--text)">Added with <code>ip route add</code> only</td>
+            <td style="color:var(--text-dim)">Use <code>nmcli +ipv4.routes</code> to persist</td>
+          </tr>
+          <tr>
+            <td style="width:auto; color:var(--text-hi); white-space:normal">DNS resolves wrong name</td>
+            <td style="color:var(--text)"><code>resolvectl status</code> shows DHCP DNS overriding static</td>
+            <td style="color:var(--text-dim)">Set <code>ipv4.ignore-auto-dns yes</code> on the static connection</td>
+          </tr>
+          <tr>
+            <td style="width:auto; color:var(--text-hi); white-space:normal">Service unreachable, port confirmed listening</td>
+            <td style="color:var(--text)"><code>firewall-cmd --list-all</code> does not show port/service</td>
+            <td style="color:var(--text-dim)">Add port/service + <code>--reload</code></td>
+          </tr>
+          <tr>
+            <td style="width:auto; color:var(--text-hi); white-space:normal">Bond shows up but no traffic</td>
+            <td style="color:var(--text)"><code>cat /proc/net/bonding/bond0</code> shows no slaves "Currently Active"</td>
+            <td style="color:var(--text-dim)">Switch-side mode mismatch (LACP vs static)</td>
+          </tr>
+          <tr>
+            <td style="width:auto; color:var(--text-hi); white-space:normal">New NIC has no <code>ifname</code></td>
+            <td style="color:var(--text)"><code>ip link</code> shows no entry for it</td>
+            <td style="color:var(--text-dim)">Check <code>dmesg</code> for driver bind; <code>lspci -nn</code> to confirm hardware seen</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Command summary</div>
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; animation: fadeUp .4s .5s ease both; opacity:0;">
+    <table class="summary-table">
+      <tr><th>Task</th><th>Command</th></tr>
+      <tr><td>List connections</td><td><code>nmcli connection show</code></td></tr>
+      <tr><td>List devices</td><td><code>nmcli device status</code></td></tr>
+      <tr><td>Add static IPv4</td><td><code>nmcli con add type ethernet con-name X ifname X ipv4.method manual ipv4.addresses A/P ipv4.gateway G</code></td></tr>
+      <tr><td>Set DNS</td><td><code>nmcli con mod X ipv4.dns "S1 S2"</code></td></tr>
+      <tr><td>Add route</td><td><code>nmcli con mod X +ipv4.routes "DEST/PFX GW"</code></td></tr>
+      <tr><td>Apply changes</td><td><code>nmcli con up X</code></td></tr>
+      <tr><td>TUI editor</td><td><code>nmtui</code></td></tr>
+      <tr><td>Open port (permanent)</td><td><code>firewall-cmd --permanent --add-port=N/tcp; firewall-cmd --reload</code></td></tr>
+      <tr><td>Allow service</td><td><code>firewall-cmd --permanent --add-service=NAME; firewall-cmd --reload</code></td></tr>
+      <tr><td>Move NIC to zone</td><td><code>firewall-cmd --permanent --zone=Z --change-interface=X; firewall-cmd --reload</code></td></tr>
+      <tr><td>List rules</td><td><code>firewall-cmd --list-all</code></td></tr>
+      <tr><td>Show routes</td><td><code>ip route</code></td></tr>
+      <tr><td>Show listening</td><td><code>ss -tlnp</code></td></tr>
+      <tr><td>NM event log</td><td><code>journalctl -u NetworkManager</code></td></tr>
+    </table>
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>NetworkManager is the source of truth on RHEL 8/9 — manage connections via <code>nmcli</code> / <code>nmtui</code>, not legacy <code>ifcfg-*</code> scripts (the <code>network-scripts</code> package is gone in RHEL 9).</li>
+      <li>Only <strong>one</strong> connection per default-route table should set <code>ipv4.gateway</code> — two default routes produce flapping egress.</li>
+      <li>Persistent static routes belong in the connection profile (<code>+ipv4.routes</code>), <em>not</em> in <code>/etc/sysconfig/network-scripts</code> and <em>not</em> via one-shot <code>ip route add</code> — those don't survive a reboot.</li>
+      <li>firewalld changes need <code>--permanent</code> <em>and</em> <code>--reload</code> to be both saved and active. Use one without the other and you'll be debugging a phantom rule.</li>
+      <li><code>firewall-cmd --runtime-to-permanent</code> saves the current live ruleset to disk — useful after iterating with runtime-only changes.</li>
+      <li>Set <code>ipv4.ignore-auto-dns yes</code> on a static connection to prevent DHCP-supplied DNS from overriding your configured resolvers.</li>
+      <li>Don't hand-edit <code>/etc/resolv.conf</code> while NetworkManager is running — it's a managed file and your changes will be clobbered.</li>
+      <li>Switch-side LACP / aggregation mode must match the bond mode exactly. A "bond up, no traffic" symptom is almost always switch-side mismatch — confirm via <code>cat /proc/net/bonding/bond0</code>.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>Linux · Networking · NetworkManager + firewalld</span>
+  <span>nmcli · nmtui · ip · firewall-cmd</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+
+  document.querySelectorAll('.ctrl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      document.querySelectorAll('.step').forEach(s => {
+        if (action === 'expand') s.classList.add('open');
+        else s.classList.remove('open');
+      });
+    });
+  });
+</script>
+</body>
+</html>

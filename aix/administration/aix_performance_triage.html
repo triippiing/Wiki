@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIX Performance Triage</title>
+<meta name="description" content="Structured first-pass triage when an AIX system is reported slow — classify the bottleneck (CPU, memory, disk, network, lock) within five minutes using topas, vmstat, iostat, nmon, svmon, tprof, filemon, lockstat.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.4);
+    background: rgba(88,201,232,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-ref       { border-left-color: var(--cyan); }
+  .step.ph-create    { border-left-color: var(--green); }
+  .step.ph-remove    { border-left-color: var(--red); }
+  .step.ph-group-add { border-left-color: var(--green); }
+  .step.ph-group-mod { border-left-color: var(--purple); }
+  .step.ph-group-rm  { border-left-color: var(--red); }
+
+  .step.ph-frame    { border-left-color: var(--cyan); }
+  .step.ph-snapshot { border-left-color: var(--green); }
+  .step.ph-cpu      { border-left-color: var(--amber); }
+  .step.ph-mem      { border-left-color: var(--purple); }
+  .step.ph-disk     { border-left-color: var(--cyan); }
+  .step.ph-net      { border-left-color: var(--purple); }
+  .step.ph-lock     { border-left-color: var(--red); }
+  .step.ph-record   { border-left-color: var(--cyan); }
+  .step.ph-tree     { border-left-color: var(--cyan); }
+  .step.ph-hang     { border-left-color: var(--red); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+  .step:nth-child(7)  { animation-delay: .28s; }
+  .step:nth-child(8)  { animation-delay: .32s; }
+  .step:nth-child(9)  { animation-delay: .36s; }
+  .step:nth-child(10) { animation-delay: .40s; }
+  .step:nth-child(11) { animation-delay: .44s; }
+  .step:nth-child(12) { animation-delay: .48s; }
+  .step:nth-child(13) { animation-delay: .52s; }
+  .step:nth-child(14) { animation-delay: .56s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── flag reference table ── */
+  .flag-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .flag-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .flag-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .flag-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--purple);
+    white-space: nowrap;
+    width: 60px;
+  }
+
+  .flag-table td:nth-child(2) {
+    font-size: 12.5px;
+    color: var(--text);
+  }
+
+  .flag-table tr:last-child td { border-bottom: none; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* ── summary table ── */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-top: 0;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .summary-table td:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── collapse controls ── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    justify-content: flex-end;
+  }
+
+  .ctrl-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    color: var(--text-dim);
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+
+  .ctrl-btn:hover { background: var(--border-hi); color: var(--text-hi); }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot" style="color:var(--cyan)"></div>
+  <h1>AIX Performance Triage</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">REFERENCE</span>
+    <span class="badge">decision tree</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val info">Bottleneck triage</div></div>
+    <div class="meta-cell"><div class="meta-label">Privilege</div><div class="meta-val warn">root for kernel tools</div></div>
+    <div class="meta-cell"><div class="meta-label">Primary Tools</div><div class="meta-val">topas · vmstat · iostat</div></div>
+    <div class="meta-cell"><div class="meta-label">Deep-Dive Tools</div><div class="meta-val">nmon · svmon · tprof · filemon</div></div>
+    <div class="meta-cell"><div class="meta-label">Decision Path</div><div class="meta-val">CPU · Mem · Disk · Net · Lock</div></div>
+    <div class="meta-cell"><div class="meta-label">Use For</div><div class="meta-val ok">live &amp; post-mortem</div></div>
+  </div>
+
+  <p class="note note-info" style="margin-top:0; margin-bottom:24px;">First-pass triage when an AIX system is reported slow. The goal is to classify the bottleneck — CPU, memory, disk, network, or lock contention — within roughly five minutes using a top-down sequence of <code>topas</code> → <code>vmstat</code> → branch tool, then drill into the responsible subsystem. Works for both live "it's slow right now" calls and post-mortem analysis from <code>nmon</code> recordings.</p>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Step 0</span> Frame the symptom</div>
+  <div class="steps">
+    <div class="step ph-frame open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Four framing questions before any tool</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="flag-table">
+          <tr><th>Question</th><th>Why it matters</th></tr>
+          <tr><td>Now or earlier?</td><td>Slow <em>right now</em> calls for live tools (<code>topas</code>, <code>vmstat</code>, <code>iostat</code>). Slow earlier needs historical data — pull the <code>nmon -f</code> recording from <code>/var/perf</code>.</td></tr>
+          <tr><td>Whole system, app, or user?</td><td>Narrows scope from system-wide tuning down to per-process drilling. A single user complaining usually means an app or per-process issue, not a host-level bottleneck.</td></tr>
+          <tr><td>When did it start?</td><td>Correlate with recent change — TL upgrade, new application rollout, LPAR resize, SAN event, errpt entries. Recent change is the leading suspect.</td></tr>
+          <tr><td>Slow or hung?</td><td>Hung ≠ slow. Hung often points at resource starvation, kernel deadlock, or storage stall — jump to the <strong>Hang branch</strong> at the end and skip the regular flow.</td></tr>
+        </table>
+        <p class="note">Spending 30 seconds on these questions before opening any tool prevents the most common triage mistake — diving into <code>topas</code> on a host that is actually hung, not slow, where the data you need is in the dump device, not the live console.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Step 1</span> Snapshot with topas</div>
+  <div class="steps">
+    <div class="step ph-snapshot open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">One-shot snapshot — read User%, Kern%, Wait%, Idle%</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># 5-second refresh, 2 iterations — quick top-of-screen read</span>
+<span class="kw">topas</span> <span class="flag">-d</span> <span class="str">5</span> <span class="flag">-i</span> <span class="str">2</span>
+
+<span class="c"># Top-of-screen example output</span>
+<span class="c"># CPU User%  Kern%  Wait%  Idle%</span>
+<span class="c"># ALL  82.0   12.0    1.0   5.0</span></div>
+        <p class="note">Read the top three lines of <code>topas</code> first. The CPU breakdown alone routes you to the correct branch in under five seconds.</p>
+        <table class="flag-table" style="margin-top:14px">
+          <tr><th>Reading</th><th>First suspicion</th></tr>
+          <tr><td>User% &gt; 70</td><td>Application-level CPU burn — go to the <strong>CPU branch</strong>, drill with <code>tprof</code> and per-process tools.</td></tr>
+          <tr><td>Kern% &gt; 30</td><td>Kernel work — syscalls, interrupts, lock contention. Use the kernel-CPU sub-section in the CPU branch.</td></tr>
+          <tr><td>Wait% &gt; 20</td><td>I/O wait — go to the <strong>Disk/Network branch</strong>. Confirm with <code>vmstat</code> column <code>b</code>.</td></tr>
+          <tr><td>All low + slow</td><td>CPU isn't the bottleneck. Look at <strong>Memory</strong> (paging) or <strong>Lock contention</strong>.</td></tr>
+        </table>
+        <p class="note" style="margin-top:14px">Also scan the lower panels of <code>topas</code> for corroborating signals: <strong>Memory</strong> — <code>Comp%</code> &gt; 90 indicates memory pressure; <strong>Paging</strong> — non-zero <code>Faults</code> or <code>pgspaceIn/Out</code> means active paging; <strong>Disk Busy%</strong> — any disk consistently above 60% is a hot spot; <strong>Network</strong> — KBPS approaching link cap means network bound.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Step 2</span> Confirm with vmstat</div>
+  <div class="steps">
+    <div class="step ph-snapshot open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Cross-check the topas read with vmstat columns</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># 2-second interval, 10 samples — discard the first line (boot averages)</span>
+<span class="kw">vmstat</span> <span class="str">2</span> <span class="str">10</span></div>
+        <table class="flag-table" style="margin-top:14px">
+          <tr><th>Column</th><th>Meaning &amp; bad sign</th></tr>
+          <tr><td>r</td><td>Run queue length. Sustained <code>r &gt; CPU count</code> = CPU saturation.</td></tr>
+          <tr><td>b</td><td>Blocked on I/O. <code>b &gt; 0</code> sustained = I/O bound.</td></tr>
+          <tr><td>avm</td><td>Active virtual memory pages. Climbing = memory growth / leak.</td></tr>
+          <tr><td>fre</td><td>Free pages. Approaching <code>minfree</code> = memory pressure.</td></tr>
+          <tr><td>pi/po</td><td>Paging in/out. Any sustained non-zero value is bad — actively paging to disk.</td></tr>
+          <tr><td>fr/sr</td><td>Page replacement scan rate. High values mean the VMM is working hard to free pages.</td></tr>
+          <tr><td>us</td><td>User CPU% — mirrors topas User%.</td></tr>
+          <tr><td>sy</td><td>System CPU% — mirrors topas Kern%.</td></tr>
+          <tr><td>id</td><td>Idle CPU%.</td></tr>
+          <tr><td>wa</td><td>I/O wait CPU% — mirrors topas Wait%.</td></tr>
+        </table>
+        <p class="note"><strong>Heuristic shorthand:</strong> <code>b &gt; 0</code> with high <code>wa%</code> = disk wait. <code>r &gt;&gt; CPUs</code> with high <code>us%</code> = CPU saturation. <code>pi</code>/<code>po</code> non-zero = paging — find the leak before adding paging space.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Branch</span> CPU</div>
+  <div class="steps">
+    <div class="step ph-cpu open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">CPU branch — User% high, plus kernel-CPU sub-section</span>
+        <span class="step-tag tag-caution">DRILL-DOWN</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">USER% HIGH — per-process / per-thread</span><span class="c"># Live per-process CPU view</span>
+<span class="kw">topas</span> <span class="flag">-P</span>
+
+<span class="c"># Top CPU consumers (one-shot)</span>
+<span class="kw">ps</span> <span class="flag">-eo</span> pcpu,pid,user,args <span class="flag">|</span> <span class="kw">sort</span> <span class="flag">-k1</span> <span class="flag">-rn</span> <span class="flag">|</span> <span class="kw">head</span>
+
+<span class="c"># Per-thread breakdown for a specific PID</span>
+<span class="kw">ps</span> <span class="flag">-mp</span> <span class="ph">&lt;PID&gt;</span> <span class="flag">-o</span> THREAD
+
+<span class="c"># Sample where the CPU is going (user + kernel) for 30 seconds</span>
+<span class="kw">tprof</span> <span class="flag">-uskez</span> <span class="flag">-x</span> sleep <span class="str">30</span>
+<span class="kw">more</span> __prof.all
+<span class="cmd-section">KERN% HIGH — kernel CPU drilling</span><span class="c"># Kernel-only sampling</span>
+<span class="kw">tprof</span> <span class="flag">-ksez</span> <span class="flag">-x</span> sleep <span class="str">30</span>
+
+<span class="c"># Trace syscalls + dispatches for 5 seconds</span>
+<span class="kw">trace</span> <span class="flag">-aj</span> <span class="str">100,200</span> <span class="flag">-o</span> /tmp/trc; <span class="kw">sleep</span> <span class="str">5</span>; <span class="kw">trcstop</span>
+<span class="kw">trcrpt</span> <span class="flag">-O</span> exec=on,pid=on /tmp/trc <span class="flag">|</span> <span class="kw">head</span> <span class="flag">-50</span>
+
+<span class="c"># Kernel lock activity</span>
+<span class="kw">lockstat</span> <span class="flag">-l</span> <span class="str">30</span></div>
+        <p class="note"><code>tprof</code> tells you the top CPU consumers per process <em>and</em> per function, and whether time is in user code, libc, or kernel. If <code>tprof</code> shows excessive <code>lock_*</code>, page faults, or interrupt handlers in the kernel column, you have kernel CPU spent on contention rather than real work — pivot to <code>lockstat</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Branch</span> Memory</div>
+  <div class="steps">
+    <div class="step ph-mem open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Memory branch — fre low, pi/po non-zero, or comp% high</span>
+        <span class="step-tag tag-caution">DRILL-DOWN</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># One-line summary of every memory tunable + counter</span>
+<span class="kw">vmstat</span> <span class="flag">-v</span>
+
+<span class="c"># Global memory usage breakdown</span>
+<span class="kw">svmon</span> <span class="flag">-G</span>
+
+<span class="c"># Top 10 processes by memory consumption</span>
+<span class="kw">svmon</span> <span class="flag">-P</span> <span class="flag">-O</span> summary=basic <span class="flag">-t</span> <span class="str">10</span>
+
+<span class="c"># Paging space layout and use</span>
+<span class="kw">lsps</span> <span class="flag">-a</span>
+
+<span class="c"># Find leak candidates — sort processes by virtual size</span>
+<span class="kw">ps</span> <span class="flag">-eo</span> pid,user,vsz,rss,args <span class="flag">--sort</span> <span class="flag">-vsz</span> <span class="flag">|</span> <span class="kw">head</span></div>
+        <p class="note">Read <code>vmstat -v</code> for: <code>numperm percentage</code> (file cache portion), <code>pending disk I/Os blocked with no pbuf</code> (pbuf shortage), <code>paging space allocs / I/Os</code> (active paging), and <code>client filesystem I/Os blocked with no fsbuf</code> (fsbuf shortage). Healthy when <code>numperm</code> sits between <code>minperm%</code> and <code>maxperm%</code>; trouble when <code>numclient</code> is near <code>maxclient%</code> with active paging.</p>
+        <p class="note note-caution"><strong>Computational vs file pages.</strong> AIX distinguishes computational pages (process working memory — paged to disk under pressure) from file pages (filesystem cache — discarded under pressure). Paging out computational memory is the painful kind. If <code>pi</code>/<code>po</code> are non-zero, find the leak <em>before</em> adding paging space — extra paging space buys time, not a fix.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Branch</span> Disk / I/O</div>
+  <div class="steps">
+    <div class="step ph-disk open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Disk branch — Wait% high or vmstat b non-zero</span>
+        <span class="step-tag tag-caution">CAUTION</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">PER-DISK / ADAPTER / LV BREAKDOWN</span><span class="c"># Per-disk activity with service time</span>
+<span class="kw">iostat</span> <span class="flag">-DRT</span> <span class="str">2</span> <span class="str">5</span>
+
+<span class="c"># Adapter-level summary</span>
+<span class="kw">iostat</span> <span class="flag">-aT</span> <span class="str">2</span> <span class="str">5</span>
+
+<span class="c"># Per-LV / VG breakdown</span>
+<span class="kw">iostat</span> <span class="flag">-ARTl</span> <span class="str">2</span> <span class="str">5</span>
+<span class="cmd-section">FILE-LEVEL ATTRIBUTION</span><span class="c"># Trace which process is hitting which file</span>
+<span class="kw">filemon</span> <span class="flag">-O</span> all <span class="flag">-o</span> /tmp/fm.out; <span class="kw">sleep</span> <span class="str">30</span>; <span class="kw">trcstop</span>
+<span class="kw">more</span> /tmp/fm.out
+<span class="cmd-section">MPIO / PATH HEALTH</span><span class="c"># Full path inventory</span>
+<span class="kw">lspath</span>
+
+<span class="c"># Per-disk path detail</span>
+<span class="kw">lspath</span> <span class="flag">-l</span> <span class="ph">hdisk5</span> <span class="flag">-F</span> <span class="str">"name parent path_id status"</span>
+
+<span class="c"># Path failures (Storage Manager / SDDPCM error ID)</span>
+<span class="kw">errpt</span> <span class="flag">-j</span> <span class="str">FE9C3F69</span> <span class="flag">|</span> <span class="kw">head</span></div>
+        <p class="note">Read <code>iostat -DRT</code> for: <code>% tm_act</code> (disk busy — sustained &gt; 60 on one disk = hot spot), <code>avg serv</code> (service time in ms — &gt; 20 ms on SAN suggests path or backend), and <code>avwait</code> (queue wait — climbing means device queue is full).</p>
+        <p class="note note-caution"><strong>One disk vs. all disks.</strong> High service time on a <em>single</em> disk points at a bad path, full LUN queue, or a backend issue specific to that LUN. High service time on <em>all</em> disks at once almost always points at SAN fabric, the HBA, or VIOS — escalate to storage and stop drilling per-disk.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Branch</span> Network</div>
+  <div class="steps">
+    <div class="step ph-net open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">Network branch — interface errors, mbuf failures, MTU mismatch</span>
+        <span class="step-tag tag-caution">DRILL-DOWN</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="c"># Per-interface stats — top of output is the headline</span>
+<span class="kw">entstat</span> <span class="flag">-d</span> <span class="ph">en0</span> <span class="flag">|</span> <span class="kw">head</span> <span class="flag">-60</span>
+<span class="kw">netstat</span> <span class="flag">-v</span> <span class="ph">en0</span> <span class="flag">|</span> <span class="kw">head</span> <span class="flag">-40</span>
+
+<span class="c"># Buffer / mbuf health — look for "failures" lines</span>
+<span class="kw">netstat</span> <span class="flag">-m</span> <span class="flag">|</span> <span class="kw">head</span> <span class="flag">-20</span>
+
+<span class="c"># Connection state distribution — TIME_WAIT pile-up, CLOSE_WAIT leaks, etc.</span>
+<span class="kw">netstat</span> <span class="flag">-an</span> <span class="flag">|</span> <span class="kw">awk</span> <span class="str">'{print $6}'</span> <span class="flag">|</span> <span class="kw">sort</span> <span class="flag">|</span> <span class="kw">uniq</span> <span class="flag">-c</span>
+
+<span class="c"># Network tunables — buffer ceilings</span>
+<span class="kw">no</span> <span class="flag">-a</span> <span class="flag">|</span> <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">"tcp_sendspace|tcp_recvspace|sb_max"</span></div>
+        <p class="note">Watch for: non-zero <code>Transmit Errors</code> or <code>Receive Errors</code>, non-zero <code>S/W Transmit Queue Overflow</code>, any <code>failures</code> line in <code>netstat -m</code>, and MTU mismatch versus the upstream switch or SEA. <code>netstat -m</code> failures are the classic signal of buffer exhaustion under load.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 8 ════ -->
+  <div class="phase-label"><span>Branch</span> Lock contention</div>
+  <div class="steps">
+    <div class="step ph-lock open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">Lock contention — system slow but CPU/disk/mem all idle</span>
+        <span class="step-tag tag-caution">DRILL-DOWN</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="c"># Kernel lock activity — 30-second sample</span>
+<span class="kw">lockstat</span> <span class="flag">-l</span> <span class="str">30</span>
+
+<span class="c"># Process state — many processes blocked ('A' = active, $4 = wait flag)</span>
+<span class="kw">ps</span> <span class="flag">-ekf</span> <span class="flag">|</span> <span class="kw">awk</span> <span class="str">'$3=="A" &amp;&amp; $4&gt;0'</span> <span class="flag">|</span> <span class="kw">head</span>
+
+<span class="c"># Trace lock acquisition events for 10 seconds</span>
+<span class="kw">trace</span> <span class="flag">-aj</span> <span class="str">1B0,1B1</span> <span class="flag">-o</span> /tmp/lk; <span class="kw">sleep</span> <span class="str">10</span>; <span class="kw">trcstop</span>
+<span class="kw">trcrpt</span> <span class="flag">-O</span> exec=on /tmp/lk</div>
+        <p class="note">Lock contention is the diagnosis when the host is reported slow but every other branch comes up clean — CPU has idle, disk is quiet, memory is healthy, network is fine. Many processes will sit in <code>wait</code> state on a kernel resource. <code>lockstat -l</code> ranks the hot locks; the <code>trace</code> hooks <code>1B0</code>/<code>1B1</code> show the lock acquire/release path.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 9 ════ -->
+  <div class="phase-label"><span>Recording</span> nmon for historical &amp; vendor data</div>
+  <div class="steps">
+    <div class="step ph-record open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">nmon — record now, analyse later, baseline forever</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c9"><button class="copy-btn" onclick="copy('c9',this)">COPY</button><span class="c"># Record: 30s samples × 240 = 2 hours, file output to /var/perf</span>
+<span class="kw">nmon</span> <span class="flag">-s</span> <span class="str">30</span> <span class="flag">-c</span> <span class="str">240</span> <span class="flag">-f</span> <span class="flag">-m</span> /var/perf
+
+<span class="c"># Live interactive — then press the section key:</span>
+<span class="c">#   c = cpu    m = memory    d = disk    n = network    t = top procs</span>
+<span class="kw">nmon</span>
+
+<span class="c"># Output filename: /var/perf/&lt;host&gt;_YYYYMMDD_HHMM.nmon</span>
+<span class="c"># Open with nmon Analyser (Excel) or nmonchart for graphs</span></div>
+        <p class="note">For continuous baseline, schedule via cron — keeps a rolling 24h window of system telemetry that becomes invaluable when a vendor or IBM Support asks "what was it doing yesterday at 14:00?".</p>
+        <div class="cmd" id="c9b"><button class="copy-btn" onclick="copy('c9b',this)">COPY</button><span class="c"># /var/spool/cron/crontabs/root — one nmon launch per hour, 30s samples × 120 = 1h</span>
+<span class="str">0 * * * *</span> /usr/bin/<span class="kw">nmon</span> <span class="flag">-s</span> <span class="str">30</span> <span class="flag">-c</span> <span class="str">120</span> <span class="flag">-f</span> <span class="flag">-m</span> /var/perf <span class="flag">-T</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 10 ════ -->
+  <div class="phase-label"><span>Decision Tree</span> One-page routing</div>
+  <div class="steps">
+    <div class="step ph-tree open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">10</span>
+        <span class="step-title">topas → branch routing diagram</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd"><span class="c">                            ┌── User% &gt; 70 ─────► tprof user, ps -mp &lt;PID&gt; -o THREAD</span>
+<span class="c">            CPU bound ──────┤</span>
+<span class="c">       (us+sy idle low)     └── Kern% &gt; 30 ─────► tprof kernel, trace, lockstat</span>
+<span class="c">                  ▲</span>
+<span class="c">                  │</span>
+<span class="c">        topas ────┼──► Wait% &gt; 20 ──► iostat -DRT ──► hot disk?  ── yes ─► filemon, lspath</span>
+<span class="c">                  │                                   │</span>
+<span class="c">                  │                                   └─ no ─► all disks slow ─► SAN/VIOS/HBA</span>
+<span class="c">                  │</span>
+<span class="c">                  ├──► fre low / pi-po non-zero ─► svmon -G, vmstat -v ─► leak vs cache</span>
+<span class="c">                  │</span>
+<span class="c">                  ├──► entstat errors / netstat -m fails ─► network branch</span>
+<span class="c">                  │</span>
+<span class="c">                  └──► all idle but slow ─► lockstat -l ─► lock contention</span></div>
+        <p class="note">Read top-down from <code>topas</code>: the dominant CPU mode (User%, Kern%, Wait%) routes you into the correct branch, and the side-branches catch the cases <code>topas</code> CPU summary doesn't surface (memory, network, locks).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 11 ════ -->
+  <div class="phase-label"><span>Hang Branch</span> Unresponsive but pingable</div>
+  <div class="steps">
+    <div class="step ph-hang">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">11</span>
+        <span class="step-title">Hang branch — capture state for IBM Support</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="c"># From console — kernel debugger snapshot (live)</span>
+<span class="kw">echo</span> <span class="str">"stat"</span> <span class="flag">|</span> <span class="kw">kdb</span>
+
+<span class="c"># Inspect dump device configuration</span>
+<span class="kw">sysdumpdev</span> <span class="flag">-L</span>
+
+<span class="c"># Trigger a live system dump to the primary device</span>
+<span class="kw">sysdumpstart</span> <span class="flag">-p</span>
+
+<span class="c"># After recovery — flush errpt for IBM</span>
+<span class="kw">errpt</span> <span class="flag">-a</span> <span class="flag">&gt;</span> /tmp/errpt.live</div>
+        <p class="note note-critical"><strong>If the system is unresponsive over the network too, the console is the only option.</strong> Capture HMC reference codes (LED), the full <code>errpt -a</code> output once recovered, and a live or post-mortem dump for IBM Support. <code>sysdumpstart -p</code> will take the system down — confirm policy before issuing on a production LPAR.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Tool summary</div>
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; animation: fadeUp .4s .5s ease both; opacity:0;">
+    <table class="summary-table">
+      <tr><th>Tool</th><th>Best for</th><th>Key flags</th></tr>
+      <tr><td>topas</td><td>First look, live overview</td><td><code>-d 5 -i 2</code>, <code>-P</code> procs, <code>-D</code> disk, <code>-E</code> network, <code>-L</code> lpar</td></tr>
+      <tr><td>vmstat</td><td>CPU + memory + I/O summary</td><td><code>vmstat 2 10</code>, <code>vmstat -v</code>, <code>vmstat -s</code></td></tr>
+      <tr><td>iostat</td><td>Per-disk, per-adapter, per-LV</td><td><code>-DRT</code>, <code>-aT</code>, <code>-ARTl</code></td></tr>
+      <tr><td>nmon</td><td>Recording + offline analysis</td><td><code>-s &lt;sec&gt; -c &lt;count&gt; -f -m &lt;dir&gt;</code></td></tr>
+      <tr><td>svmon</td><td>Memory deep dive</td><td><code>-G</code>, <code>-P</code>, <code>-S</code>, <code>-O summary=basic</code></td></tr>
+      <tr><td>tprof</td><td>Where CPU is spent (user + kernel)</td><td><code>-uskez -x sleep 30</code>, <code>-ksez</code> kernel-only</td></tr>
+      <tr><td>filemon</td><td>Per-file I/O attribution</td><td><code>filemon -O all -o /tmp/fm.out; sleep 30; trcstop</code></td></tr>
+      <tr><td>entstat</td><td>Per-NIC stats</td><td><code>entstat -d en0</code></td></tr>
+      <tr><td>netstat -m</td><td>Mbuf / buffer health</td><td>Look for any non-zero "failures"</td></tr>
+      <tr><td>lockstat</td><td>Kernel lock contention</td><td><code>lockstat -l 30</code></td></tr>
+      <tr><td>errpt</td><td>Hardware / software errors</td><td><code>errpt</code>, <code>errpt -a -j &lt;ID&gt;</code></td></tr>
+    </table>
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>Always start with <code>topas</code> before drilling — the User%/Kern%/Wait%/Idle% read at the top tells you which branch to take in five seconds.</li>
+      <li><code>vmstat</code> column <code>b &gt; 0</code> sustained = I/O wait; cross-check with high <code>wa%</code> and head straight to <code>iostat -DRT</code>.</li>
+      <li>Sustained <code>r &gt; CPU count</code> on <code>vmstat</code> means CPU saturation — the run queue is longer than the host can drain.</li>
+      <li><code>pi</code>/<code>po</code> non-zero means active paging. <strong>Find the leak before adding paging space</strong> — extra paging is a workaround, not a fix.</li>
+      <li><code>% tm_act &gt; 60</code> on a single hdisk = hot spot. The same number across <em>all</em> disks at once = SAN, HBA, or VIOS issue — escalate to storage rather than drilling per-disk.</li>
+      <li>Idle CPU but the host is reported slow = lock contention. Run <code>lockstat -l 30</code> and trace hooks <code>1B0</code>/<code>1B1</code>.</li>
+      <li>Capture an <code>nmon</code> recording (<code>-s 30 -c 240 -f -m /var/perf</code>) for IBM Support or the application vendor — it is the artefact every escalation will ask for.</li>
+      <li>Slow ≠ hung. If the host is unresponsive, skip the regular flow and go to the <strong>Hang branch</strong> — collect <code>kdb stat</code>, dump device config, and HMC LED codes.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>AIX · Administration · Performance Triage</span>
+  <span>topas · vmstat · iostat · nmon · svmon</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+
+  document.querySelectorAll('.ctrl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      document.querySelectorAll('.step').forEach(s => {
+        if (action === 'expand') s.classList.add('open');
+        else s.classList.remove('open');
+      });
+    });
+  });
+</script>
+</body>
+</html>
