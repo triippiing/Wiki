@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIX mksysb — Local, NIM, and Tape</title>
+<meta name="description" content="Reference for capturing a bootable rootvg image (mksysb) on AIX as a local file, a NIM mksysb resource via nimsh, or a bootable tape — including pre-flight, verification, restore paths, and common failures.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.4);
+    background: rgba(88,201,232,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-ref       { border-left-color: var(--cyan); }
+  .step.ph-create    { border-left-color: var(--green); }
+  .step.ph-remove    { border-left-color: var(--red); }
+  .step.ph-group-add { border-left-color: var(--green); }
+  .step.ph-group-mod { border-left-color: var(--purple); }
+  .step.ph-group-rm  { border-left-color: var(--red); }
+
+  .step:nth-child(1)  { animation-delay: .04s; }
+  .step:nth-child(2)  { animation-delay: .08s; }
+  .step:nth-child(3)  { animation-delay: .12s; }
+  .step:nth-child(4)  { animation-delay: .16s; }
+  .step:nth-child(5)  { animation-delay: .20s; }
+  .step:nth-child(6)  { animation-delay: .24s; }
+  .step:nth-child(7)  { animation-delay: .28s; }
+  .step:nth-child(8)  { animation-delay: .32s; }
+  .step:nth-child(9)  { animation-delay: .36s; }
+  .step:nth-child(10) { animation-delay: .40s; }
+  .step:nth-child(11) { animation-delay: .44s; }
+  .step:nth-child(12) { animation-delay: .48s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 24px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--amber); }
+  .cmd .flag { color: var(--purple); }
+  .cmd .bad  { color: var(--red); }
+  .cmd .cmd-section {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin: 10px -16px 8px;
+    padding: 6px 16px 2px;
+    background: rgba(255,255,255,.018);
+  }
+  .cmd .cmd-section:first-child {
+    border-top: none;
+    margin-top: -4px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── flag reference table ── */
+  .flag-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .flag-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .flag-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .flag-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--purple);
+    white-space: nowrap;
+    width: 60px;
+  }
+
+  .flag-table td:nth-child(2) {
+    font-size: 12.5px;
+    color: var(--text);
+  }
+
+  .flag-table tr:last-child td { border-bottom: none; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* ── summary table ── */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-top: 0;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .summary-table td:nth-child(2) {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .summary-table td:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '▸'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── collapse controls ── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    justify-content: flex-end;
+  }
+
+  .ctrl-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    color: var(--text-dim);
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+
+  .ctrl-btn:hover { background: var(--border-hi); color: var(--text-hi); }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* phase accent colours — additions for mksysb runbook */
+  .step.ph-ref     { border-left-color: var(--cyan); }
+  .step.ph-create  { border-left-color: var(--green); }
+  .step.ph-nim     { border-left-color: var(--purple); }
+  .step.ph-tape    { border-left-color: var(--amber); }
+  .step.ph-fail    { border-left-color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot" style="color:var(--cyan)"></div>
+  <h1>AIX mksysb — Local, NIM, and Tape</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">REFERENCE</span>
+    <span class="badge">root required</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val info">Bootable rootvg backup</div></div>
+    <div class="meta-cell"><div class="meta-label">Privilege</div><div class="meta-val warn">root</div></div>
+    <div class="meta-cell"><div class="meta-label">Output Targets</div><div class="meta-val">file · NIM · tape</div></div>
+    <div class="meta-cell"><div class="meta-label">Image Format</div><div class="meta-val">bosboot + backbyname</div></div>
+    <div class="meta-cell"><div class="meta-label">Includes</div><div class="meta-val warn">rootvg only</div></div>
+    <div class="meta-cell"><div class="meta-label">Restore Paths</div><div class="meta-val">bos_inst · alt_disk · restore -x</div></div>
+  </div>
+
+  <p class="note note-info" style="margin-top:0; margin-bottom:24px;"><code>mksysb</code> captures a bootable image of <strong>rootvg only</strong> — non-rootvg volume groups must be handled separately with <code>savevg</code>. The resulting image is bootable and can be consumed by NIM <code>bos_inst</code>, an alternate-disk install, or a tape boot from SMS. Three delivery methods are covered below: a local file under <code>/backup</code>, a remote push to a NIM master over <code>nimsh</code>, and a bootable tape on <code>/dev/rmt1</code>.</p>
+
+  <!-- ════ PHASE 1 — REFERENCE / PRE-FLIGHT ════ -->
+  <div class="phase-label"><span>Reference</span> Pre-flight checks</div>
+  <div class="steps">
+    <div class="step ph-ref open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Validate rootvg, free space, OS level, and bosboot before snapshot</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># Confirm rootvg is the only VG being captured</span>
+<span class="kw">lsvg</span> <span class="flag">-l</span> <span class="ph">rootvg</span>
+
+<span class="c"># Estimate image size — mksysb image is roughly used PPs * PP size</span>
+<span class="kw">lsvg</span> <span class="ph">rootvg</span> | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">"USED PPs|PP SIZE"</span>
+
+<span class="c"># Filesystem check — / and /usr should be clean and mounted</span>
+<span class="kw">df</span> <span class="flag">-g</span> / /usr /var /tmp /home
+
+<span class="c"># OS level — record before snapshot</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>
+<span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> <span class="str">ML</span>
+<span class="kw">lppchk</span> <span class="flag">-v</span>
+
+<span class="c"># Check for prior errors that would invalidate the image</span>
+<span class="kw">errpt</span> | <span class="kw">head</span> <span class="flag">-20</span>
+
+<span class="c"># Confirm bosboot will succeed (mksysb runs bosboot internally)</span>
+<span class="kw">bosboot</span> <span class="flag">-a</span> <span class="flag">-d</span> /dev/ipldevice</div>
+        <p class="note note-caution"><strong>If <code>lppchk -v</code> returns anything, fix it before running <code>mksysb</code>.</strong> A snapshot of a broken filesets state will restore broken — the image is faithful to the running system, defects included.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 2 — METHOD 1: LOCAL FILE ════ -->
+  <div class="phase-label"><span>Method 1</span> mksysb to local /backup file</div>
+  <div class="steps">
+    <div class="step ph-create open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">1a · Prepare the /backup filesystem</span>
+        <span class="step-tag tag-info">PREP</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># If /backup does not exist, create it in rootvg or a separate VG</span>
+<span class="c"># Sized for at least 1.5x the rootvg used PPs to allow growth</span>
+<span class="kw">crfs</span> <span class="flag">-v</span> <span class="str">jfs2</span> <span class="flag">-g</span> <span class="ph">rootvg</span> <span class="flag">-m</span> /backup <span class="flag">-a</span> size=<span class="str">20G</span> <span class="flag">-A</span> <span class="str">yes</span> <span class="flag">-p</span> <span class="str">rw</span>
+<span class="kw">mount</span> /backup
+<span class="kw">chmod</span> <span class="str">750</span> /backup
+
+<span class="c"># If /backup is already mounted, just verify free space</span>
+<span class="kw">df</span> <span class="flag">-g</span> /backup</div>
+        <p class="note">Plan for at least 1.5x the rootvg used-PP footprint. Image size is close to <em>used</em> capacity (not allocated), but headroom matters when <code>-X</code> auto-extension kicks in mid-run.</p>
+      </div>
+    </div>
+
+    <div class="step ph-create">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">1b · Run mksysb to a timestamped image file</span>
+        <span class="step-tag tag-ok">CREATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># -i      generate /image.data fresh (recommended — captures current LV layout)</span>
+<span class="c"># -X      auto-extend filesystem as needed during mksysb</span>
+<span class="c"># -p      do NOT pack files (faster, slight space cost)</span>
+<span class="c"># -e      exclude files listed in /etc/exclude.rootvg</span>
+<span class="kw">mksysb</span> <span class="flag">-i</span> <span class="flag">-X</span> <span class="flag">-p</span> /backup/<span class="ph">$(hostname)_$(date +%Y%m%d)</span>.mksysb</div>
+        <p class="note">Typical runtime: 15–45 min depending on rootvg size and disk speed. The command runs <code>bosboot</code> internally, so the resulting file is bootable — the same image works for tape, NIM, and <code>alt_disk_mksysb</code>.</p>
+      </div>
+    </div>
+
+    <div class="step ph-create">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">1c · Verify the image — TOC, volume info, spot-check</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="c"># List image contents (table of contents)</span>
+<span class="kw">lsmksysb</span> <span class="flag">-lf</span> /backup/<span class="ph">$(hostname)_$(date +%Y%m%d)</span>.mksysb | <span class="kw">head</span> <span class="flag">-30</span>
+
+<span class="c"># Verify volume group + image data</span>
+<span class="kw">lsmksysb</span> <span class="flag">-f</span> /backup/<span class="ph">$(hostname)_$(date +%Y%m%d)</span>.mksysb <span class="flag">-B</span>
+
+<span class="c"># Spot-check a known file (read-only, does not extract)</span>
+<span class="kw">restore</span> <span class="flag">-Tvqf</span> /backup/<span class="ph">$(hostname)_$(date +%Y%m%d)</span>.mksysb ./etc/passwd</div>
+        <p class="note">A valid image will show <code>image.data</code>, <code>bosinst.data</code>, and a tar-format file tree. Empty / truncated TOCs almost always trace back to a filesystem unmount mid-run or an out-of-space condition.</p>
+        <p class="note">Optional — exclude noisy filesystems via <code>/etc/exclude.rootvg</code> (one regex per line, anchored as <code>^./tmp/</code>, <code>^./var/adm/ras/</code>, <code>^./var/spool/lpd/</code>) and add <code>-e</code> to the <code>mksysb</code> command. The exclude file is consulted only when <code>-e</code> is passed.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 3 — METHOD 2: NIM ════ -->
+  <div class="phase-label"><span>Method 2</span> mksysb to NIM master via nimsh</div>
+  <div class="steps">
+    <div class="step ph-nim open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">2a · Prerequisites — master, client, nimsh listener</span>
+        <span class="step-tag tag-info">PREP</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># On the NIM master — confirm master is configured</span>
+<span class="kw">lsnim</span> <span class="flag">-l</span> master
+
+<span class="c"># Confirm the client is defined as a NIM standalone object</span>
+<span class="kw">lsnim</span> <span class="flag">-l</span> <span class="ph">&lt;client_name&gt;</span>
+
+<span class="c"># Filesystem with enough space for the image, e.g. /export/mksysb</span>
+<span class="kw">df</span> <span class="flag">-g</span> /export/mksysb
+
+<span class="c"># On the client — nimsh must be enabled and running</span>
+<span class="kw">lssrc</span> <span class="flag">-s</span> nimsh
+
+<span class="c"># If absent — convert client to nimsh communications and start it</span>
+<span class="kw">nimclient</span> <span class="flag">-C</span>
+<span class="kw">startsrc</span> <span class="flag">-s</span> nimsh
+
+<span class="c"># Show nimsh listener (TCP 3901 / 3902)</span>
+/usr/sbin/<span class="kw">nimsh</span> <span class="flag">-l</span>
+
+<span class="c"># Validate reachability from the master to the client over nimsh</span>
+<span class="kw">nim</span> <span class="flag">-o</span> lslpp <span class="ph">&lt;client_name&gt;</span> | <span class="kw">head</span></div>
+        <p class="note"><code>nimsh</code> replaces the legacy <code>rsh</code>/<code>rcmd</code> mechanism — it operates over TCP 3901/3902 and does not require <code>.rhosts</code>. If the firewall between master and client blocks those ports, the <code>nim -o define</code> below will time out with <code>0042-001</code>.</p>
+      </div>
+    </div>
+
+    <div class="step ph-nim">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">2b · Master-driven define (recommended)</span>
+        <span class="step-tag tag-caution">REMOTE EXEC</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="c"># Run on the NIM master — the master invokes mksysb on the client over nimsh</span>
+<span class="c"># and streams the image into the named resource path</span>
+RES=mksysb_<span class="ph">&lt;client_name&gt;</span>_$(<span class="kw">date</span> +%Y%m%d)
+LOC=/export/mksysb/${RES}
+
+<span class="kw">mkdir</span> <span class="flag">-p</span> /export/mksysb
+
+<span class="kw">nim</span> <span class="flag">-o</span> define \
+    <span class="flag">-t</span> mksysb \
+    <span class="flag">-a</span> server=<span class="str">master</span> \
+    <span class="flag">-a</span> location=${LOC} \
+    <span class="flag">-a</span> source=<span class="ph">&lt;client_name&gt;</span> \
+    <span class="flag">-a</span> mk_image=<span class="str">yes</span> \
+    <span class="flag">-a</span> mksysb_flags=<span class="str">"-i -X -p"</span> \
+    ${RES}</div>
+        <p class="note note-caution"><strong>This remotely runs <code>mksysb</code> on the client.</strong> Key attributes: <code>source=&lt;client_name&gt;</code> selects the client whose rootvg is captured; <code>mk_image=yes</code> tells NIM to actually run <code>mksysb</code> now (without it, <code>define</code> just registers an <em>existing</em> file as a resource); <code>mksysb_flags</code> is passed verbatim to the remote invocation. Confirm the client is quiesced before issuing — long-running databases or in-flight maintenance windows do not appreciate a 30-minute I/O burst.</p>
+      </div>
+    </div>
+
+    <div class="step ph-nim">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">07</span>
+        <span class="step-title">2c · Alternate — client-initiated define</span>
+        <span class="step-tag tag-caution">REMOTE EXEC</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="c"># Run on the client if you cannot get to the master directly</span>
+<span class="c"># Same end result — the operation runs on the master via nimsh callback</span>
+<span class="kw">nimclient</span> <span class="flag">-o</span> define \
+    <span class="flag">-t</span> mksysb \
+    <span class="flag">-a</span> server=<span class="str">master</span> \
+    <span class="flag">-a</span> location=/export/mksysb/<span class="ph">$(hostname)_$(date +%Y%m%d)</span>.mksysb \
+    <span class="flag">-a</span> source=<span class="ph">$(hostname)</span> \
+    <span class="flag">-a</span> mk_image=<span class="str">yes</span> \
+    <span class="flag">-a</span> mksysb_flags=<span class="str">"-i -X -p"</span> \
+    mksysb_<span class="ph">$(hostname)_$(date +%Y%m%d)</span></div>
+        <p class="note">Useful when the master's CLI is gated behind a different bastion than the client. The resulting NIM resource is identical to the master-driven path — same name, same location, same attributes.</p>
+      </div>
+    </div>
+
+    <div class="step ph-nim">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">08</span>
+        <span class="step-title">2d · Verify the resource on the NIM master</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="c"># Confirm the NIM resource registered correctly</span>
+<span class="kw">lsnim</span> <span class="flag">-l</span> ${RES}
+
+<span class="c"># File on disk should be non-zero and roughly match expected image size</span>
+<span class="kw">ls</span> <span class="flag">-l</span> ${LOC}
+
+<span class="c"># Spot-check the image table of contents</span>
+<span class="kw">lsmksysb</span> <span class="flag">-lf</span> ${LOC} | <span class="kw">head</span></div>
+        <p class="note">A healthy resource shows <code>state = ready for use</code>, a sensible <code>alloc_count</code>, and <code>lsmksysb -lf</code> returns a valid TOC. If <code>state</code> is anything else (e.g. <code>not ready</code>), the underlying file is absent or truncated — re-issue the define after fixing the cause.</p>
+      </div>
+    </div>
+
+    <div class="step ph-nim">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">09</span>
+        <span class="step-title">2e · Use the resource for a future bos_inst</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c9"><button class="copy-btn" onclick="copy('c9',this)">COPY</button><span class="c"># Network-install a target client from the mksysb resource</span>
+<span class="kw">nim</span> <span class="flag">-o</span> bos_inst \
+    <span class="flag">-a</span> source=<span class="str">mksysb</span> \
+    <span class="flag">-a</span> mksysb=${RES} \
+    <span class="flag">-a</span> spot=<span class="ph">&lt;spot_name&gt;</span> \
+    <span class="flag">-a</span> accept_licenses=<span class="str">yes</span> \
+    <span class="flag">-a</span> boot_client=<span class="str">yes</span> \
+    <span class="ph">&lt;target_client&gt;</span></div>
+        <p class="note">Cloning to a different machine is supported but requires post-install attention — verify hostname, IP, license acceptance, and any per-host application config that travels in rootvg.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 4 — METHOD 3: TAPE ════ -->
+  <div class="phase-label"><span>Method 3</span> mksysb to tape</div>
+  <div class="steps">
+    <div class="step ph-tape open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">10</span>
+        <span class="step-title">3a · Prerequisites and tape drive set to variable block size</span>
+        <span class="step-tag tag-caution">CAUTION</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="c"># Drive present and configured?</span>
+<span class="kw">lsdev</span> <span class="flag">-Cc</span> tape | <span class="kw">grep</span> <span class="ph">rmt1</span>
+<span class="kw">lscfg</span> <span class="flag">-vl</span> <span class="ph">rmt1</span>
+
+<span class="c"># Current block size — must be 0 (variable) for mksysb</span>
+<span class="kw">lsattr</span> <span class="flag">-El</span> <span class="ph">rmt1</span> <span class="flag">-a</span> block_size
+
+<span class="c"># If non-zero, set to variable</span>
+<span class="kw">chdev</span> <span class="flag">-l</span> <span class="ph">rmt1</span> <span class="flag">-a</span> block_size=<span class="str">0</span>
+
+<span class="c"># If the drive is in use:</span>
+<span class="c">#   chdev -l rmt1 -a block_size=0 -P    # ODM only, takes effect at reboot</span></div>
+        <p class="note note-caution"><strong>Variable block size (<code>block_size=0</code>) is mandatory.</strong> A fixed block size produces a tape that <code>lsmksysb</code> cannot read and SMS cannot boot — this is the single most common tape <code>mksysb</code> failure. Confirm with <code>lsattr -El rmt1 -a block_size</code> before every tape job; do not assume previous configuration persists across reboots if anyone has touched ODM.</p>
+      </div>
+    </div>
+
+    <div class="step ph-tape">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">11</span>
+        <span class="step-title">3b · Rewind the tape with tctl</span>
+        <span class="step-tag tag-info">PREP</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="c"># Always rewind before writing — mksysb writes from BOT (beginning of tape).</span>
+<span class="c"># A non-rewound tape will append at the wrong position or fail outright.</span>
+<span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> rewind &amp;
+
+<span class="c"># & returns the prompt while the rewind completes (LTO from end-of-tape: 30–90s)</span>
+<span class="c"># Wait for the background job to finish before the next step</span>
+<span class="kw">wait</span></div>
+        <p class="note">Other useful <code>tctl</code> operations on the same drive: <code>status</code> (drive busy/ready, block size, position), <code>rewind</code> (to BOT), <code>offline</code> (rewind and unload/eject), <code>fsf N</code> (forward-space N file marks), <code>bsf N</code> (back-space N file marks), <code>weof N</code> (write a file mark — rarely needed by hand).</p>
+      </div>
+    </div>
+
+    <div class="step ph-tape">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">12</span>
+        <span class="step-title">3c · Run mksysb to /dev/rmt1</span>
+        <span class="step-tag tag-ok">CREATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="c"># -i        generate fresh image.data</span>
+<span class="c"># -X        auto-extend any work filesystems</span>
+<span class="c"># -p        no pack</span>
+<span class="c"># -e        honour /etc/exclude.rootvg if present</span>
+<span class="kw">mksysb</span> <span class="flag">-i</span> <span class="flag">-X</span> <span class="flag">-p</span> /dev/<span class="ph">rmt1</span></div>
+        <p class="note"><code>mksysb</code> writes four sections to tape, in order: (1) BOS boot image — kernel + minimal install kernel, (2) <code>mkinsttape</code> image — install scripts, (3) dummy TOC, (4) the actual rootvg backup in <code>backbyname</code> format. This four-section layout is what makes the tape bootable from SMS, and is also why a single-file extract requires <code>fsf 3</code> (skip three file marks to reach section 4).</p>
+        <p class="note">Typical runtime: tape-speed limited. LTO-7/8 native ~300 MB/s, so a 60 GB rootvg lands around 4–8 minutes plus tape mechanics (load, BOT seek, write, file marks).</p>
+      </div>
+    </div>
+
+    <div class="step ph-tape">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">13</span>
+        <span class="step-title">3d · Verify the tape — TOC and spot-check</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="c"># Rewind first — verification reads from BOT</span>
+<span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> rewind
+
+<span class="c"># Show table of contents from tape</span>
+<span class="kw">lsmksysb</span> <span class="flag">-lf</span> /dev/<span class="ph">rmt1</span> | <span class="kw">head</span> <span class="flag">-40</span>
+
+<span class="c"># Spot-check a known file (read-only)</span>
+<span class="kw">restore</span> <span class="flag">-Tvqf</span> /dev/<span class="ph">rmt1</span> ./etc/passwd</div>
+        <p class="note">A valid tape returns the same <code>image.data</code> / <code>bosinst.data</code> / file tree as a file-based image. If <code>lsmksysb</code> errors with <code>0511-…</code> block-size or read errors, the drive was not in variable block mode at write time — re-check <code>lsattr -El rmt1 -a block_size</code> and recreate the tape from scratch.</p>
+      </div>
+    </div>
+
+    <div class="step ph-tape">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">14</span>
+        <span class="step-title">3e · Eject and label</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" id="c14"><button class="copy-btn" onclick="copy('c14',this)">COPY</button><span class="c"># Rewind and unload</span>
+<span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> offline</div>
+        <p class="note">Label with: hostname, OS level (<code>oslevel -s</code>), date, and rootvg used size. Store with the corresponding <code>bosinst</code> record / customer ticket — without this metadata, restore-side decisions (which tape, which level, what's missing) become guesswork.</p>
+      </div>
+    </div>
+
+    <div class="step ph-tape">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">15</span>
+        <span class="step-title">3f · Restore from tape — full rootvg or single file</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-info"><strong>Boot from tape (full rootvg restore):</strong> insert tape, power-cycle into SMS (key 1 / 5 depending on platform), then <em>Select Boot Options</em> → <em>Install/Boot Device</em> → <em>Tape</em> → select the rmt drive. Tape boots into the BOS install menus — pick <em>Install with Settings</em> and follow the migration / overwrite path.</p>
+        <div class="cmd" id="c15"><button class="copy-btn" onclick="copy('c15',this)">COPY</button><span class="c"># Restore a single file from tape</span>
+<span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> rewind
+
+<span class="c"># mksysb image is the 4th file on tape — skip the first 3 file marks</span>
+<span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> fsf <span class="str">3</span>
+<span class="kw">restore</span> <span class="flag">-xvqf</span> /dev/<span class="ph">rmt1</span> ./<span class="ph">path/to/file</span></div>
+        <p class="note"><code>fsf 3</code> is non-negotiable for tape extracts — sections 1–3 (boot image, mkinsttape, dummy TOC) must be skipped to land on the <code>backbyname</code> data. Forgetting this gives a "garbage" read because <code>restore</code> tries to interpret the boot image as a backup archive.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 5 — RESTORE QUICK REFERENCE ════ -->
+  <div class="phase-label"><span>Restore</span> Quick reference</div>
+  <div class="steps">
+    <div class="step ph-ref open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">16</span>
+        <span class="step-title">Restore paths by target</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="flag-table">
+          <tr><th>Target</th><th>How</th></tr>
+          <tr><td>Full rootvg, same machine</td><td>Boot from NIM (<code>bos_inst</code>), tape, or boot media → SMS → select the <code>mksysb</code> image source.</td></tr>
+          <tr><td>Alternate disk, same machine</td><td><code>alt_disk_mksysb -m /backup/host_YYYYMMDD.mksysb -d hdiskN</code> — installs in parallel without disturbing the running rootvg.</td></tr>
+          <tr><td>Different machine</td><td>NIM <code>bos_inst</code> with <code>mksysb</code> resource (cloning). Verify license, hostname, and IP after first boot.</td></tr>
+          <tr><td>Single file (file image)</td><td><code>restore -xvqf /backup/img.mksysb ./path/to/file</code></td></tr>
+          <tr><td>Single file (tape)</td><td><code>tctl -f /dev/rmt1 rewind; tctl -f /dev/rmt1 fsf 3; restore -xvqf /dev/rmt1 ./path</code></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 6 — COMMON FAILURES ════ -->
+  <div class="phase-label"><span>Failures</span> Common errors and fixes</div>
+  <div class="steps">
+    <div class="step ph-fail">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">17</span>
+        <span class="step-title">Symptom → cause → fix</span>
+        <span class="step-tag tag-caution">CAUTION</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="flag-table">
+          <tr><th>Symptom</th><th>Cause / Fix</th></tr>
+          <tr><td><code>0512-026 mkszfile: rootvg has no boot LV</code></td><td><code>hd5</code> missing or wrong type. <code>bosboot -ad /dev/ipldevice</code>; recreate <code>hd5</code> if needed.</td></tr>
+          <tr><td><code>mksysb: 0512-046 Filesystem cannot be expanded</code></td><td><code>/backup</code> full and <code>-X</code> not set. Add <code>-X</code>, or grow <code>/backup</code> first.</td></tr>
+          <tr><td>NIM define returns <code>0042-001 ... cannot reach client</code></td><td><code>nimsh</code> not running on client, or firewall blocking 3901/3902. <code>startsrc -s nimsh</code>; open the firewall.</td></tr>
+          <tr><td><code>mksysb</code> runs but resulting file is small</td><td>Source filesystem unmounted mid-run. Ensure <code>/</code>, <code>/usr</code>, <code>/var</code> are mounted; rerun.</td></tr>
+          <tr><td>Restore boots but applications missing</td><td>App data lives on a non-rootvg VG. <code>mksysb</code> is rootvg-only — capture other VGs with <code>savevg</code>.</td></tr>
+          <tr><td>Tape <code>mksysb</code> writes OK but tape won't boot in SMS / <code>lsmksysb</code> errors</td><td><code>block_size</code> non-zero on <code>rmt1</code>. <code>chdev -l rmt1 -a block_size=0</code>; rewind; recreate the tape.</td></tr>
+          <tr><td><code>tctl: 0506-901 ... I/O error</code></td><td>Tape not loaded, drive offline, or wrong device path. <code>lsdev -Cc tape</code>; load tape; confirm <code>/dev/rmt1</code> vs <code>rmt0</code>.</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SUMMARY TABLE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Command Summary</div>
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; animation: fadeUp .4s .5s ease both; opacity:0;">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Purpose</th></tr>
+      <tr><td>mksysb -i -X -p /backup/img</td><td>Create local image with auto-extend, fresh image.data, no pack</td></tr>
+      <tr><td>lsmksysb -lf /backup/img</td><td>List image contents (table of contents)</td></tr>
+      <tr><td>lsmksysb -f /backup/img -B</td><td>Verify image (volume group + image data)</td></tr>
+      <tr><td>restore -Tvqf /backup/img</td><td>Show TOC without extracting</td></tr>
+      <tr><td>restore -xvqf /backup/img ./etc/hosts</td><td>Extract one file from a file image</td></tr>
+      <tr><td>nim -o define -t mksysb -a mk_image=yes ...</td><td>Master-driven remote mksysb to a NIM resource</td></tr>
+      <tr><td>nimclient -o define -t mksysb -a mk_image=yes ...</td><td>Client-initiated equivalent over nimsh</td></tr>
+      <tr><td>chdev -l rmt1 -a block_size=0</td><td>Set tape drive to variable block size (required for mksysb)</td></tr>
+      <tr><td>tctl -f /dev/rmt1 rewind &amp;</td><td>Rewind tape in background; pair with <code>wait</code></td></tr>
+      <tr><td>tctl -f /dev/rmt1 status</td><td>Show tape drive status / position</td></tr>
+      <tr><td>tctl -f /dev/rmt1 offline</td><td>Rewind and unload (eject) tape</td></tr>
+      <tr><td>mksysb -i -X -p /dev/rmt1</td><td>Create a bootable mksysb tape</td></tr>
+      <tr><td>alt_disk_mksysb -m img -d hdiskN</td><td>Restore image to alternate disk on same machine</td></tr>
+      <tr><td>nim -o bos_inst -a source=mksysb ...</td><td>Network-install a client from a mksysb resource</td></tr>
+    </table>
+  </div>
+
+  <!-- Warnings -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li><code>mksysb</code> captures <strong>rootvg only</strong>. Non-rootvg VGs (application data, database volumes, user home filesystems on separate VGs) need <code>savevg</code> — a "successful" mksysb that misses the apps is the most-common post-restore complaint.</li>
+      <li><code>/etc/exclude.rootvg</code> is honoured only when <code>-e</code> is passed. The file uses regex against the full path with paths anchored as <code>^./tmp/</code>; a missing leading <code>^./</code> usually means the rule does nothing.</li>
+      <li>NIM define needs <code>mk_image=yes</code> to actually capture a fresh image. Without it, <code>nim -o define -t mksysb</code> only registers an existing file as a resource — easy to misdiagnose because the command returns success either way.</li>
+      <li>Tape <code>mksysb</code> requires <code>block_size=0</code> (variable) on <code>rmt1</code>. A fixed block size produces a tape that <code>lsmksysb</code> cannot read and SMS cannot boot — the single most common tape gotcha.</li>
+      <li>A tape <code>mksysb</code> writes four sections in order: BOS boot, <code>mkinsttape</code>, dummy TOC, and the actual <code>backbyname</code> archive. Single-file extracts require <code>tctl ... fsf 3</code> to skip the first three file marks before <code>restore -x</code>.</li>
+      <li>Always <code>tctl ... rewind</code> before writing or verifying a tape. <code>mksysb</code> writes from BOT — a non-rewound tape appends at the wrong position or errors out.</li>
+      <li>Run <code>lppchk -v</code> before every snapshot. A <code>mksysb</code> of a broken-fileset state restores broken; the image is faithful to the running system, defects included.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>AIX · Administration · System Backup</span>
+  <span>mksysb · nimclient · tctl · restore</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+
+  document.querySelectorAll('.ctrl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      document.querySelectorAll('.step').forEach(s => {
+        if (action === 'expand') s.classList.add('open');
+        else s.classList.remove('open');
+      });
+    });
+  });
+</script>
+</body>
+</html>
