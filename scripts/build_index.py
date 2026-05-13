@@ -32,7 +32,7 @@ PLACEHOLDERS: dict[str, list[tuple[str, str, str]]] = {
         ("storage",         "Storage",         "Coming soon — node and cluster storage management, expansion, and capacity planning."),
         ("policies",        "Policies",        "Coming soon — protection policy design, retention tuning, and SLA management."),
         ("user_management", "User Management", "Coming soon — local users, RBAC roles, AD/LDAP integration, and access control."),
-        ("support",         "Support",         "Coming soon — log gathering, support bundles, and escalation procedures."),
+        ("support",         "Support",         "Coming soon — log gathering, support bundles, patching and license renewals."),
     ],
 }
 
