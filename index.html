@@ -19,7 +19,6 @@
     --amber:     #f0a30a;
     --red:       #e05c5c;
     --purple:    #a78bfa;
-    --pink:      #f472b6;
     --text:      #c9d1d9;
     --text-dim:  #6e7e91;
     --text-hi:   #e6edf3;
@@ -210,7 +209,6 @@
   .accent-backup  { background: var(--green);   box-shadow: 0 0 6px var(--green); }
   .accent-ref     { background: var(--purple);  box-shadow: 0 0 6px var(--purple); }
   .accent-vtl     { background: var(--red);     box-shadow: 0 0 6px var(--red); }
-  .accent-cohesity{ background: var(--pink);    box-shadow: 0 0 6px var(--pink); }
   .accent-sec     { background: var(--text-dim); }
 
   .grid {
@@ -252,11 +250,6 @@
   .card-backup:hover::before  { background: var(--green); }
   .card-ref:hover::before     { background: var(--purple); }
   .card-vtl:hover::before     { background: var(--red); }
-  .card-cohesity:hover::before{ background: var(--pink); }
-
-  .card-placeholder { cursor: default; opacity: 0.55; }
-  .card-placeholder:hover { transform: none; background: var(--surface); border-color: var(--border); }
-  .card-placeholder:hover::before { width: 2px; background: var(--border-hi); }
 
   .card-tag {
     font-family: 'IBM Plex Mono', monospace;
@@ -499,58 +492,6 @@
         <p>TSM/Spectrum Protect storage pool design — SSD-backed primary pools tiered to cloud object storage (COS) for cost-efficient retention.</p>
         <div class="card-foot"><span>TSM server and stgpool setup.html</span><span class="arrow">→</span></div>
       </a>
-    </div>
-  </section>
-
-  <section class="section" data-cat="cohesity">
-    <div class="section-head">
-      <span class="accent accent-cohesity"></span>
-      <h3>Cohesity</h3>
-      <span class="count">coming soon</span>
-    </div>
-    <div class="grid">
-      <div class="card card-cohesity card-placeholder" data-search="cohesity backups protection jobs recovery">
-        <div class="card-tag">cohesity · backups</div>
-        <h4>Backups</h4>
-        <p>Coming soon — protection jobs, schedules, and recovery workflows on Cohesity DataProtect.</p>
-        <div class="card-foot"><span>backups/</span><span class="arrow">·</span></div>
-      </div>
-      <div class="card card-cohesity card-placeholder" data-search="cohesity smart files smartfiles s3 nfs smb views">
-        <div class="card-tag">cohesity · smart_files</div>
-        <h4>Smart Files</h4>
-        <p>Coming soon — SmartFiles views (NFS, SMB, S3) provisioning and operational runbooks.</p>
-        <div class="card-foot"><span>smart_files/</span><span class="arrow">·</span></div>
-      </div>
-      <div class="card card-cohesity card-placeholder" data-search="cohesity network vlan ip dns hostname interface">
-        <div class="card-tag">cohesity · network</div>
-        <h4>Network</h4>
-        <p>Coming soon — VLAN, IP, hostname, and DNS configuration on Cohesity clusters.</p>
-        <div class="card-foot"><span>network/</span><span class="arrow">·</span></div>
-      </div>
-      <div class="card card-cohesity card-placeholder" data-search="cohesity storage node cluster capacity expansion">
-        <div class="card-tag">cohesity · storage</div>
-        <h4>Storage</h4>
-        <p>Coming soon — node and cluster storage management, expansion, and capacity planning.</p>
-        <div class="card-foot"><span>storage/</span><span class="arrow">·</span></div>
-      </div>
-      <div class="card card-cohesity card-placeholder" data-search="cohesity policies protection policy retention sla">
-        <div class="card-tag">cohesity · policies</div>
-        <h4>Policies</h4>
-        <p>Coming soon — protection policy design, retention tuning, and SLA management.</p>
-        <div class="card-foot"><span>policies/</span><span class="arrow">·</span></div>
-      </div>
-      <div class="card card-cohesity card-placeholder" data-search="cohesity user management rbac ad ldap access roles">
-        <div class="card-tag">cohesity · user_management</div>
-        <h4>User Management</h4>
-        <p>Coming soon — local users, RBAC roles, AD/LDAP integration, and access control.</p>
-        <div class="card-foot"><span>user_management/</span><span class="arrow">·</span></div>
-      </div>
-      <div class="card card-cohesity card-placeholder" data-search="cohesity support logs bundle escalation case">
-        <div class="card-tag">cohesity · support</div>
-        <h4>Support</h4>
-        <p>Coming soon — log gathering, support bundles, and escalation procedures.</p>
-        <div class="card-foot"><span>support/</span><span class="arrow">·</span></div>
-      </div>
     </div>
   </section>
 
