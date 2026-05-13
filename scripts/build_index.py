@@ -15,12 +15,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 CATEGORIES: dict[str, dict] = {
-    "aix":       {"name": "AIX",       "accent": "aix",    "order": 1},
-    "linux":     {"name": "Linux",     "accent": "linux",  "order": 2},
-    "backup":    {"name": "Backup",    "accent": "backup", "order": 3},
-    "reference": {"name": "Reference", "accent": "ref",    "order": 4},
-    "vtl":       {"name": "VTL",       "accent": "vtl",    "order": 5},
-    "security":  {"name": "Security",  "accent": "sec",    "order": 6},
+    "aix":       {"name": "AIX",       "accent": "aix",      "order": 1},
+    "linux":     {"name": "Linux",     "accent": "linux",    "order": 2},
+    "backup":    {"name": "Backup",    "accent": "backup",   "order": 3},
+    "cohesity":  {"name": "Cohesity",  "accent": "cohesity", "order": 4},
+    "reference": {"name": "Reference", "accent": "ref",      "order": 5},
+    "vtl":       {"name": "VTL",       "accent": "vtl",      "order": 6},
+    "security":  {"name": "Security",  "accent": "sec",      "order": 7},
+}
+
+PLACEHOLDERS: dict[str, list[tuple[str, str, str]]] = {
+    "cohesity": [
+        ("backups",         "Backups",         "Coming soon — protection jobs, schedules, and recovery workflows on Cohesity DataProtect."),
+        ("smart_files",     "Smart Files",     "Coming soon — SmartFiles views (NFS, SMB, S3) provisioning and operational runbooks."),
+        ("network",         "Network",         "Coming soon — VLAN, IP, hostname, and DNS configuration on Cohesity clusters."),
+        ("storage",         "Storage",         "Coming soon — node and cluster storage management, expansion, and capacity planning."),
+        ("policies",        "Policies",        "Coming soon — protection policy design, retention tuning, and SLA management."),
+        ("user_management", "User Management", "Coming soon — local users, RBAC roles, AD/LDAP integration, and access control."),
+        ("support",         "Support",         "Coming soon — log gathering, support bundles, and escalation procedures."),
+    ],
 }
 
 SKIP_DIRS  = {".git", ".github", "node_modules", "scripts", "docs"}
@@ -84,6 +97,39 @@ def build_card(entry: dict) -> str:
     )
 
 
+def build_placeholder_card(cat_key: str, subdir: str, title: str, desc: str) -> str:
+    accent = CATEGORIES.get(cat_key, {}).get("accent", "sec")
+    tag    = f'{cat_key} · {subdir}'
+    search = f'{title} {tag} {desc}'.lower()
+    return (
+        f'      <div class="card card-{accent} card-placeholder" '
+        f'data-search="{html.escape(search, quote=True)}">\n'
+        f'        <div class="card-tag">{html.escape(tag)}</div>\n'
+        f'        <h4>{html.escape(title)}</h4>\n'
+        f'        <p>{html.escape(desc)}</p>\n'
+        f'        <div class="card-foot"><span>{html.escape(subdir)}/</span>'
+        f'<span class="arrow">·</span></div>\n'
+        f'      </div>'
+    )
+
+
+def build_placeholder_section(cat_key: str, cards_data: list[tuple[str, str, str]]) -> str:
+    cat   = CATEGORIES.get(cat_key, {"name": cat_key.capitalize(), "accent": "sec"})
+    cards = "\n".join(build_placeholder_card(cat_key, sub, title, desc) for sub, title, desc in cards_data)
+    return (
+        f'  <section class="section" data-cat="{cat_key}">\n'
+        f'    <div class="section-head">\n'
+        f'      <span class="accent accent-{cat["accent"]}"></span>\n'
+        f'      <h3>{html.escape(cat["name"])}</h3>\n'
+        f'      <span class="count">coming soon</span>\n'
+        f'    </div>\n'
+        f'    <div class="grid">\n'
+        f'{cards}\n'
+        f'    </div>\n'
+        f'  </section>'
+    )
+
+
 def build_section(cat_key: str, entries: list[dict]) -> str:
     cat   = CATEGORIES.get(cat_key, {"name": cat_key.capitalize(), "accent": "sec"})
     count = f"{len(entries):02d}"
@@ -126,12 +172,20 @@ def main() -> None:
     for cat in grouped:
         grouped[cat].sort(key=lambda e: e["title"].lower())
 
+    all_cat_keys = set(grouped.keys()) | set(PLACEHOLDERS.keys())
     sorted_cats = sorted(
-        grouped.keys(),
+        all_cat_keys,
         key=lambda c: (CATEGORIES.get(c, {}).get("order", 99), c),
     )
 
-    sections_html = "\n\n".join(build_section(c, grouped[c]) for c in sorted_cats)
+    section_blocks: list[str] = []
+    for c in sorted_cats:
+        if c in grouped:
+            section_blocks.append(build_section(c, grouped[c]))
+        else:
+            section_blocks.append(build_placeholder_section(c, PLACEHOLDERS[c]))
+
+    sections_html = "\n\n".join(section_blocks)
     total = len(entries)
     runbook_word = "RUNBOOK" if total == 1 else "RUNBOOKS"
 
@@ -159,6 +213,7 @@ STYLES = """  :root {
     --amber:     #f0a30a;
     --red:       #e05c5c;
     --purple:    #a78bfa;
+    --pink:      #f472b6;
     --text:      #c9d1d9;
     --text-dim:  #6e7e91;
     --text-hi:   #e6edf3;
@@ -349,6 +404,7 @@ STYLES = """  :root {
   .accent-backup  { background: var(--green);   box-shadow: 0 0 6px var(--green); }
   .accent-ref     { background: var(--purple);  box-shadow: 0 0 6px var(--purple); }
   .accent-vtl     { background: var(--red);     box-shadow: 0 0 6px var(--red); }
+  .accent-cohesity{ background: var(--pink);    box-shadow: 0 0 6px var(--pink); }
   .accent-sec     { background: var(--text-dim); }
 
   .grid {
@@ -390,6 +446,11 @@ STYLES = """  :root {
   .card-backup:hover::before  { background: var(--green); }
   .card-ref:hover::before     { background: var(--purple); }
   .card-vtl:hover::before     { background: var(--red); }
+  .card-cohesity:hover::before{ background: var(--pink); }
+
+  .card-placeholder { cursor: default; opacity: 0.55; }
+  .card-placeholder:hover { transform: none; background: var(--surface); border-color: var(--border); }
+  .card-placeholder:hover::before { width: 2px; background: var(--border-hi); }
 
   .card-tag {
     font-family: 'IBM Plex Mono', monospace;
