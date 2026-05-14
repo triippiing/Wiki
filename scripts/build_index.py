@@ -24,17 +24,12 @@ CATEGORIES: dict[str, dict] = {
     "security":  {"name": "Security",  "accent": "sec",      "order": 7},
 }
 
-PLACEHOLDERS: dict[str, list[tuple[str, str, str]]] = {
-    "cohesity": [
-        ("backups",         "Backups",         "Coming soon — protection jobs, schedules, and recovery workflows on Cohesity DataProtect."),
-        ("smart_files",     "Smart Files",     "Coming soon — SmartFiles views (NFS, SMB, S3) provisioning and operational runbooks."),
-        ("network",         "Network",         "Coming soon — VLAN, IP, hostname, and DNS configuration on Cohesity clusters."),
-        ("storage",         "Storage",         "Coming soon — node and cluster storage management, expansion, and capacity planning."),
-        ("policies",        "Policies",        "Coming soon — protection policy design, retention tuning, and SLA management."),
-        ("user_management", "User Management", "Coming soon — local users, RBAC roles, AD/LDAP integration, and access control."),
-        ("support",         "Support",         "Coming soon — log gathering, support bundles, patching and license renewals."),
-    ],
-}
+# Categories with no real runbooks yet render a "coming soon" placeholder
+# section instead. Placeholders are all-or-nothing per category: as soon as a
+# category gains its first real page, build_section() takes over and the whole
+# placeholder entry is ignored. Drop a category's entry once it has real
+# content. Currently empty — every category has at least one runbook.
+PLACEHOLDERS: dict[str, list[tuple[str, str, str]]] = {}
 
 SKIP_DIRS  = {".git", ".github", "node_modules", "scripts", "docs"}
 SKIP_FILES = {"index.html"}
