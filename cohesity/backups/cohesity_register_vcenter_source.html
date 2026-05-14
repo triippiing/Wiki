@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register a vSphere (vCenter) Source — Cohesity Cluster</title>
+<meta name="description" content="Operational runbook for registering a new VMware vCenter as a protection source on an on-prem Cohesity cluster — prerequisites, the exact registration option set, post-registration verification, and de-registration rollback.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #13171d;
+    --border:    #1e2530;
+    --border-hi: #2e3a4a;
+    --green:     #39d353;
+    --green-dim: #1f7a30;
+    --cyan:      #58c9e8;
+    --amber:     #f0a30a;
+    --red:       #e05c5c;
+    --purple:    #a78bfa;
+    --text:      #c9d1d9;
+    --text-dim:  #6e7e91;
+    --text-hi:   #e6edf3;
+    --header-h:  56px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── header ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 8px currentColor; }
+    50%      { opacity:.4; box-shadow: 0 0 2px currentColor; }
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .header-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border-hi);
+    padding: 2px 10px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .badge-cyan {
+    color: var(--cyan);
+    border-color: rgba(88,201,232,.4);
+    background: rgba(88,201,232,.06);
+  }
+
+  /* ── layout ── */
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── meta block ── */
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .meta-cell {
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+
+  .meta-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .meta-val {
+    font-size: 13px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .meta-val.bad  { color: var(--red); }
+  .meta-val.warn { color: var(--amber); }
+  .meta-val.ok   { color: var(--green); }
+  .meta-val.info { color: var(--cyan); }
+  .meta-val.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* ── topology card ── */
+  .topology {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 20px;
+    animation: fadeUp .4s .05s ease both;
+    opacity: 0;
+  }
+
+  .host-card {
+    padding: 16px 18px;
+    border-radius: 4px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+  }
+
+  .host-card.master { border-left-color: var(--cyan); }
+  .host-card.client { border-left-color: var(--amber); }
+
+  .host-role {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .host-card.master .host-role { color: var(--cyan); }
+  .host-card.client .host-role { color: var(--amber); }
+
+  .host-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin-bottom: 4px;
+    word-break: break-all;
+  }
+
+  .host-ip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .host-os {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+
+  .arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: center;
+    color: var(--text-dim);
+  }
+
+  .arrow .glyph {
+    font-size: 22px;
+    color: var(--cyan);
+  }
+
+  .arrow .label {
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* ── phase divider ── */
+  .phase-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phase-label span {
+    background: var(--border-hi);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .08em;
+  }
+
+  /* ── sub-heading inside a phase ── */
+  .subhead {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 18px 0 8px;
+  }
+
+  .subhead::before { content: '▸ '; color: var(--cyan); }
+
+  /* ── intro notes ── */
+  .lead {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 8px;
+    animation: fadeUp .4s .1s ease both;
+    opacity: 0;
+  }
+
+  .lead + .lead { margin-top: 8px; }
+
+  .lead .lead-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 6px;
+  }
+
+  .lead p { font-size: 13px; color: var(--text); }
+  .lead code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── checklist ── */
+  .checklist {
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .35s ease both;
+  }
+
+  .checklist li {
+    padding: 11px 18px 11px 42px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .checklist li:last-child { border-bottom: none; }
+
+  .checklist li::before {
+    content: '\2610';
+    position: absolute;
+    left: 18px;
+    top: 10px;
+    color: var(--green);
+    font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .checklist li strong { color: var(--text-hi); }
+
+  .checklist li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── numbered procedure list (UI click-paths) ── */
+  .proc {
+    list-style: none;
+    counter-reset: p;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .proc li {
+    position: relative;
+    padding-left: 30px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  .proc li::before {
+    counter-increment: p;
+    content: counter(p);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--cyan);
+    border: 1px solid var(--border-hi);
+    border-radius: 3px;
+  }
+
+  .proc li strong { color: var(--text-hi); }
+  .proc li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── steps ── */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 0 6px 6px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp .35s ease both;
+  }
+
+  /* phase accent colours */
+  .step.ph-ui       { border-left-color: var(--cyan); }
+  .step.ph-config   { border-left-color: var(--green); }
+  .step.ph-critical { border-left-color: var(--amber); }
+  .step.ph-ref      { border-left-color: var(--purple); }
+  .step.ph-verify   { border-left-color: var(--green); }
+  .step.ph-rollback { border-left-color: var(--amber); }
+
+  .step:nth-child(1) { animation-delay: .04s; }
+  .step:nth-child(2) { animation-delay: .08s; }
+  .step:nth-child(3) { animation-delay: .12s; }
+  .step:nth-child(4) { animation-delay: .16s; }
+  .step:nth-child(5) { animation-delay: .20s; }
+  .step:nth-child(6) { animation-delay: .24s; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+    flex-wrap: wrap;
+  }
+
+  .step-header:hover { background: rgba(255,255,255,.03); }
+  .step.open .step-header { border-bottom-color: var(--border); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 28px;
+  }
+
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-hi);
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .step-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .tag-critical { background: rgba(224,92,92,.15); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
+  .tag-caution  { background: rgba(240,163,10,.12); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
+  .tag-info     { background: rgba(88,201,232,.1);  color: var(--cyan);  border: 1px solid rgba(88,201,232,.25); }
+  .tag-ok       { background: rgba(57,211,83,.1);   color: var(--green); border: 1px solid rgba(57,211,83,.25); }
+
+  .run-on {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    letter-spacing: .05em;
+  }
+
+  .run-on.cohesity { background: rgba(88,201,232,.08); color: var(--cyan);   border: 1px solid rgba(88,201,232,.25); }
+  .run-on.vcenter  { background: rgba(240,163,10,.08); color: var(--amber);  border: 1px solid rgba(240,163,10,.3); }
+  .run-on.cli      { background: rgba(167,139,250,.08); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+
+  .step-chevron {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform .2s;
+  }
+
+  .step.open .step-chevron { transform: rotate(90deg); }
+
+  .step-body {
+    display: none;
+    padding: 16px;
+  }
+
+  .step.open .step-body { display: block; }
+
+  /* ── code blocks ── */
+  .cmd {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .cmd .c    { color: var(--text-dim); }
+  .cmd .kw   { color: var(--cyan); }
+  .cmd .str  { color: var(--green); }
+  .cmd .ph   { color: var(--purple); }
+  .cmd .flag { color: var(--amber); }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border-hi);
+    border: none;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: background .15s, color .15s;
+  }
+
+  .copy-btn:hover { background: var(--cyan); color: #000; }
+  .copy-btn.copied { background: var(--green); color: #000; }
+
+  /* ── notes ── */
+  .note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-left: 2px solid var(--border-hi);
+    line-height: 1.6;
+  }
+
+  .note strong { color: var(--amber); font-weight: 600; }
+  .note code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  .note.note-critical {
+    border-left-color: var(--red);
+    background: rgba(224,92,92,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-critical strong { color: var(--red); }
+
+  .note.note-caution {
+    border-left-color: var(--amber);
+    background: rgba(240,163,10,.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .note.note-info {
+    border-left-color: var(--cyan);
+    background: rgba(88,201,232,.03);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-info strong { color: var(--cyan); }
+
+  .note.note-verify {
+    border-left-color: var(--green);
+    background: rgba(57,211,83,.04);
+    border-radius: 0 4px 4px 0;
+  }
+  .note.note-verify strong { color: var(--green); }
+
+  /* ── reference / key-value table ── */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+
+  .ref-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  .ref-table td:first-child {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .ref-table td:last-child { color: var(--text-dim); }
+  .ref-table tr:last-child td { border-bottom: none; }
+
+  .ref-table code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  /* ── option table (long first column, state pill) ── */
+  .opt-table td:first-child {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12.5px;
+    color: var(--text);
+    white-space: normal;
+  }
+
+  .opt-table td:last-child { color: var(--text-dim); }
+
+  .st-on  { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--green); font-weight: 600; letter-spacing: .05em; }
+  .st-off { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-dim); letter-spacing: .05em; }
+
+  /* ── summary table ── */
+  .summary-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp .4s .5s ease both;
+    opacity: 0;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .summary-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 14px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .summary-table td:first-child {
+    font-size: 12.5px;
+    color: var(--text-hi);
+    font-weight: 600;
+  }
+
+  .summary-table td:nth-child(2) {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+  }
+
+  .summary-table td:last-child {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  /* ── warn box ── */
+  .warn-box {
+    margin-top: 40px;
+    background: rgba(240,163,10,.06);
+    border: 1px solid rgba(240,163,10,.3);
+    border-radius: 6px;
+    padding: 16px 20px;
+    animation: fadeUp .4s .6s ease both;
+    opacity: 0;
+  }
+
+  .warn-box .warn-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .warn-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .warn-box li {
+    font-size: 12.5px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .warn-box li::before { content: '\25B8'; position: absolute; left: 0; color: var(--amber); }
+  .warn-box li code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-hi);
+  }
+
+  .ext-table td a { color: var(--cyan); border-bottom: 1px dotted rgba(88,201,232,.4); }
+  .ext-table td a:hover { border-bottom-style: solid; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: 720px) {
+    .topology { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>Register vCenter Source — Cohesity Cluster</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">VMWARE SOURCE</span>
+    <span class="badge">ON-PREM CLUSTER</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-COH-VMW-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Register vCenter Source</div></div>
+    <div class="meta-cell"><div class="meta-label">Platform</div><div class="meta-val">Cohesity (on-prem cluster)</div></div>
+    <div class="meta-cell"><div class="meta-label">Source Type</div><div class="meta-val info">VMware vCenter</div></div>
+    <div class="meta-cell"><div class="meta-label">Owner</div><div class="meta-val">Unix Backup &amp; Recovery</div></div>
+    <div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">1.0</div></div>
+    <div class="meta-cell"><div class="meta-label">vCenter FQDN</div><div class="meta-val mono">testclust01.mgmt.testcloud.co.uk</div></div>
+    <div class="meta-cell"><div class="meta-label">vCenter IP</div><div class="meta-val mono">192.168.131.111</div></div>
+    <div class="meta-cell"><div class="meta-label">Service Account</div><div class="meta-val mono">miscplatform\cohesitytestuser</div></div>
+    <div class="meta-cell"><div class="meta-label">Transport</div><div class="meta-val mono">TCP 443 (HTTPS)</div></div>
+  </div>
+
+  <!-- Topology -->
+  <div class="topology">
+    <div class="host-card master">
+      <div class="host-role">Cohesity Cluster</div>
+      <div class="host-name">Node IPs + Cluster VIP</div>
+      <div class="host-ip">on-prem</div>
+      <div class="host-os">backup target · initiates registration</div>
+    </div>
+    <div class="arrow">
+      <div class="glyph">&#9472;&#9472;&#9654;</div>
+      <div class="label">register · TCP 443</div>
+    </div>
+    <div class="host-card client">
+      <div class="host-role">VMware vCenter</div>
+      <div class="host-name">testclust01.mgmt.testcloud.co.uk</div>
+      <div class="host-ip">192.168.131.111</div>
+      <div class="host-os">protection source · inventory provider</div>
+    </div>
+  </div>
+
+  <!-- Purpose / Scope -->
+  <div class="lead">
+    <div class="lead-label">Purpose</div>
+    <p>Register a new VMware vCenter as a protection source on the Cohesity cluster. Registering the vCenter lets Cohesity discover the inventory — datacenters, clusters, hosts, datastores, VMs — and apply Protection Groups and policies against it.</p>
+  </div>
+  <div class="lead">
+    <div class="lead-label">Scope</div>
+    <p>Covers registration of a <strong style="color:var(--text-hi);font-weight:600">vCenter Server</strong> source only. Creating Protection Groups, policies, or recovery jobs against the newly registered source is handled by a separate runbook.</p>
+  </div>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Prerequisites</div>
+  <p class="note" style="margin-top:0">Confirm <strong style="color:var(--text-hi)">all</strong> of the following before starting the registration.</p>
+
+  <div class="subhead">Network / Firewall</div>
+  <ul class="checklist">
+    <li>TCP <strong>443</strong> open from the Cohesity cluster Node IPs <em>and</em> the Cluster VIP to the vCenter FQDN / IP.</li>
+    <li>DNS resolution working <strong>in both directions</strong> between Cohesity nodes and the vCenter.</li>
+    <li>NTP in sync between the Cohesity cluster and vCenter — skew <code>&gt; 5 minutes</code> will cause SSO auth failures.</li>
+  </ul>
+
+  <div class="subhead">Service Account</div>
+  <ul class="checklist">
+    <li>A vCenter service account exists with at least the <strong>Cohesity-required vCenter role</strong>. Key privileges include <code>Virtual machine.Snapshot management</code>, <code>Virtual machine.Provisioning</code>, <code>Datastore.Browse / Low-level file operations</code>, <code>Resource.Assign VM to resource pool</code>, <code>VirtualMachine.Interact.*</code>, and <code>Global.Disable methods / Enable methods</code> — full list on Cohesity's <em>VMware Requirements</em> page.</li>
+    <li>Account is <strong>not</strong> subject to a password expiry policy that rotates without notice — or, if it is, the rotation process is integrated with Cohesity credential updates.</li>
+    <li>Credential is stored in the team password vault.</li>
+  </ul>
+
+  <div class="subhead">vCenter Health</div>
+  <ul class="checklist">
+    <li>No in-flight vCenter upgrade.</li>
+    <li>Adequate compute resource available for restore operations.</li>
+  </ul>
+
+  <div class="subhead">Cohesity Side</div>
+  <ul class="checklist">
+    <li>Cluster is on a supported version for the target vCenter version — cross-check the Cohesity Interop matrix.</li>
+    <li>Sufficient capacity headroom on the cluster for the projected ingest of the new vCenter.</li>
+    <li>Logged in to the Cohesity UI as a user with the <strong>Admin</strong> or <strong>Source Admin</strong> role.</li>
+  </ul>
+
+  <p class="note note-critical"><strong>Check the clock first.</strong> A time skew over 5 minutes between the cluster and vCenter causes SSO authentication to fail with a non-obvious error. Verify NTP sync on both sides before troubleshooting anything else during registration.</p>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Reference</span> Source Details (Example)</div>
+  <p class="note note-caution" style="margin-top:0"><strong>Example values.</strong> Replace every value below with the real source values at execution time. The password is retrieved from the vault at execution time and is never written into the runbook.</p>
+  <table class="ref-table">
+    <thead><tr><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>vCenter FQDN</td><td><code>testclust01.mgmt.testcloud.co.uk</code></td></tr>
+      <tr><td>vCenter IP Address</td><td><code>192.168.131.111</code></td></tr>
+      <tr><td>Username</td><td><code>miscplatform\cohesitytestuser</code></td></tr>
+      <tr><td>Password</td><td><em>(retrieve from vault at execution time)</em></td></tr>
+      <tr><td>Source Type</td><td>VMware vCenter</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 2</span> Registration Procedure</div>
+  <div class="steps">
+
+    <div class="step ph-ui open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">01</span>
+        <span class="step-title">Open the Sources page</span>
+        <span class="step-tag tag-info">UI</span>
+        <span class="run-on cohesity">Cohesity UI</span>
+        <span class="step-chevron">&#9654;</span>
+      </div>
+      <div class="step-body">
+        <ol class="proc">
+          <li>Log in to the Cohesity cluster UI: <code>https://&lt;cluster-vip-or-fqdn&gt;</code>.</li>
+          <li>From the left navigation, go to <strong>Data Protection</strong> &rarr; <strong>Sources</strong>.</li>
+          <li>In the top-right corner, click <strong>+ Register</strong> &rarr; <strong>Virtual Machine</strong>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="step ph-ui">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">02</span>
+        <span class="step-title">Choose the source type</span>
+        <span class="step-tag tag-info">UI</span>
+        <span class="run-on cohesity">Cohesity UI</span>
+        <span class="step-chevron">&#9654;</span>
+      </div>
+      <div class="step-body">
+        <ol class="proc">
+          <li>In the <strong>Type</strong> drop-down, select <strong>VMware: vCenter</strong>.</li>
+          <li>Click <strong>Start Registration</strong>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="step ph-config">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">03</span>
+        <span class="step-title">Enter connection details</span>
+        <span class="step-tag tag-caution">CONFIG</span>
+        <span class="run-on cohesity">Cohesity UI</span>
+        <span class="step-chevron">&#9654;</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <thead><tr><th>Field</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>Hostname or IP Address</td><td><code>testclust01.mgmt.testcloud.co.uk</code> <em>(or <code>192.168.131.111</code> if registering by IP)</em></td></tr>
+            <tr><td>Username</td><td><code>miscplatform\cohesitytestuser</code></td></tr>
+            <tr><td>Password</td><td><em>retrieve from vault</em></td></tr>
+          </tbody>
+        </table>
+        <p class="note note-info"><strong>FQDN preferred:</strong> register by FQDN where DNS allows — it survives an IP change and matches the vCenter certificate SAN. Register by IP only where name resolution to the vCenter is not available from the cluster.</p>
+      </div>
+    </div>
+
+    <div class="step ph-critical open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">04</span>
+        <span class="step-title">Configure registration options</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on cohesity">Cohesity UI</span>
+        <span class="step-chevron">&#9654;</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-critical"><strong>Set the toggles exactly as below.</strong> Any toggle not listed must remain in its <strong style="color:var(--text-hi)">default OFF</strong> state.</p>
+        <table class="ref-table opt-table">
+          <thead><tr><th>Option</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td>Detect VM migration across vCenter to preserve backup chain</td><td><span class="st-on">ON</span></td></tr>
+            <tr><td>Use VM BIOS UUID to track virtual machines</td><td><span class="st-on">ON</span></td></tr>
+            <tr><td>Auto Cancel Backups if Datastore is running low on space</td><td><span class="st-on">ON</span></td></tr>
+            <tr><td>Cap concurrent streams per Datastore</td><td><span class="st-off">OFF</span></td></tr>
+            <tr><td>Cap concurrent VM Backups</td><td><span class="st-off">OFF</span></td></tr>
+            <tr><td>Set Last Backup detail (custom attributes on VM in vCenter)</td><td><span class="st-off">OFF</span></td></tr>
+            <tr><td><em>any other option not listed</em></td><td><span class="st-off">OFF</span></td></tr>
+          </tbody>
+        </table>
+        <p class="note note-info"><strong>Auto Cancel — threshold:</strong> when <em>Auto Cancel Backups if Datastore is running low on space</em> is enabled you must set a threshold. Cohesity recommends setting it by <strong style="color:var(--text-hi)">percentage</strong> rather than GiB — percentage auto-scales as the datastore grows or shrinks and applies cleanly to VMs with disks spanning multiple datastores. Default recommendation: <code>10%</code> free space minimum, adjusted to local datastore sizing.</p>
+      </div>
+    </div>
+
+    <div class="step ph-ref">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">05</span>
+        <span class="step-title">Rationale for the three enabled options</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="run-on cohesity">Cohesity UI</span>
+        <span class="step-chevron">&#9654;</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table opt-table">
+          <thead><tr><th>Option</th><th>Why it is enabled</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Detect VM migration across vCenter</td>
+              <td>If a VM is migrated (cross-vCenter vMotion, Storage vMotion across linked vCenters, etc.) Cohesity recognises it as the same VM and continues the existing backup chain rather than seeding a brand-new full backup. Saves ingest, capacity, and runtime.</td>
+            </tr>
+            <tr>
+              <td>Use VM BIOS UUID to track VMs</td>
+              <td>BIOS UUID is more stable than MoRef or Instance UUID across VM re-registration, vCenter rebuild, and certain DR scenarios — improves chain continuity and avoids accidental reseeds. <strong>Caveat:</strong> if any VMs in this vCenter have duplicate BIOS UUIDs (sometimes seen after clone-without-regenerate) tracking becomes ambiguous — see Key Notes.</td>
+            </tr>
+            <tr>
+              <td>Auto Cancel Backups on low datastore space</td>
+              <td>Prevents Cohesity-initiated VMware snapshots from consuming the last free space in a datastore and stunning / crashing production VMs. This is a safety-rail option and should be <strong>always on</strong>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="step ph-config">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">06</span>
+        <span class="step-title">Complete registration</span>
+        <span class="step-tag tag-caution">CONFIG</span>
+        <span class="run-on cohesity">Cohesity UI</span>
+        <span class="step-chevron">&#9654;</span>
+      </div>
+      <div class="step-body">
+        <ol class="proc">
+          <li>Click <strong>Register</strong> (or <strong>Complete</strong>, depending on cluster UI version).</li>
+          <li>Wait for the source status to move from <code>Registering</code> &rarr; <code>Online</code>.</li>
+        </ol>
+        <p class="note note-info"><strong>Discovery time:</strong> initial inventory discovery may take several minutes for large vCenters. A source that sits in <code>Registering</code> well beyond that points back to a Phase 1 prerequisite — most often NTP skew, a firewall gap, or insufficient role privileges.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Phase 3</span> Post-Registration Verification</div>
+  <p class="note" style="margin-top:0">Perform <strong style="color:var(--text-hi)">all</strong> of the following before declaring the registration successful.</p>
+
+  <div class="subhead">UI checks</div>
+  <ul class="checklist">
+    <li><strong>Sources</strong> page shows the new vCenter with status <strong>Online</strong> / <strong>Healthy</strong>.</li>
+    <li>Drill into the source and confirm the inventory tree populates (Datacenters &rarr; Clusters &rarr; Hosts &rarr; VMs / Datastores).</li>
+    <li>No red error banners or auth warnings on the source detail page.</li>
+    <li>Under source <strong>Settings</strong>, confirm the three options from Step 04 are toggled <strong>ON</strong> and no others.</li>
+  </ul>
+
+  <div class="subhead">vCenter side</div>
+  <ul class="checklist">
+    <li>In vCenter, confirm <code>cohesitytestuser</code> has an active session and was authorised against the expected role.</li>
+    <li>Check vCenter Events for any permission-denied entries against the Cohesity service account during the discovery window.</li>
+  </ul>
+
+  <div class="subhead">Connectivity smoke test (optional)</div>
+  <div class="cmd" id="c-nc"><button class="copy-btn" onclick="copy('c-nc',this)">COPY</button><span class="c"># From a Cohesity node (via support shell or iris_cli) — confirm reachability</span>
+<span class="kw">nc</span> <span class="flag">-vz</span> testclust01.mgmt.testcloud.co.uk <span class="str">443</span></div>
+
+  <div class="subhead">Record keeping</div>
+  <ul class="checklist">
+    <li>Update the Backup Source register / CMDB with the new vCenter entry.</li>
+    <li>Log the change ticket reference against this runbook execution.</li>
+  </ul>
+
+  <!-- ════ ROLLBACK ════ -->
+  <div class="phase-label"><span>Rollback</span> Rollback / De-registration</div>
+  <div class="steps">
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">RB.1</span>
+        <span class="step-title">De-register the vCenter source</span>
+        <span class="step-tag tag-caution">ROLLBACK</span>
+        <span class="run-on cohesity">Cohesity UI</span>
+        <span class="step-chevron">&#9654;</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Back out the registration if the wrong vCenter was registered, the credential is incorrect, or the scope decision is reversed.</p>
+        <ol class="proc">
+          <li>Cohesity UI &rarr; <strong>Data Protection</strong> &rarr; <strong>Sources</strong>.</li>
+          <li>Locate the vCenter, click the three-dot menu &rarr; <strong>Unregister</strong>.</li>
+          <li>Confirm. Any Protection Groups referencing this source must be deleted or repointed first &mdash; Cohesity will block unregistration otherwise.</li>
+          <li>Verify the source is no longer listed.</li>
+          <li>In vCenter, optionally disable the <code>cohesitytestuser</code> session / remove the role binding if the credential was provisioned solely for this attempt.</li>
+        </ol>
+        <p class="note note-critical"><strong>Snapshots are not deleted.</strong> Unregistering a source does <strong>not</strong> delete the existing backup snapshots already on the cluster &mdash; those remain subject to their retention policy. If snapshots must also be purged, that is a separate, deliberate action with its own change approval.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ QUICK REFERENCE ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Quick Reference</span> Registration Option Set</div>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><th>Option</th><th>State</th><th>Reason</th></tr>
+      <tr><td>Detect VM migration across vCenter</td><td><span class="st-on">ON</span></td><td>Continues the existing backup chain after vMotion / SvMotion instead of reseeding a full</td></tr>
+      <tr><td>Use VM BIOS UUID to track VMs</td><td><span class="st-on">ON</span></td><td>Stable VM identity across re-registration / vCenter rebuild — watch for duplicate UUIDs</td></tr>
+      <tr><td>Auto Cancel Backups on low datastore space</td><td><span class="st-on">ON</span></td><td>Safety rail — stops snapshots filling a datastore and stunning prod VMs; threshold by %, ~10%</td></tr>
+      <tr><td>Cap concurrent streams per Datastore</td><td><span class="st-off">OFF</span></td><td>Default</td></tr>
+      <tr><td>Cap concurrent VM Backups</td><td><span class="st-off">OFF</span></td><td>Default</td></tr>
+      <tr><td>Set Last Backup detail (vCenter custom attributes)</td><td><span class="st-off">OFF</span></td><td>Default</td></tr>
+      <tr><td>Any other option not listed</td><td><span class="st-off">OFF</span></td><td>Leave at default</td></tr>
+    </table>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">&#9888; Key Notes</div>
+    <ul>
+      <li>NTP skew over 5 minutes between the cluster and vCenter causes SSO authentication to fail with a non-obvious error. Verify time sync before troubleshooting anything else.</li>
+      <li>Set the Step 04 toggles exactly: three <code>ON</code>, everything else <code>OFF</code>. Drift here changes backup-chain behaviour silently.</li>
+      <li><code>Use VM BIOS UUID to track VMs</code> improves chain continuity but breaks on duplicate BIOS UUIDs — typically clones that did not regenerate their UUID. Resolve duplicates in vCenter before relying on it.</li>
+      <li><code>Auto Cancel Backups on low datastore space</code> is a safety rail — always on. Set the threshold by percentage (~10% free), not GiB, so it auto-scales and handles multi-datastore disks.</li>
+      <li>Unregistration is blocked while any Protection Group still references the source — delete or repoint those Protection Groups first.</li>
+      <li>Unregistering a source does <strong>not</strong> delete existing snapshots; retention policy still applies. Purging snapshots is a separate, change-approved action.</li>
+      <li>Watch the service account for silent password rotation — keep the vault entry current, or Cohesity discovery will start failing without warning.</li>
+      <li>Creating Protection Groups, policies, and recovery jobs against this source is out of scope here — covered by a separate runbook.</li>
+    </ul>
+  </div>
+
+  <!-- ════ REFERENCES ════ -->
+  <div class="phase-label" style="margin-top:40px"><span>Reference</span> References &amp; Links</div>
+  <table class="ref-table ext-table">
+    <thead><tr><th>Resource</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><a href="https://docs.cohesity.com/baas/data-protect/register-vmware-sources.htm" target="_blank" rel="noopener">Cohesity Docs — Register VMware Sources</a></td>
+        <td>SaaS variant — kept as the closest published reference for the option set; some options are on-prem-cluster only</td>
+      </tr>
+      <tr>
+        <td>Cohesity Docs — VMware Requirements</td>
+        <td>Supported versions, ports, and the required vCenter privilege list</td>
+      </tr>
+      <tr>
+        <td>Internal — Backup Source Register / CMDB</td>
+        <td>Record the new vCenter entry here post-registration</td>
+      </tr>
+      <tr>
+        <td>Internal — Cohesity Credential Vault</td>
+        <td>Vault entry for <code>miscplatform\cohesitytestuser</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<footer>
+  <span>RB-COH-VMW-001 &middot; Register vCenter Source &middot; Cohesity on-prem cluster</span>
+  <span>VMware vCenter &middot; Unix Backup &amp; Recovery &middot; v1.0</span>
+</footer>
+
+<script>
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+</script>
+</body>
+</html>
