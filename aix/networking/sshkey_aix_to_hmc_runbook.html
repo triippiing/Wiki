@@ -2,587 +2,268 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SSH Key Auth — trips-testlab → drhmc01</title>
 <meta name="description" content="Setting up passwordless SSH from an AIX LPAR to the HMC for scripted operations — keygen, key distribution, and verification.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="keywords" content="ssh ssh-keygen mkauthkeys hmc hscroot passwordless aix authorized_keys">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/css/tokens.css">
+<link rel="stylesheet" href="../../assets/css/runbook.css">
 <style>
-  :root {
-    --bg: #0d1117;
-    --bg-elev: #161b22;
-    --bg-elev2: #1c2128;
-    --border: #30363d;
-    --border-strong: #484f58;
-    --text: #e6edf3;
-    --text-dim: #8d96a0;
-    --text-faint: #6e7681;
-    --accent-collector: #58a6ff;
-    --accent-hmc: #f0883e;
-    --accent-success: #3fb950;
-    --accent-warn: #d29922;
-    --accent-error: #f85149;
-    --code-bg: #010409;
-    --hover: #21262d;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    font-family: 'IBM Plex Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    font-size: 15px;
-    padding: 0;
-    min-height: 100vh;
-  }
-
-  .container {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 60px 40px 100px;
-  }
-
-  /* HEADER */
-  .doc-header {
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 40px;
-    margin-bottom: 50px;
-  }
-
-  .doc-meta {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--text-faint);
-    margin-bottom: 24px;
-  }
-
-  .doc-meta .pill {
-    background: var(--bg-elev2);
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    border-radius: 3px;
-  }
-
-  .doc-meta .pill.live { color: var(--accent-success); border-color: var(--accent-success); }
-
-  h1 {
-    font-family: 'IBM Plex Serif', serif;
-    font-size: 42px;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-    margin-bottom: 16px;
-  }
-
-  .subtitle {
-    color: var(--text-dim);
-    font-size: 17px;
-    max-width: 700px;
-  }
-
-  /* CONNECTION DIAGRAM */
+  /* ── topology diagram (bespoke — communicates the two-host setup) ── */
   .topology {
-    background: var(--bg-elev);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 6px;
-    padding: 32px;
-    margin-bottom: 50px;
+    padding: 24px;
+    margin-bottom: 40px;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 24px;
+    gap: 20px;
+    animation: fadeUp .4s ease both;
   }
 
   .host-card {
-    padding: 20px;
+    padding: 16px;
     border-radius: 4px;
-    background: var(--bg-elev2);
-    border-left: 3px solid var(--border);
+    background: #080a0d;
+    border-left: 3px solid var(--border-hi);
   }
 
-  .host-card.collector { border-left-color: var(--accent-collector); }
-  .host-card.hmc { border-left-color: var(--accent-hmc); }
+  .host-card.collector { border-left-color: var(--cyan); }
+  .host-card.hmc       { border-left-color: var(--amber); }
 
   .host-role {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--text-faint);
+    letter-spacing: .12em;
+    color: var(--text-dim);
     margin-bottom: 8px;
   }
 
-  .host-card.collector .host-role { color: var(--accent-collector); }
-  .host-card.hmc .host-role { color: var(--accent-hmc); }
+  .host-card.collector .host-role { color: var(--cyan); }
+  .host-card.hmc       .host-role { color: var(--amber); }
 
   .host-name {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    margin-bottom: 4px;
+    color: var(--text-hi);
+    margin-bottom: 2px;
   }
 
   .host-ip {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-dim);
   }
 
   .host-os {
     margin-top: 10px;
     font-size: 12px;
-    color: var(--text-faint);
+    color: var(--text-dim);
+    line-height: 1.5;
   }
 
   .arrow {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 24px;
-    color: var(--text-faint);
+    font-size: 22px;
+    color: var(--cyan);
     text-align: center;
   }
-
-  .arrow div:first-child { color: var(--accent-collector); }
   .arrow .label {
+    display: block;
     font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--text-faint);
+    letter-spacing: .1em;
+    color: var(--text-dim);
     margin-top: 4px;
-  }
-
-  /* SECTION */
-  .section {
-    margin-bottom: 60px;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: baseline;
-    gap: 16px;
-    margin-bottom: 24px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .section-num {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 14px;
-    color: var(--text-faint);
-    font-weight: 600;
-  }
-
-  h2 {
-    font-family: 'IBM Plex Serif', serif;
-    font-size: 26px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
-
-  .section-sub {
-    margin-left: auto;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--text-faint);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
   }
 
-  /* STEP */
-  .step {
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 16px;
-    overflow: hidden;
+  @media (max-width: 700px) {
+    .topology { grid-template-columns: 1fr; gap: 12px; }
+    .arrow { transform: rotate(90deg); }
   }
 
-  .step-header {
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-elev2);
-  }
+  /* ── run-on tag (bespoke — semantic to this two-host runbook) ── */
+  .tag-collector { background: rgba( 88,201,232,.10); color: var(--cyan);  border: 1px solid rgba( 88,201,232,.30); }
+  .tag-hmc       { background: rgba(240,163, 10,.12); color: var(--amber); border: 1px solid rgba(240,163, 10,.30); }
 
-  .step-num {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    font-weight: 600;
-    background: var(--bg);
-    padding: 4px 10px;
-    border-radius: 3px;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-  }
+  /* ── step phase accents ── */
+  .step.ph-prereq  { border-left-color: var(--border-hi); }
+  .step.ph-keygen  { border-left-color: var(--cyan); }
+  .step.ph-config  { border-left-color: var(--cyan); }
+  .step.ph-upload  { border-left-color: var(--amber); }
+  .step.ph-verify  { border-left-color: var(--green); }
+  .step.ph-trouble { border-left-color: var(--purple); }
+  .step.ph-rollback{ border-left-color: var(--red); }
 
-  .step-title {
-    font-weight: 600;
-    font-size: 16px;
-    flex: 1;
-  }
-
-  .run-on {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    padding: 4px 10px;
-    border-radius: 3px;
-    font-weight: 500;
-  }
-
-  .run-on.collector {
-    background: rgba(88, 166, 255, 0.15);
-    color: var(--accent-collector);
-    border: 1px solid rgba(88, 166, 255, 0.3);
-  }
-
-  .run-on.hmc {
-    background: rgba(240, 136, 62, 0.15);
-    color: var(--accent-hmc);
-    border: 1px solid rgba(240, 136, 62, 0.3);
-  }
-
-  .step-body {
-    padding: 20px;
-  }
-
-  .step-body p {
-    margin-bottom: 14px;
-    color: var(--text);
-  }
-
-  .step-body p:last-child { margin-bottom: 0; }
-
-  .step-body code {
-    font-family: 'IBM Plex Mono', monospace;
-    background: var(--bg);
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-size: 13px;
-    color: var(--accent-collector);
-    border: 1px solid var(--border);
-  }
-
-  /* CODE BLOCKS */
-  .code-block {
-    background: var(--code-bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    margin: 16px 0;
-    overflow: hidden;
-  }
-
-  .code-header {
-    background: var(--bg-elev2);
-    padding: 8px 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-  }
-
-  .code-header .prompt {
-    color: var(--text-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  .copy-btn {
-    background: transparent;
-    border: 1px solid var(--border-strong);
-    color: var(--text-dim);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 3px 8px;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .copy-btn:hover {
-    background: var(--hover);
-    color: var(--text);
-    border-color: var(--text-dim);
-  }
-
-  .copy-btn.copied {
-    color: var(--accent-success);
-    border-color: var(--accent-success);
-  }
-
-  pre {
-    padding: 16px 18px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--text);
-    overflow-x: auto;
-    white-space: pre;
-  }
-
-  pre .comment { color: var(--text-faint); }
-  pre .prompt-char { color: var(--accent-success); user-select: none; }
-  pre .keyword { color: var(--accent-collector); }
-  pre .string { color: #a5d6ff; }
-
-  /* CALLOUTS */
-  .callout {
-    border-left: 3px solid var(--border-strong);
-    background: var(--bg-elev);
-    padding: 14px 18px;
-    margin: 16px 0;
-    border-radius: 0 4px 4px 0;
-    font-size: 14px;
-  }
-
-  .callout.info { border-left-color: var(--accent-collector); }
-  .callout.warn { border-left-color: var(--accent-warn); }
-  .callout.danger { border-left-color: var(--accent-error); }
-  .callout.success { border-left-color: var(--accent-success); }
-
-  .callout-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-
-  .callout.info .callout-label { color: var(--accent-collector); }
-  .callout.warn .callout-label { color: var(--accent-warn); }
-  .callout.danger .callout-label { color: var(--accent-error); }
-  .callout.success .callout-label { color: var(--accent-success); }
-
-  /* VERIFICATION */
-  .verify-box {
-    border: 1px dashed var(--accent-success);
-    background: rgba(63, 185, 80, 0.05);
-    padding: 14px 18px;
-    border-radius: 4px;
-    margin: 16px 0;
-    font-size: 14px;
-  }
-
-  .verify-box .label {
-    color: var(--accent-success);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-bottom: 6px;
-    font-weight: 600;
-  }
-
-  /* TROUBLESHOOTING TABLE */
+  /* ── troubleshooting table (bespoke — three-column diagnostic table) ── */
   .ts-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
-    margin: 16px 0;
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
+    font-size: 12.5px;
+    margin-top: 10px;
   }
 
   .ts-table th {
-    text-align: left;
-    padding: 12px 16px;
-    background: var(--bg-elev2);
-    border-bottom: 1px solid var(--border);
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
+    font-size: 10px;
+    letter-spacing: .1em;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
     color: var(--text-dim);
-    font-weight: 600;
+    text-align: left;
+    padding: 8px 12px;
+    background: #080a0d;
+    border-bottom: 1px solid var(--border);
   }
 
   .ts-table td {
-    padding: 12px 16px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     vertical-align: top;
   }
 
+  .ts-table td:first-child { color: var(--text-hi); width: 30%; }
+  .ts-table td:nth-child(2) { color: var(--text); width: 30%; }
+  .ts-table td:last-child { color: var(--text-dim); }
   .ts-table tr:last-child td { border-bottom: none; }
 
   .ts-table code {
     font-family: 'IBM Plex Mono', monospace;
-    background: var(--bg);
-    padding: 1px 6px;
+    font-size: 11.5px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 5px;
     border-radius: 3px;
-    font-size: 12px;
-    color: var(--accent-warn);
-    border: 1px solid var(--border);
-  }
-
-  /* FOOTER */
-  .doc-footer {
-    margin-top: 80px;
-    padding-top: 30px;
-    border-top: 1px solid var(--border);
-    color: var(--text-faint);
-    font-size: 13px;
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  /* PRINT */
-  @media print {
-    body { background: white; color: black; font-size: 11pt; }
-    .container { max-width: none; padding: 20px; }
-    .copy-btn { display: none; }
-    .step, .topology, .code-block, .ts-table { break-inside: avoid; }
-  }
-
-  @media (max-width: 700px) {
-    .container { padding: 30px 20px; }
-    h1 { font-size: 30px; }
-    .topology { grid-template-columns: 1fr; gap: 16px; }
-    .arrow { transform: rotate(90deg); }
+    color: var(--amber);
   }
 </style>
 </head>
 <body>
-<div class="container">
 
-  <!-- HEADER -->
-  <header class="doc-header">
-    <div class="doc-meta">
-      <span class="pill live">● Active</span>
-      <span class="pill">REV 1.0</span>
-      <span class="pill">OWNER: BACKUP &amp; RECOVERY</span>
-      <span>Last reviewed: 2026-04-22</span>
-    </div>
-    <h1>SSH Key-Based Authentication</h1>
-    <p class="subtitle">Runbook for establishing passwordless SSH from a management host (trips-testlab) to an IBM HMC (drhmc01) for unattended monitoring and automation.</p>
-  </header>
+<header>
+  <div class="logo-dot" style="color:var(--cyan)"></div>
+  <h1>SSH Key Auth — trips-testlab → drhmc01</h1>
+  <div class="header-badges">
+    <span class="badge badge-cyan">RUNBOOK</span>
+    <span class="badge">passwordless ssh</span>
+  </div>
+</header>
 
-  <!-- TOPOLOGY -->
+<div class="wrap">
+
+  <!-- Meta -->
+  <div class="meta">
+    <div class="meta-cell"><div class="meta-label">Source</div><div class="meta-val info">trips-testlab</div></div>
+    <div class="meta-cell"><div class="meta-label">Target</div><div class="meta-val warn">drhmc01 (HMC)</div></div>
+    <div class="meta-cell"><div class="meta-label">User</div><div class="meta-val">root → hscroot</div></div>
+    <div class="meta-cell"><div class="meta-label">Key type</div><div class="meta-val">RSA 4096, no passphrase</div></div>
+    <div class="meta-cell"><div class="meta-label">Owner</div><div class="meta-val">Backup &amp; Recovery</div></div>
+    <div class="meta-cell"><div class="meta-label">Last reviewed</div><div class="meta-val ok">2026-04-22</div></div>
+  </div>
+
+  <p class="note note-info" style="margin-top:0; margin-bottom:32px;">Runbook for establishing passwordless SSH from a management host (<code>trips-testlab</code>) to an IBM HMC (<code>drhmc01</code>) for unattended monitoring and automation. The HMC's restricted shell means <code>ssh-copy-id</code> won't work — use <code>mkauthkeys</code> instead.</p>
+
+  <!-- Topology (bespoke) -->
   <div class="topology">
     <div class="host-card collector">
-      <div class="host-role">Source / Collector</div>
+      <div class="host-role">Source · Collector</div>
       <div class="host-name">trips-testlab</div>
       <div class="host-ip">192.168.131.135</div>
-      <div class="host-os">AIX management host · Originates SSH session as root</div>
+      <div class="host-os">AIX management host · originates SSH session as root</div>
     </div>
     <div class="arrow">
-      <div>──▶</div>
-      <div class="label">SSH / 22</div>
+      ──▶
+      <span class="label">SSH / 22</span>
     </div>
     <div class="host-card hmc">
-      <div class="host-role">Destination / Target</div>
+      <div class="host-role">Destination · Target</div>
       <div class="host-name">drhmc01</div>
       <div class="host-ip">192.168.131.150</div>
-      <div class="host-os">IBM HMC V9R2 · Restricted shell · User hscroot</div>
+      <div class="host-os">IBM HMC V9R2 · restricted shell · user hscroot</div>
     </div>
   </div>
 
-  <!-- PREREQS -->
-  <section class="section">
-    <div class="section-header">
-      <span class="section-num">00</span>
-      <h2>Prerequisites</h2>
-      <span class="section-sub">Confirm before starting</span>
-    </div>
-    <div class="step">
+  <!-- Expand/collapse controls -->
+  <div class="controls">
+    <button class="ctrl-btn" data-action="expand">Expand all</button>
+    <button class="ctrl-btn" data-action="collapse">Collapse all</button>
+  </div>
+
+  <!-- ════ STEP 0 ════ -->
+  <div class="phase-label"><span>Step 0</span> Prerequisites</div>
+  <div class="steps">
+    <div class="step ph-prereq open">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">00</span>
+        <span class="step-title">Confirm reachability, credentials, and access</span>
+        <span class="step-tag tag-info">REFERENCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
       <div class="step-body">
-        <p>Verify the following before commencing:</p>
-        <p>• <strong>Network reachability</strong> on TCP/22 from <code>192.168.131.135</code> to <code>192.168.131.150</code>.</p>
-        <p>• <strong>hscroot password</strong> available — required once for the initial key upload.</p>
-        <p>• <strong>Root access</strong> on trips-testlab (or whichever local user will run the automation).</p>
-        <p>• <strong>An SCP/PuTTY session</strong> to the HMC for paste operations.</p>
+        <p class="note">Verify the following before commencing:</p>
+        <ul style="list-style:none; margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+          <li>· <strong>Network reachability</strong> on TCP/22 from <code>192.168.131.135</code> to <code>192.168.131.150</code>.</li>
+          <li>· <strong>hscroot password</strong> available — required once for the initial key upload.</li>
+          <li>· <strong>Root access</strong> on trips-testlab (or whichever local user will run the automation).</li>
+          <li>· <strong>An SCP/PuTTY session</strong> to the HMC for paste operations.</li>
+        </ul>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- STEP 1 -->
-  <section class="section">
-    <div class="section-header">
-      <span class="section-num">01</span>
-      <h2>Generate the SSH key pair</h2>
-      <span class="section-sub">trips-testlab</span>
-    </div>
-
-    <div class="step">
-      <div class="step-header">
+  <!-- ════ STEP 1 ════ -->
+  <div class="phase-label"><span>Step 1</span> Generate the SSH key pair</div>
+  <div class="steps">
+    <div class="step ph-keygen">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">1.1</span>
-        <span class="step-title">Create the directory if it does not already exist</span>
-        <span class="run-on collector">Run on trips-testlab</span>
+        <span class="step-title">Create the <code>~/.ssh</code> directory with strict permissions</span>
+        <span class="step-tag tag-collector">trips-testlab</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p>The <code>~/.ssh</code> directory must exist with strict permissions before key generation.</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">#</span> mkdir -p ~/.ssh
-<span class="prompt-char">#</span> chmod 700 ~/.ssh</pre>
-        </div>
+        <p class="note">The <code>~/.ssh</code> directory must exist with mode <code>700</code> before key generation, or ssh will refuse to use the keys.</p>
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="c"># run as root on trips-testlab</span>
+<span class="kw">mkdir</span> <span class="flag">-p</span> ~/.ssh
+<span class="kw">chmod</span> <span class="str">700</span> ~/.ssh</div>
       </div>
     </div>
 
-    <div class="step">
-      <div class="step-header">
+    <div class="step ph-keygen">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">1.2</span>
-        <span class="step-title">Generate a dedicated RSA key pair (no passphrase)</span>
-        <span class="run-on collector">Run on trips-testlab</span>
+        <span class="step-title">Generate a dedicated RSA 4096 keypair, no passphrase</span>
+        <span class="step-tag tag-collector">trips-testlab</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p>A dedicated key isolated from any pre-existing keys. The empty passphrase is required for unattended cron execution; key security is enforced via filesystem permissions.</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">#</span> ssh-keygen -t rsa -b 4096 \
-    -C <span class="string">"hmc_monitor@trips-testlab"</span> \
-    -f ~/.ssh/hmc_monitor_rsa \
-    -N <span class="string">""</span></pre>
-        </div>
-        <div class="callout warn">
-          <div class="callout-label">⚠ Passphrase</div>
-          When prompted, leave the passphrase empty by pressing Enter twice. A passphrase will block unattended execution under cron.
-        </div>
-        <div class="verify-box">
-          <div class="label">✓ Verify</div>
-          <code>ls -l ~/.ssh/hmc_monitor_rsa*</code> — should show two files: private key (mode <code>600</code>) and public key (<code>.pub</code>, mode <code>644</code>).
-        </div>
+        <p class="note">A dedicated key isolated from any pre-existing keys. Empty passphrase is required for unattended cron execution — security is enforced by filesystem permissions.</p>
+        <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="kw">ssh-keygen</span> <span class="flag">-t</span> <span class="str">rsa</span> <span class="flag">-b</span> <span class="str">4096</span> \
+    <span class="flag">-C</span> <span class="str">"hmc_monitor@trips-testlab"</span> \
+    <span class="flag">-f</span> ~/.ssh/hmc_monitor_rsa \
+    <span class="flag">-N</span> <span class="str">""</span></div>
+        <p class="note note-caution"><strong>Passphrase:</strong> when prompted, leave empty by pressing Enter twice. A passphrase will block unattended execution under cron.</p>
+        <p class="note note-success"><strong>Verify:</strong> <code>ls -l ~/.ssh/hmc_monitor_rsa*</code> — should show two files: private key (mode <code>600</code>) and public key <code>.pub</code> (mode <code>644</code>).</p>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- STEP 2 -->
-  <section class="section">
-    <div class="section-header">
-      <span class="section-num">02</span>
-      <h2>Configure SSH client alias</h2>
-      <span class="section-sub">trips-testlab</span>
-    </div>
-
-    <div class="step">
-      <div class="step-header">
+  <!-- ════ STEP 2 ════ -->
+  <div class="phase-label"><span>Step 2</span> Configure SSH client alias</div>
+  <div class="steps">
+    <div class="step ph-config">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">2.1</span>
         <span class="step-title">Add a host alias to <code>~/.ssh/config</code></span>
-        <span class="run-on collector">Run on trips-testlab</span>
+        <span class="step-tag tag-collector">trips-testlab</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p>This allows the script to reference <code>drhmc01</code> by its short alias and have SSH automatically apply the correct user, IP, key file, and connection options.</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">#</span> cat &gt;&gt; ~/.ssh/config &lt;&lt;<span class="string">'EOF'</span>
+        <p class="note">Lets the script reference <code>drhmc01</code> by its short alias and have SSH automatically apply the correct user, IP, key, and connection options.</p>
+        <div class="cmd" id="c21"><button class="copy-btn" onclick="copy('c21',this)">COPY</button><span class="kw">cat</span> &gt;&gt; ~/.ssh/config &lt;&lt;<span class="str">'EOF'</span>
 
 Host drhmc01
     HostName 192.168.131.150
@@ -594,248 +275,215 @@ Host drhmc01
     BatchMode yes
 EOF
 
-<span class="prompt-char">#</span> chmod 600 ~/.ssh/config</pre>
-        </div>
-        <div class="callout info">
-          <div class="callout-label">ℹ Why IdentitiesOnly yes</div>
-          Without this, SSH will offer every key in the agent before falling back to the configured key. HMCs may lock out hscroot after several failed attempts, so we want only the designated key to be presented.
-        </div>
+<span class="kw">chmod</span> <span class="str">600</span> ~/.ssh/config</div>
+        <p class="note note-info"><strong>Why <code>IdentitiesOnly yes</code>:</strong> without it, SSH offers every key in the agent before falling back to the configured key. HMCs lock out <code>hscroot</code> after several failed attempts — we want only the designated key to be presented.</p>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- STEP 3 -->
-  <section class="section">
-    <div class="section-header">
-      <span class="section-num">03</span>
-      <h2>Upload the public key to the HMC</h2>
-      <span class="section-sub">drhmc01</span>
-    </div>
-
-    <div class="step">
-      <div class="step-header">
+  <!-- ════ STEP 3 ════ -->
+  <div class="phase-label"><span>Step 3</span> Upload the public key to the HMC</div>
+  <div class="steps">
+    <div class="step ph-upload">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">3.1</span>
-        <span class="step-title">Display the public key contents on the source host</span>
-        <span class="run-on collector">Run on trips-testlab</span>
+        <span class="step-title">Display the public key on the source host</span>
+        <span class="step-tag tag-collector">trips-testlab</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p>Print the contents of the public key so it can be copied. Select the entire output as a single line — it must not contain any line breaks when transferred.</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">#</span> cat ~/.ssh/hmc_monitor_rsa.pub</pre>
-        </div>
-        <p>Expected format (will be a single long line):</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">Output</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="comment">ssh-rsa AAAAB3NzaC1yc2EAAA...</span>(very long string)<span class="comment">... hmc_monitor@trips-testlab</span></pre>
-        </div>
+        <p class="note">Print the public key so it can be copied. Select the entire output as a single line — no line breaks when transferred.</p>
+        <div class="cmd" id="c31"><button class="copy-btn" onclick="copy('c31',this)">COPY</button><span class="kw">cat</span> ~/.ssh/hmc_monitor_rsa.pub</div>
+        <p class="note">Expected output format — a single very long line:</p>
+        <div class="cmd" id="c31b"><button class="copy-btn" onclick="copy('c31b',this)">COPY</button><span class="c">ssh-rsa AAAAB3NzaC1yc2EAAA...(very long string)... hmc_monitor@trips-testlab</span></div>
       </div>
     </div>
 
-    <div class="step">
-      <div class="step-header">
+    <div class="step ph-upload">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">3.2</span>
         <span class="step-title">SSH to the HMC interactively (last password-required step)</span>
-        <span class="run-on collector">Run on trips-testlab</span>
+        <span class="step-tag tag-collector">trips-testlab</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p>Authenticate with the hscroot password one final time to register the key.</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">#</span> ssh hscroot@192.168.131.150</pre>
-        </div>
-        <div class="callout danger">
-          <div class="callout-label">✕ Do not use ssh-copy-id</div>
-          The HMC's restricted shell does not support <code>ssh-copy-id</code>'s mechanism for appending to <code>authorized_keys</code>. The HMC-native <code>mkauthkeys</code> command must be used instead.
-        </div>
+        <p class="note">Authenticate with the <code>hscroot</code> password one final time to register the key.</p>
+        <div class="cmd" id="c32"><button class="copy-btn" onclick="copy('c32',this)">COPY</button><span class="kw">ssh</span> hscroot@192.168.131.150</div>
+        <p class="note note-critical"><strong>Do not use <code>ssh-copy-id</code>:</strong> the HMC's restricted shell does not support its mechanism for appending to <code>authorized_keys</code>. Use the HMC-native <code>mkauthkeys</code> instead (next step).</p>
       </div>
     </div>
 
-    <div class="step">
-      <div class="step-header">
+    <div class="step ph-upload">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">3.3</span>
-        <span class="step-title">Register the public key with mkauthkeys</span>
-        <span class="run-on hmc">Run on drhmc01</span>
+        <span class="step-title">Register the public key with <code>mkauthkeys</code></span>
+        <span class="step-tag tag-hmc">drhmc01</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p>From the HMC prompt, paste the full public key as the argument to <code>mkauthkeys -a</code>. Wrap it in double quotes so the comma and trailing comment are preserved.</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">hscroot@drhmc01:~&gt;</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">$</span> mkauthkeys -a <span class="string">"ssh-rsa AAAAB3Nza...full_key... hmc_monitor@trips-testlab"</span></pre>
-        </div>
-        <p>Replace the example string above with the actual key copied in step 3.1.</p>
-        <div class="verify-box">
-          <div class="label">✓ Verify</div>
-          <code>mkauthkeys --ls</code> — your key should appear in the list. Inspect the comment field at the end (<code>hmc_monitor@trips-testlab</code>) to confirm the correct key was added.
-        </div>
+        <p class="note">From the HMC prompt, paste the full public key as the argument to <code>mkauthkeys -a</code>. Wrap in double quotes so the comma and trailing comment are preserved.</p>
+        <div class="cmd" id="c33"><button class="copy-btn" onclick="copy('c33',this)">COPY</button><span class="kw">mkauthkeys</span> <span class="flag">-a</span> <span class="str">"ssh-rsa AAAAB3Nza...full_key... hmc_monitor@trips-testlab"</span></div>
+        <p class="note">Replace the example string above with the actual key copied in 3.1.</p>
+        <p class="note note-success"><strong>Verify:</strong> <code>mkauthkeys --ls</code> — your key should appear in the list. Inspect the trailing comment (<code>hmc_monitor@trips-testlab</code>) to confirm the correct key was added.</p>
       </div>
     </div>
 
-    <div class="step">
-      <div class="step-header">
+    <div class="step ph-upload">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">3.4</span>
         <span class="step-title">Exit the HMC session</span>
-        <span class="run-on hmc">Run on drhmc01</span>
+        <span class="step-tag tag-hmc">drhmc01</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">hscroot@drhmc01:~&gt;</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">$</span> exit</pre>
-        </div>
+        <div class="cmd" id="c34"><button class="copy-btn" onclick="copy('c34',this)">COPY</button><span class="kw">exit</span></div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- STEP 4 -->
-  <section class="section">
-    <div class="section-header">
-      <span class="section-num">04</span>
-      <h2>Verify passwordless authentication</h2>
-      <span class="section-sub">trips-testlab</span>
-    </div>
-
-    <div class="step">
-      <div class="step-header">
+  <!-- ════ STEP 4 ════ -->
+  <div class="phase-label"><span>Step 4</span> Verify passwordless authentication</div>
+  <div class="steps">
+    <div class="step ph-verify">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">4.1</span>
         <span class="step-title">Test connection using the configured alias</span>
-        <span class="run-on collector">Run on trips-testlab</span>
+        <span class="step-tag tag-collector">trips-testlab</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p>This single command exercises the full chain: SSH config alias resolution → key selection → HMC authentication → remote command execution.</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">#</span> ssh drhmc01 lshmc -V</pre>
-        </div>
-        <div class="callout success">
-          <div class="callout-label">✓ Expected behaviour</div>
-          The HMC version block should print immediately, with <strong>no password prompt</strong>. If the command returns the version, key authentication is fully functional.
-        </div>
+        <p class="note">This single command exercises the full chain: config alias → key selection → HMC authentication → remote command.</p>
+        <div class="cmd" id="c41"><button class="copy-btn" onclick="copy('c41',this)">COPY</button><span class="kw">ssh</span> drhmc01 lshmc <span class="flag">-V</span></div>
+        <p class="note note-success"><strong>Expected:</strong> the HMC version block prints immediately, <strong>no password prompt</strong>. If the command returns the version, key authentication is fully functional.</p>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- TROUBLESHOOTING -->
-  <section class="section">
-    <div class="section-header">
-      <span class="section-num">05</span>
-      <h2>Troubleshooting</h2>
-      <span class="section-sub">If verification fails</span>
-    </div>
-
-    <div class="step">
+  <!-- ════ STEP 5 ════ -->
+  <div class="phase-label"><span>Step 5</span> Troubleshooting</div>
+  <div class="steps">
+    <div class="step ph-trouble">
+      <div class="step-header" onclick="toggle(this)">
+        <span class="step-num">5.1</span>
+        <span class="step-title">Verbose SSH auth trace + symptom-to-fix table</span>
+        <span class="step-tag tag-caution">DIAGNOSE</span>
+        <span class="step-chevron">▶</span>
+      </div>
       <div class="step-body">
-        <p>For verbose output to diagnose the auth flow:</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">#</span> ssh -vvv drhmc01 lshmc -V 2&gt;&amp;1 | grep -E <span class="string">"(Offering|Authentication|denied|accept)"</span></pre>
-        </div>
+        <p class="note">For verbose output diagnosing the auth flow:</p>
+        <div class="cmd" id="c51"><button class="copy-btn" onclick="copy('c51',this)">COPY</button><span class="kw">ssh</span> <span class="flag">-vvv</span> drhmc01 lshmc <span class="flag">-V</span> 2&gt;&amp;1 | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">"(Offering|Authentication|denied|accept)"</span></div>
 
         <table class="ts-table">
           <thead>
-            <tr><th>Symptom</th><th>Likely Cause</th><th>Resolution</th></tr>
+            <tr><th>Symptom</th><th>Likely cause</th><th>Resolution</th></tr>
           </thead>
           <tbody>
             <tr>
               <td>Prompts for password despite key being present</td>
               <td>Key not registered on HMC, or wrong key being offered</td>
-              <td>Re-run <code>mkauthkeys --ls</code> on HMC; ensure key matches <code>~/.ssh/hmc_monitor_rsa.pub</code> on collector</td>
+              <td><code>mkauthkeys --ls</code> on HMC; ensure key matches <code>~/.ssh/hmc_monitor_rsa.pub</code> on collector</td>
             </tr>
             <tr>
               <td>Permission denied (publickey)</td>
-              <td>Permissions on private key, ~/.ssh, or ~/.ssh/config are too open</td>
+              <td>Permissions on private key, <code>~/.ssh</code>, or <code>~/.ssh/config</code> too open</td>
               <td><code>chmod 700 ~/.ssh; chmod 600 ~/.ssh/hmc_monitor_rsa ~/.ssh/config</code></td>
             </tr>
             <tr>
               <td>Connection times out</td>
               <td>Firewall blocking TCP/22 or HMC unreachable</td>
-              <td>Test reachability: <code>nc -zv 192.168.131.150 22</code> from trips-testlab</td>
+              <td><code>nc -zv 192.168.131.150 22</code> from trips-testlab</td>
             </tr>
             <tr>
               <td>Host key verification failed</td>
-              <td>HMC was reinstalled / key changed</td>
-              <td><code>ssh-keygen -R 192.168.131.150 ; ssh-keygen -R drhmc01</code> then retry</td>
+              <td>HMC was reinstalled / host key changed</td>
+              <td><code>ssh-keygen -R 192.168.131.150; ssh-keygen -R drhmc01</code> then retry</td>
             </tr>
             <tr>
               <td>Pasted key shows as multiple lines on HMC</td>
               <td>Terminal wrapping during paste</td>
-              <td>Use <code>mkauthkeys --rm</code> to remove malformed entry, then re-paste with quotes ensuring single line</td>
+              <td><code>mkauthkeys --rm</code> the malformed entry, then re-paste with quotes ensuring a single line</td>
             </tr>
             <tr>
               <td><code>mkauthkeys: command not found</code></td>
-              <td>Not on the HMC restricted shell — likely shell escape or wrong host</td>
+              <td>Not on the HMC restricted shell — shell escape or wrong host</td>
               <td>Confirm prompt shows <code>hscroot@drhmc01</code>; reconnect if necessary</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- ROLLBACK -->
-  <section class="section">
-    <div class="section-header">
-      <span class="section-num">06</span>
-      <h2>Rollback procedure</h2>
-      <span class="section-sub">If the key needs to be revoked</span>
-    </div>
-
-    <div class="step">
-      <div class="step-header">
+  <!-- ════ STEP 6 ════ -->
+  <div class="phase-label"><span>Step 6</span> Rollback</div>
+  <div class="steps">
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">6.1</span>
         <span class="step-title">Remove the public key from the HMC</span>
-        <span class="run-on hmc">Run on drhmc01</span>
+        <span class="step-tag tag-hmc">drhmc01</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p>From an interactive hscroot session on the HMC:</p>
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">hscroot@drhmc01:~&gt;</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">$</span> mkauthkeys --ls
-<span class="prompt-char">$</span> mkauthkeys --rm <span class="string">"ssh-rsa AAAA...full_key... hmc_monitor@trips-testlab"</span></pre>
-        </div>
+        <p class="note">From an interactive <code>hscroot</code> session on the HMC:</p>
+        <div class="cmd" id="c61"><button class="copy-btn" onclick="copy('c61',this)">COPY</button><span class="kw">mkauthkeys</span> <span class="flag">--ls</span>
+<span class="kw">mkauthkeys</span> <span class="flag">--rm</span> <span class="str">"ssh-rsa AAAA...full_key... hmc_monitor@trips-testlab"</span></div>
       </div>
     </div>
 
-    <div class="step">
-      <div class="step-header">
+    <div class="step ph-rollback">
+      <div class="step-header" onclick="toggle(this)">
         <span class="step-num">6.2</span>
         <span class="step-title">Remove the keypair on the collector</span>
-        <span class="run-on collector">Run on trips-testlab</span>
+        <span class="step-tag tag-collector">trips-testlab</span>
+        <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="code-block">
-          <div class="code-header"><span class="prompt">root@trips-testlab:~ #</span><button class="copy-btn">Copy</button></div>
-          <pre><span class="prompt-char">#</span> rm -i ~/.ssh/hmc_monitor_rsa ~/.ssh/hmc_monitor_rsa.pub</pre>
-        </div>
-        <p>Optionally remove the alias block from <code>~/.ssh/config</code> if the host is being decommissioned.</p>
+        <div class="cmd" id="c62"><button class="copy-btn" onclick="copy('c62',this)">COPY</button><span class="kw">rm</span> <span class="flag">-i</span> ~/.ssh/hmc_monitor_rsa ~/.ssh/hmc_monitor_rsa.pub</div>
+        <p class="note">Optionally remove the <code>Host drhmc01</code> alias block from <code>~/.ssh/config</code> if the host is being decommissioned.</p>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- FOOTER -->
-  <footer class="doc-footer">
-    <span>Runbook · SSH Key Auth · trips-testlab → drhmc01</span>
-    <span>Generated: 2026-04-22 · IBM HMC V9R2</span>
-  </footer>
+  <!-- Warn box -->
+  <div class="warn-box">
+    <div class="warn-title">▸ Watchouts</div>
+    <ul>
+      <li>Empty passphrase is a deliberate choice for unattended cron — do not add one after the fact without also fixing the caller.</li>
+      <li><code>ssh-copy-id</code> silently fails against HMCs — always use <code>mkauthkeys</code>.</li>
+      <li>If <code>hscroot</code> gets locked out from failed key attempts, the console (physical or remote KVM) is the only recovery path — bring up the account there first.</li>
+      <li>Rotate the keypair when the target host is retired, on a schedule, or after any suspected compromise of trips-testlab.</li>
+    </ul>
+  </div>
 
 </div>
 
+<footer>
+  <span>AIX · Networking · SSH Key Auth</span>
+  <span>trips-testlab → drhmc01 · IBM HMC V9R2</span>
+</footer>
+
 <script>
-  // Copy button handlers
-  document.querySelectorAll('.copy-btn').forEach(btn => {
+  function toggle(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  function copy(id, btn) {
+    const block = document.getElementById(id);
+    const text = block.innerText.replace(/^COPY\n/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+
+  document.querySelectorAll('.ctrl-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const pre = btn.closest('.code-block').querySelector('pre');
-      const text = pre.innerText.replace(/^[#$]\s/gm, '').trim();
-      navigator.clipboard.writeText(text).then(() => {
-        const original = btn.textContent;
-        btn.textContent = 'Copied';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = original;
-          btn.classList.remove('copied');
-        }, 1500);
-      }).catch(() => {
-        btn.textContent = 'Failed';
-        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      const action = btn.dataset.action;
+      document.querySelectorAll('.step').forEach(s => {
+        if (action === 'expand') s.classList.add('open');
+        else s.classList.remove('open');
       });
     });
   });

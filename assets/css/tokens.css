@@ -1,0 +1,46 @@
+/* ──────────────────────────────────────────────────────────────
+   tokens.css — design tokens shared by every runbook.
+   Load BEFORE runbook.css. Fonts still come from the runbook's
+   own <link> to Google Fonts so this file stays offline-safe.
+   ────────────────────────────────────────────────────────────── */
+
+:root {
+  --bg:        #0d0f12;
+  --surface:   #13171d;
+  --border:    #1e2530;
+  --border-hi: #2e3a4a;
+
+  --green:     #39d353;
+  --green-dim: #1f7a30;
+  --cyan:      #58c9e8;
+  --amber:     #f0a30a;
+  --red:       #e05c5c;
+  --purple:    #a78bfa;
+
+  --text:      #c9d1d9;
+  --text-dim:  #6e7e91;
+  --text-hi:   #e6edf3;
+
+  --header-h:  56px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1;  box-shadow: 0 0 8px currentColor; }
+  50%      { opacity: .4; box-shadow: 0 0 2px currentColor; }
+}
