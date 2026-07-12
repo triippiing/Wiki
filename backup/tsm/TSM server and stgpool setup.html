@@ -5,11 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TSM Storage Architecture — SSD + COS Tiered Pools</title>
 <meta name="description" content="TSM/Spectrum Protect storage pool design — SSD-backed primary pools tiered to cloud object storage (COS) for cost-efficient retention.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
-.meta-val.cool { color: var(--purple); }
+.meta-val.cool { color: var(--muted); }
 
   /* ── tier diagram ── */
   .tier-diagram {
@@ -46,13 +49,13 @@
 
   .tier-header .tier-h-cap {
     font-weight: 400;
-    color: var(--text-dim);
+    color: var(--faint);
     letter-spacing: .04em;
   }
 
-  .tier-header.os-h  { color: var(--text-dim); background: rgba(255,255,255,.018); }
-  .tier-header.ssd-h { color: var(--cyan); background: rgba(88,201,232,.06); }
-  .tier-header.cos-h { color: var(--purple); background: rgba(167,139,250,.06); }
+  .tier-header.os-h  { color: var(--faint); background: var(--surface); }
+  .tier-header.ssd-h { color: var(--ochre); background: var(--ochre-tint); }
+  .tier-header.cos-h { color: var(--muted); background: var(--ochre-tint); }
 
   .tier-component {
     padding: 8px 14px;
@@ -67,19 +70,19 @@
 
   .tier-component:last-child { border-bottom: none; }
 
-  .tier-name { color: var(--text); }
+  .tier-name { color: var(--ink-2); }
   .tier-name code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
-    color: var(--text-hi);
-    background: rgba(255,255,255,.06);
+    color: var(--ink);
+    background: var(--sidebar);
     padding: 1px 4px;
     border-radius: 2px;
   }
   .tier-size {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10.5px;
-    color: var(--text-dim);
+    color: var(--faint);
     white-space: nowrap;
   }
 
@@ -87,27 +90,27 @@
     text-align: center;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10.5px;
-    color: var(--text-dim);
+    color: var(--faint);
     margin: -16px 0 32px;
     letter-spacing: .04em;
   }
 
   .tier-flow .arrow {
-    color: var(--purple);
+    color: var(--muted);
     font-weight: 600;
     margin: 0 6px;
   }
 
   /* phase accent colours */
-  .step.ph-plan    { border-left-color: var(--cyan); }
-  .step.ph-fs      { border-left-color: var(--cyan); }
-  .step.ph-dcp     { border-left-color: var(--cyan); }
-  .step.ph-ccp     { border-left-color: var(--purple); }
-  .step.ph-tier    { border-left-color: var(--amber); }
-  .step.ph-db      { border-left-color: var(--amber); }
-  .step.ph-policy  { border-left-color: var(--green); }
-  .step.ph-verify  { border-left-color: var(--green); }
-  .tag-build    { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+  .step.ph-plan    { border-left-color: var(--ochre); }
+  .step.ph-fs      { border-left-color: var(--ochre); }
+  .step.ph-dcp     { border-left-color: var(--ochre); }
+  .step.ph-ccp     { border-left-color: var(--muted); }
+  .step.ph-tier    { border-left-color: var(--rust); }
+  .step.ph-db      { border-left-color: var(--rust); }
+  .step.ph-policy  { border-left-color: var(--sage); }
+  .step.ph-verify  { border-left-color: var(--sage); }
+  .tag-build    { background: var(--ochre-tint); color: var(--muted); border: 1px solid var(--ochre-bd); }
 
   /* ── reference table ── */
   .ref-table {
@@ -125,10 +128,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 7px 12px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -136,13 +139,13 @@
     padding: 7px 12px;
     border-bottom: 1px solid var(--border);
     font-size: 12px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .ref-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
   }
   .ref-table tr:last-child td { border-bottom: none; }
 
@@ -158,10 +161,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -174,27 +177,31 @@
   .summary-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
-  .summary-table td:nth-child(2) { font-size: 12px; color: var(--text); }
-  .summary-table td:last-child { font-size: 12px; color: var(--text-dim); }
+  .summary-table td:nth-child(2) { font-size: 12px; color: var(--ink-2); }
+  .summary-table td:last-child { font-size: 12px; color: var(--faint); }
   .summary-table tr:last-child td { border-bottom: none; }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="logo-dot"></div>
-  <h1>TSM Storage Architecture — SSD + COS Tiered Pools</h1>
-  <div class="header-badges">
-    <span class="badge badge-purple">MULTI-CUSTOMER</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#backup">Backup</a><span class="sep">/</span><a href="../../index.html#backup">TSM</a><span class="sep">/</span>TSM Storage Architecture — SSD + COS Tiered Pools
+  </nav>
+
+  <h1 class="page-title">TSM Storage Architecture — SSD + COS Tiered Pools</h1>
+  <p class="page-sub">TSM/Spectrum Protect storage pool design — SSD-backed primary pools tiered to cloud object storage (COS) for cost-efficient retention.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">MULTI-CUSTOMER</span>
     <span class="badge">DCP + CCP + TIER</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- Meta -->
   <div class="meta">
@@ -232,8 +239,8 @@
       <div class="tier-header cos-h"><span>COS Tier</span><span class="tier-h-cap">cloud object store</span></div>
       <div class="tier-component"><span class="tier-name"><code>CCPOOL_ARCHIVE</code> bucket</span><span class="tier-size">scalable</span></div>
       <div class="tier-component"><span class="tier-name">DB backup off-site bucket</span><span class="tier-size">scalable</span></div>
-      <div class="tier-component" style="color:var(--text-dim)"><span class="tier-name">Aged data — &gt;30 days</span><span class="tier-size">via STGRULE</span></div>
-      <div class="tier-component" style="color:var(--text-dim)"><span class="tier-name">DR-site DB backup</span><span class="tier-size">daily</span></div>
+      <div class="tier-component" style="color:var(--faint)"><span class="tier-name">Aged data — &gt;30 days</span><span class="tier-size">via STGRULE</span></div>
+      <div class="tier-component" style="color:var(--faint)"><span class="tier-name">DR-site DB backup</span><span class="tier-size">daily</span></div>
     </div>
   </div>
 
@@ -792,20 +799,5 @@
   <span>storage architecture / tiering / DR</span>
 </footer>
 
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-</script>
 </body>
 </html>

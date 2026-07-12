@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIX 7.1 → 7.2 Migration · Boot Media</title>
 <meta name="description" content="Single-LPAR AIX 7.1 to 7.2 version migration performed from boot media (HMC virtual optical, physical DVD, or USB stick) by booting the BOS installer in SMS mode and selecting Migration Install. Offline migration; cutover is the install itself, with alt_disk_copy as the rollback.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
 .meta-val.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
 
@@ -29,62 +32,62 @@
   .host-card {
     padding: 16px 18px;
     border-radius: 4px;
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--border-hi);
+    border-left: 3px solid var(--border);
   }
 
-  .host-card.hmc    { border-left-color: var(--purple); }
-  .host-card.client { border-left-color: var(--amber); }
+  .host-card.hmc    { border-left-color: var(--muted); }
+  .host-card.client { border-left-color: var(--rust); }
 
   .host-role {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: .12em;
-    color: var(--text-dim);
+    color: var(--faint);
     margin-bottom: 6px;
   }
 
-  .host-card.hmc    .host-role { color: var(--purple); }
-  .host-card.client .host-role { color: var(--amber); }
+  .host-card.hmc    .host-role { color: var(--muted); }
+  .host-card.client .host-role { color: var(--rust); }
 
   .host-name {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 16px;
     font-weight: 600;
-    color: var(--text-hi);
+    color: var(--ink);
     margin-bottom: 4px;
   }
 
   .host-ip {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .host-os {
     margin-top: 8px;
     font-size: 11.5px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .arrow {
     font-family: 'IBM Plex Mono', monospace;
     text-align: center;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .arrow .glyph {
     font-size: 22px;
-    color: var(--cyan);
+    color: var(--ochre);
   }
 
   .arrow .label {
     font-size: 10px;
     letter-spacing: .12em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     margin-top: 4px;
   }
 
@@ -102,7 +105,7 @@
     padding: 11px 18px 11px 42px;
     position: relative;
     border-bottom: 1px solid var(--border);
-    color: var(--text);
+    color: var(--ink-2);
     font-size: 13px;
   }
 
@@ -113,33 +116,33 @@
     position: absolute;
     left: 18px;
     top: 10px;
-    color: var(--green);
+    color: var(--sage);
     font-size: 14px;
     font-family: 'IBM Plex Mono', monospace;
   }
 
-  .checklist li strong { color: var(--text-hi); }
+  .checklist li strong { color: var(--ink); }
 
   .checklist li code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   /* phase accent colours */
-  .step.ph-prereq   { border-left-color: var(--cyan); }
-  .step.ph-validate { border-left-color: var(--cyan); }
-  .step.ph-stage    { border-left-color: var(--green); }
-  .step.ph-backup   { border-left-color: var(--purple); }
-  .step.ph-sms      { border-left-color: var(--purple); }
-  .step.ph-bos      { border-left-color: var(--red); }
-  .step.ph-install  { border-left-color: var(--red); }
-  .step.ph-verify   { border-left-color: var(--green); }
-  .step.ph-rollback { border-left-color: var(--amber); }
-  .step.ph-cleanup  { border-left-color: var(--text-dim); }
+  .step.ph-prereq   { border-left-color: var(--ochre); }
+  .step.ph-validate { border-left-color: var(--ochre); }
+  .step.ph-stage    { border-left-color: var(--sage); }
+  .step.ph-backup   { border-left-color: var(--muted); }
+  .step.ph-sms      { border-left-color: var(--muted); }
+  .step.ph-bos      { border-left-color: var(--rust); }
+  .step.ph-install  { border-left-color: var(--rust); }
+  .step.ph-verify   { border-left-color: var(--sage); }
+  .step.ph-rollback { border-left-color: var(--rust); }
+  .step.ph-cleanup  { border-left-color: var(--faint); }
 
   .run-on {
     font-family: 'IBM Plex Mono', monospace;
@@ -149,27 +152,27 @@
     letter-spacing: .05em;
   }
 
-  .run-on.client { background: rgba(240,163,10,.08); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
-  .run-on.hmc    { background: rgba(167,139,250,.08); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
-  .run-on.vios   { background: rgba(88,201,232,.08); color: var(--cyan); border: 1px solid rgba(88,201,232,.25); }
-  .run-on.vterm  { background: rgba(224,92,92,.08); color: var(--red); border: 1px solid rgba(224,92,92,.3); }
-  .cmd .pick { color: var(--green); font-weight: 600; }
-  .note.note-critical strong { color: var(--red); }
-  .note.note-info strong { color: var(--cyan); }
+  .run-on.client { background: var(--rust-tint); color: var(--rust); border: 1px solid var(--rust-bd); }
+  .run-on.hmc    { background: var(--ochre-tint); color: var(--muted); border: 1px solid var(--ochre-bd); }
+  .run-on.vios   { background: var(--ochre-tint); color: var(--ochre); border: 1px solid var(--ochre-bd); }
+  .run-on.vterm  { background: var(--rust-tint); color: var(--rust); border: 1px solid var(--rust-bd); }
+  .cmd .pick { color: var(--sage); font-weight: 600; }
+  .note.note-critical strong { color: var(--rust); }
+  .note.note-info strong { color: var(--ochre); }
 
   .note.note-verify {
-    border-left-color: var(--green);
-    background: rgba(57,211,83,.04);
+    border-left-color: var(--sage);
+    background: var(--sage-tint);
     border-radius: 0 4px 4px 0;
   }
-  .note.note-verify strong { color: var(--green); }
+  .note.note-verify strong { color: var(--sage); }
 
   /* ── inline reference table ── */
   .ref-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12.5px;
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
     overflow: hidden;
@@ -181,10 +184,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: rgba(255,255,255,.02);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -192,18 +195,18 @@
     padding: 8px 14px;
     border-bottom: 1px solid var(--border);
     vertical-align: top;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .ref-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
   .ref-table td:last-child {
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .ref-table tr:last-child td { border-bottom: none; }
@@ -211,10 +214,10 @@
   .ref-table code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   /* ── option grid (3-column for boot media options) ── */
@@ -246,47 +249,47 @@
     font-weight: 600;
   }
 
-  .option-header.opt-a { background: rgba(57,211,83,.1);  color: var(--green);  border-bottom: 1px solid rgba(57,211,83,.2); }
-  .option-header.opt-b { background: rgba(240,163,10,.1); color: var(--amber);  border-bottom: 1px solid rgba(240,163,10,.2); }
-  .option-header.opt-c { background: rgba(167,139,250,.1); color: var(--purple); border-bottom: 1px solid rgba(167,139,250,.2); }
+  .option-header.opt-a { background: var(--sage-tint);  color: var(--sage);  border-bottom: 1px solid var(--sage-bd); }
+  .option-header.opt-b { background: var(--rust-tint); color: var(--rust);  border-bottom: 1px solid var(--rust-bd); }
+  .option-header.opt-c { background: var(--ochre-tint); color: var(--muted); border-bottom: 1px solid var(--ochre-bd); }
 
   .option-desc {
     padding: 8px 12px;
     font-size: 12px;
-    color: var(--text-dim);
-    background: #080a0d;
+    color: var(--faint);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
   .option-desc:last-child { border-bottom: none; }
 
-  .option-desc strong { color: var(--text-hi); font-weight: 600; }
+  .option-desc strong { color: var(--ink); font-weight: 600; }
   .option-desc code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   /* ── SMS / BOS menu blocks ── */
   .menu {
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 14px 16px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
     line-height: 1.8;
-    color: var(--text);
+    color: var(--ink-2);
     white-space: pre;
     overflow-x: auto;
     margin: 10px 0;
   }
 
   .menu .menu-title {
-    color: var(--cyan);
+    color: var(--ochre);
     font-size: 11px;
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -296,9 +299,9 @@
     margin-bottom: 8px;
   }
 
-  .menu .pick   { color: var(--green); font-weight: 600; }
-  .menu .danger { color: var(--red); font-weight: 600; }
-  .menu .dim    { color: var(--text-dim); }
+  .menu .pick   { color: var(--sage); font-weight: 600; }
+  .menu .danger { color: var(--rust); font-weight: 600; }
+  .menu .dim    { color: var(--faint); }
 
   /* ── summary table ── */
   .summary-wrap {
@@ -321,10 +324,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -337,18 +340,18 @@
   .summary-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
   .summary-table td:nth-child(2) {
     font-size: 12px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .summary-table td:last-child {
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .summary-table tr:last-child td { border-bottom: none; }
@@ -361,16 +364,20 @@
 </head>
 <body>
 
-<header>
-  <div class="logo-dot"></div>
-  <h1>AIX 7.1 → 7.2 Migration · Boot Media</h1>
-  <div class="header-badges">
-    <span class="badge badge-cyan">BOOT MEDIA</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">Administration</a><span class="sep">/</span>AIX 7.1 → 7.2 Migration · Boot Media
+  </nav>
+
+  <h1 class="page-title">AIX 7.1 → 7.2 Migration · Boot Media</h1>
+  <p class="page-sub">Single-LPAR AIX 7.1 to 7.2 version migration performed from boot media (HMC virtual optical, physical DVD, or USB stick) by booting the BOS installer in SMS mode and selecting Migration Install. Offline migration; cutover is the install itself, with alt_disk_copy as the rollback.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">BOOT MEDIA</span>
     <span class="badge">AIX 7.1 → 7.2</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- Meta -->
   <div class="meta">
@@ -478,7 +485,7 @@
         <p class="note note-info" style="margin-top:0"><strong>Two paths:</strong> HMC GUI (slower for large ISOs but accessible) or HMC CLI via <code>viosvrcmd</code> (faster, scriptable).</p>
 
         <p class="note" style="margin-top:14px"><strong>Via HMC GUI:</strong></p>
-        <ol style="padding-left:20px; font-size:12.5px; line-height:1.7; color:var(--text-dim)">
+        <ol style="padding-left:20px; font-size:12.5px; line-height:1.7; color:var(--faint)">
           <li>HMC main menu → Systems Management → Servers → select managed system.</li>
           <li>Configuration → Virtual Resources → Virtual Storage Management.</li>
           <li>Select the VIOS that owns virtual optical for this LPAR.</li>
@@ -860,7 +867,7 @@
         </ol>
         <div class="cmd" id="c17"><button class="copy-btn" onclick="copy('c17',this)">COPY</button><span class="kw">shutdown</span> <span class="flag">-F</span> now</div>
         <p class="note note-caution"><strong>Use <code>-F</code> not <code>-Fr</code>.</strong> We want the LPAR to power off, not auto-reboot off the existing bootlist. <code>-Fr</code> would reboot you straight back into the live 7.1 system before you have a chance to enter SMS.</p>
-        <p class="note">Wait for the LPAR state in HMC to show <strong style="color:var(--text-hi)">Not Activated</strong>.</p>
+        <p class="note">Wait for the LPAR state in HMC to show <strong style="color:var(--ink)">Not Activated</strong>.</p>
       </div>
     </div>
 
@@ -874,7 +881,7 @@
       </div>
       <div class="step-body">
         <p class="note" style="margin-top:0"><strong>Via HMC GUI:</strong></p>
-        <ol style="padding-left:20px; font-size:12.5px; line-height:1.7; color:var(--text-dim)">
+        <ol style="padding-left:20px; font-size:12.5px; line-height:1.7; color:var(--faint)">
           <li>Right-click LPAR → Operations → Activate → Profile.</li>
           <li>Select the appropriate profile.</li>
           <li>Boot mode → <strong>SMS</strong>.</li>
@@ -995,7 +1002,7 @@ system console.</div>
     3 Start Maintenance Mode for System Recovery
     4 Make Additional Disks Available
     5 Select Storage Adapters</div>
-        <p class="note note-critical"><strong>DO NOT pick 1.</strong> The default is "New and Complete Overwrite" which destroys your rootvg. Always pick <strong style="color:var(--green)">2</strong> to get to the menu where you can switch to Migration Install.</p>
+        <p class="note note-critical"><strong>DO NOT pick 1.</strong> The default is "New and Complete Overwrite" which destroys your rootvg. Always pick <strong style="color:var(--sage)">2</strong> to get to the menu where you can switch to Migration Install.</p>
       </div>
     </div>
 
@@ -1065,7 +1072,7 @@ or type the number of the setting you want to change.
 <span class="pick">&gt; 1 hdisk0  ...                XXXXX      rootvg           Yes</span>
 <span class="danger">  2 hdisk1  ...                XXXXX      altinst_rootvg   Yes</span></div>
         <p class="note note-critical"><strong>hdisk1 is your alt_disk_copy rollback.</strong> If you select hdisk1 here you will destroy your rollback. The disk to select is the one currently labeled <code>rootvg</code> in the VG Status column — that's <code>hdisk0</code>.</p>
-        <p class="note">After selection a chevron <code>&gt;&gt;&gt;</code> appears next to <code>hdisk0</code> indicating it's selected. Press <strong style="color:var(--green)">0</strong> (zero) and Enter to continue.</p>
+        <p class="note">After selection a chevron <code>&gt;&gt;&gt;</code> appears next to <code>hdisk0</code> indicating it's selected. Press <strong style="color:var(--sage)">0</strong> (zero) and Enter to continue.</p>
       </div>
     </div>
 
@@ -1093,7 +1100,7 @@ or type the number of the setting you want to change.
             <tr><td>64-bit Kernel</td><td>Yes (default on modern AIX)</td></tr>
           </tbody>
         </table>
-        <p class="note">When satisfied, press <strong style="color:var(--green)">0</strong> (Install with current settings).</p>
+        <p class="note">When satisfied, press <strong style="color:var(--sage)">0</strong> (Install with current settings).</p>
       </div>
     </div>
 
@@ -1186,7 +1193,7 @@ Press Enter to continue.</div>
       </div>
       <div class="step-body">
         <p class="note" style="margin-top:0"><strong>The first boot off the migrated 7.2 rootvg may:</strong></p>
-        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--text-dim); line-height:1.7">
+        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--faint); line-height:1.7">
           <li>▸ Take longer than usual while the kernel re-syncs ODM and rebuilds device configuration.</li>
           <li>▸ Drop to a console <code>TERM</code> prompt before login — enter <code>vt100</code> or <code>xterm</code> and continue. Subsequent boots will not prompt.</li>
           <li>▸ Generate informational entries in <code>errpt</code> during initial config — review but expect some noise.</li>
@@ -1281,7 +1288,7 @@ Press Enter to continue.</div>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--amber)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong> — don't run any of the cleanup steps in Phase 9 yet.</p>
+        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--rust)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong> — don't run any of the cleanup steps in Phase 9 yet.</p>
       </div>
     </div>
 
@@ -1382,7 +1389,7 @@ Press Enter to continue.</div>
 <span class="c"># OR (depending on what label the failed migration left)</span>
 <span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> altinst_rootvg</div>
         <p class="note note-info"><strong>Preserve for IBM support before nuking the failed disk:</strong></p>
-        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--text-dim); line-height:1.7">
+        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--faint); line-height:1.7">
           <li>▸ <code>/var/adm/ras/devinst.log</code></li>
           <li>▸ <code>/var/adm/ras/bos.log</code></li>
           <li>▸ <code>/var/adm/ras/bosinst.data</code></li>
@@ -1618,22 +1625,6 @@ Press Enter to continue.</div>
   <span>RB-PATCH-AIX-003 · AIX 7.1 → 7.2 Migration · Boot Media · single LPAR</span>
   <span>HMC virtual optical / DVD / USB · BOS Migration Install</span>
 </footer>
-
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-</script>
 
 </body>
 </html>

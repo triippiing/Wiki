@@ -5,15 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIX LVM Basics — VG / LV / Filesystem Provisioning Runbook</title>
 <meta name="description" content="VG, LV, and JFS2 filesystem provisioning fundamentals on AIX — creating volume groups, building logical volumes, and mounting filesystems.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
 /* ── concept primer ── */
   .primer {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--cyan);
+    border-left: 3px solid var(--ochre);
     border-radius: 0 6px 6px 0;
     margin: 32px 0 12px;
     overflow: hidden;
@@ -26,9 +29,9 @@
     font-size: 11px;
     letter-spacing: .12em;
     text-transform: uppercase;
-    color: var(--cyan);
+    color: var(--ochre);
     padding: 10px 18px;
-    background: rgba(88,201,232,.04);
+    background: var(--ochre-tint);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -36,8 +39,8 @@
   }
 
   .primer-header span {
-    background: rgba(88,201,232,.12);
-    color: var(--cyan);
+    background: var(--ochre-tint);
+    color: var(--ochre);
     font-size: 10px;
     padding: 1px 8px;
     border-radius: 3px;
@@ -50,7 +53,7 @@
 
   .primer-body p {
     font-size: 13px;
-    color: var(--text);
+    color: var(--ink-2);
     line-height: 1.65;
     margin-bottom: 12px;
   }
@@ -60,14 +63,14 @@
   .primer-body code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   .primer-body strong {
-    color: var(--text-hi);
+    color: var(--ink);
     font-weight: 600;
   }
 
@@ -83,10 +86,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 12px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -99,20 +102,20 @@
   .primer-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
     width: 80px;
   }
 
   .primer-table td:nth-child(2) {
     font-size: 12.5px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .primer-table tr:last-child td { border-bottom: none; }
 
   .primer-math {
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 12px 16px;
@@ -120,26 +123,26 @@
     font-size: 12px;
     line-height: 1.85;
     margin: 12px 0;
-    color: var(--text);
+    color: var(--ink-2);
     white-space: pre;
     overflow-x: auto;
   }
 
-  .primer-math .label { color: var(--text-dim); }
-  .primer-math .num   { color: var(--amber); }
-  .primer-math .res   { color: var(--green); }
-  .primer-math .op    { color: var(--cyan); }
+  .primer-math .label { color: var(--faint); }
+  .primer-math .num   { color: var(--rust); }
+  .primer-math .res   { color: var(--sage); }
+  .primer-math .op    { color: var(--ochre); }
 
   /* phase accent colours */
-  .step.ph-discover { border-left-color: var(--cyan); }
-  .step.ph-vg       { border-left-color: var(--green); }
-  .step.ph-lv       { border-left-color: var(--green); }
-  .step.ph-fs       { border-left-color: var(--green); }
-  .step.ph-mount    { border-left-color: var(--cyan); }
-  .step.ph-expand   { border-left-color: var(--amber); }
-  .step.ph-state    { border-left-color: var(--purple); }
-  .step.ph-port     { border-left-color: var(--purple); }
-  .tag-action   { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+  .step.ph-discover { border-left-color: var(--ochre); }
+  .step.ph-vg       { border-left-color: var(--sage); }
+  .step.ph-lv       { border-left-color: var(--sage); }
+  .step.ph-fs       { border-left-color: var(--sage); }
+  .step.ph-mount    { border-left-color: var(--ochre); }
+  .step.ph-expand   { border-left-color: var(--rust); }
+  .step.ph-state    { border-left-color: var(--muted); }
+  .step.ph-port     { border-left-color: var(--muted); }
+  .tag-action   { background: var(--ochre-tint); color: var(--muted); border: 1px solid var(--ochre-bd); }
 
   /* ── summary table ── */
   .summary-table {
@@ -154,10 +157,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -170,18 +173,18 @@
   .summary-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
   .summary-table td:nth-child(2) {
     font-size: 12px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .summary-table td:last-child {
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .summary-table tr:last-child td { border-bottom: none; }
@@ -189,16 +192,20 @@
 </head>
 <body>
 
-<header>
-  <div class="logo-dot"></div>
-  <h1>AIX LVM Basics — VG / LV / Filesystem Provisioning</h1>
-  <div class="header-badges">
-    <span class="badge badge-green">PROVISIONING</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">LVM</a><span class="sep">/</span>AIX LVM Basics — VG / LV / Filesystem Provisioning
+  </nav>
+
+  <h1 class="page-title">AIX LVM Basics — VG / LV / Filesystem Provisioning</h1>
+  <p class="page-sub">VG, LV, and JFS2 filesystem provisioning fundamentals on AIX — creating volume groups, building logical volumes, and mounting filesystems.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">PROVISIONING</span>
     <span class="badge">datavg</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- Meta -->
   <div class="meta">
@@ -703,20 +710,5 @@
   <span>mkvg / mklv / crfs / mount / varyonvg / importvg</span>
 </footer>
 
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-</script>
 </body>
 </html>

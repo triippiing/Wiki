@@ -1,46 +1,77 @@
 /* ──────────────────────────────────────────────────────────────
-   tokens.css — design tokens shared by every runbook.
-   Load BEFORE runbook.css. Fonts still come from the runbook's
-   own <link> to Google Fonts so this file stays offline-safe.
+   tokens-stone.css — warm stone / ochre design tokens.
+   Load BEFORE runbook-stone.css. Fonts come from the page's own
+   <link> to Google Fonts so this file stays offline-safe.
+
+   Fonts expected:
+     Source Serif 4 (page title) · Spectral (section titles)
+     Public Sans (body + step titles) · IBM Plex Mono (machine text)
    ────────────────────────────────────────────────────────────── */
 
 :root {
-  --bg:        #0d0f12;
-  --surface:   #13171d;
-  --border:    #1e2530;
-  --border-hi: #2e3a4a;
+  /* ── surfaces ── */
+  --paper:      #FAF6EE;   /* page background                     */
+  --sidebar:    #F0E9DB;   /* neutral chips, table head fills     */
+  --surface:    #F6F0E4;   /* raised panels, cards, diagram cells */
+  --border:     #E0D7C6;   /* 1px hairlines                       */
 
-  --green:     #39d353;
-  --green-dim: #1f7a30;
-  --cyan:      #58c9e8;
-  --amber:     #f0a30a;
-  --red:       #e05c5c;
-  --purple:    #a78bfa;
+  /* ── ink ── */
+  --ink:        #2B2620;   /* primary text, dark UI               */
+  --ink-2:      #4A4234;   /* secondary body text                 */
+  --muted:      #6B6253;   /* table body, secondary               */
+  --faint:      #A09684;   /* mono labels, breadcrumbs            */
 
-  --text:      #c9d1d9;
-  --text-dim:  #6e7e91;
-  --text-hi:   #e6edf3;
+  /* ── accent: ochre ── */
+  --ochre:      #9C7420;
+  --ochre-tint: #F3EAD6;
+  --ochre-bd:   #E6D8B8;
 
-  --header-h:  56px;
+  /* ── caution: rust ── */
+  --rust:       #A35A35;
+  --rust-tint:  #F5E4DC;
+  --rust-bd:    #E8CDC0;
+
+  /* ── verify: sage ── */
+  --sage:       #5F7038;
+  --sage-tint:  #EEF1E6;
+  --sage-bd:    #D8DDC4;
+
+  /* ── code panel ── */
+  --code-bg:      #2A2521;
+  --code-head:    #332E28;
+  --code-text:    #E8DFCE;
+  --code-comment: #8F8879;
+  --code-copy:    #C9A44F;
+
+  /* syntax — restrained warm set, all legible on --code-bg */
+  --code-kw:    #D9B87C;   /* commands / keywords     */
+  --code-str:   #A9BE7E;   /* strings                 */
+  --code-flag:  #9FB3C8;   /* flags / switches        */
+  --code-ph:    #E0975E;   /* placeholders to sub in  */
+  --code-bad:   #E08672;   /* destructive / warning   */
+
+  /* ── table rules (spec-specified, deliberately distinct) ── */
+  --rule-head:  #D8CFBC;   /* 2px under table head    */
+  --rule-row:   #ECE3D2;   /* 1px row hairlines       */
+
+  /* ── elevation ── */
+  --shadow:     0 2px 10px rgba(43, 38, 32, .07);
+  --radius:     6px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'IBM Plex Sans', sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
+  background: var(--paper);
+  color: var(--ink-2);
+  font-family: 'Public Sans', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.55;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1;  box-shadow: 0 0 8px currentColor; }
-  50%      { opacity: .4; box-shadow: 0 0 2px currentColor; }
 }

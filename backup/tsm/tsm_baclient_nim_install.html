@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TSM BA Client Binary NIM Install</title>
 <meta name="description" content="End-to-end procedure for staging IBM Spectrum Protect (TSM) BA client filesets, defining 22 standalone NIM clients on DR_NIM_01, and pushing the install in a single operation to bc01–bc22.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
 .meta-val.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
 
@@ -29,62 +32,62 @@
   .host-card {
     padding: 16px 18px;
     border-radius: 4px;
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--border-hi);
+    border-left: 3px solid var(--border);
   }
 
-  .host-card.master { border-left-color: var(--cyan); }
-  .host-card.client { border-left-color: var(--amber); }
+  .host-card.master { border-left-color: var(--ochre); }
+  .host-card.client { border-left-color: var(--rust); }
 
   .host-role {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: .12em;
-    color: var(--text-dim);
+    color: var(--faint);
     margin-bottom: 6px;
   }
 
-  .host-card.master .host-role { color: var(--cyan); }
-  .host-card.client .host-role { color: var(--amber); }
+  .host-card.master .host-role { color: var(--ochre); }
+  .host-card.client .host-role { color: var(--rust); }
 
   .host-name {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 16px;
     font-weight: 600;
-    color: var(--text-hi);
+    color: var(--ink);
     margin-bottom: 4px;
   }
 
   .host-ip {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .host-os {
     margin-top: 8px;
     font-size: 11.5px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .arrow {
     font-family: 'IBM Plex Mono', monospace;
     text-align: center;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .arrow .glyph {
     font-size: 22px;
-    color: var(--cyan);
+    color: var(--ochre);
   }
 
   .arrow .label {
     font-size: 10px;
     letter-spacing: .12em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     margin-top: 4px;
   }
 
@@ -102,7 +105,7 @@
     padding: 11px 18px 11px 42px;
     position: relative;
     border-bottom: 1px solid var(--border);
-    color: var(--text);
+    color: var(--ink-2);
     font-size: 13px;
   }
 
@@ -113,32 +116,32 @@
     position: absolute;
     left: 18px;
     top: 10px;
-    color: var(--green);
+    color: var(--sage);
     font-size: 14px;
     font-family: 'IBM Plex Mono', monospace;
   }
 
-  .checklist li strong { color: var(--text-hi); }
+  .checklist li strong { color: var(--ink); }
 
   .checklist li code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   /* phase accent colours */
-  .step.ph-prereq   { border-left-color: var(--cyan); }
-  .step.ph-validate { border-left-color: var(--cyan); }
-  .step.ph-stage    { border-left-color: var(--green); }
-  .step.ph-define   { border-left-color: var(--cyan); }
-  .step.ph-clients  { border-left-color: var(--amber); }
-  .step.ph-group    { border-left-color: var(--purple); }
-  .step.ph-install  { border-left-color: var(--red); }
-  .step.ph-verify   { border-left-color: var(--green); }
-  .step.ph-rollback { border-left-color: var(--amber); }
+  .step.ph-prereq   { border-left-color: var(--ochre); }
+  .step.ph-validate { border-left-color: var(--ochre); }
+  .step.ph-stage    { border-left-color: var(--sage); }
+  .step.ph-define   { border-left-color: var(--ochre); }
+  .step.ph-clients  { border-left-color: var(--rust); }
+  .step.ph-group    { border-left-color: var(--muted); }
+  .step.ph-install  { border-left-color: var(--rust); }
+  .step.ph-verify   { border-left-color: var(--sage); }
+  .step.ph-rollback { border-left-color: var(--rust); }
 
   .run-on {
     font-family: 'IBM Plex Mono', monospace;
@@ -148,24 +151,24 @@
     letter-spacing: .05em;
   }
 
-  .run-on.master { background: rgba(88,201,232,.08); color: var(--cyan); border: 1px solid rgba(88,201,232,.25); }
-  .run-on.client { background: rgba(240,163,10,.08); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
-  .note.note-critical strong { color: var(--red); }
-  .note.note-info strong { color: var(--cyan); }
+  .run-on.master { background: var(--ochre-tint); color: var(--ochre); border: 1px solid var(--ochre-bd); }
+  .run-on.client { background: var(--rust-tint); color: var(--rust); border: 1px solid var(--rust-bd); }
+  .note.note-critical strong { color: var(--rust); }
+  .note.note-info strong { color: var(--ochre); }
 
   .note.note-verify {
-    border-left-color: var(--green);
-    background: rgba(57,211,83,.04);
+    border-left-color: var(--sage);
+    background: var(--sage-tint);
     border-radius: 0 4px 4px 0;
   }
-  .note.note-verify strong { color: var(--green); }
+  .note.note-verify strong { color: var(--sage); }
 
   /* ── inline reference / fileset table ── */
   .ref-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12.5px;
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
     overflow: hidden;
@@ -177,10 +180,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: rgba(255,255,255,.02);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -188,18 +191,18 @@
     padding: 8px 14px;
     border-bottom: 1px solid var(--border);
     vertical-align: top;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .ref-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
   .ref-table td:last-child {
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .ref-table tr:last-child td { border-bottom: none; }
@@ -207,10 +210,10 @@
   .ref-table code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   /* ── option grid ── */
@@ -240,14 +243,14 @@
     font-weight: 600;
   }
 
-  .option-header.opt-a { background: rgba(57,211,83,.1); color: var(--green); border-bottom: 1px solid rgba(57,211,83,.2); }
-  .option-header.opt-b { background: rgba(240,163,10,.1); color: var(--amber); border-bottom: 1px solid rgba(240,163,10,.2); }
+  .option-header.opt-a { background: var(--sage-tint); color: var(--sage); border-bottom: 1px solid var(--sage-bd); }
+  .option-header.opt-b { background: var(--rust-tint); color: var(--rust); border-bottom: 1px solid var(--rust-bd); }
 
   .option-desc {
     padding: 8px 12px;
     font-size: 12px;
-    color: var(--text-dim);
-    background: #080a0d;
+    color: var(--faint);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -272,10 +275,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -288,18 +291,18 @@
   .summary-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
   .summary-table td:nth-child(2) {
     font-size: 12px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .summary-table td:last-child {
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .summary-table tr:last-child td { border-bottom: none; }
@@ -312,16 +315,20 @@
 </head>
 <body>
 
-<header>
-  <div class="logo-dot"></div>
-  <h1>TSM BA Client Binary NIM Install</h1>
-  <div class="header-badges">
-    <span class="badge badge-cyan">BINARY INSTALL</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#backup">Backup</a><span class="sep">/</span><a href="../../index.html#backup">TSM</a><span class="sep">/</span>TSM BA Client Binary NIM Install
+  </nav>
+
+  <h1 class="page-title">TSM BA Client Binary NIM Install</h1>
+  <p class="page-sub">End-to-end procedure for staging IBM Spectrum Protect (TSM) BA client filesets, defining 22 standalone NIM clients on DR_NIM_01, and pushing the install in a single operation to bc01–bc22.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">BINARY INSTALL</span>
     <span class="badge">AIX 7.x · TSM 8.1.x</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- Meta -->
   <div class="meta">
@@ -933,20 +940,5 @@
   <span>AIX 7.x · IBM Spectrum Protect 8.1.x</span>
 </footer>
 
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-</script>
 </body>
 </html>

@@ -5,34 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Linux Networking — Interfaces, Routes, NetworkManager, firewalld</title>
 <meta name="description" content="Reference for everyday Linux network admin on RHEL 8/9 (and derivatives) using NetworkManager + firewalld. Covers identifying NICs, assigning addresses, creating connections, persistent routes, DNS, and host-firewall rules.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
 /* phase accent colours */
-  .step.ph-ref       { border-left-color: var(--cyan); }
-  .step.ph-create    { border-left-color: var(--green); }
-  .step.ph-remove    { border-left-color: var(--red); }
-  .step.ph-group-add { border-left-color: var(--green); }
-  .step.ph-group-mod { border-left-color: var(--purple); }
-  .step.ph-group-rm  { border-left-color: var(--red); }
+  .step.ph-ref       { border-left-color: var(--ochre); }
+  .step.ph-create    { border-left-color: var(--sage); }
+  .step.ph-remove    { border-left-color: var(--rust); }
+  .step.ph-group-add { border-left-color: var(--sage); }
+  .step.ph-group-mod { border-left-color: var(--muted); }
+  .step.ph-group-rm  { border-left-color: var(--rust); }
 
-  .step.ph-identify      { border-left-color: var(--cyan); }
-  .step.ph-fundamentals  { border-left-color: var(--cyan); }
-  .step.ph-config-dhcp   { border-left-color: var(--green); }
-  .step.ph-config-static { border-left-color: var(--green); }
-  .step.ph-modify        { border-left-color: var(--purple); }
-  .step.ph-nmtui         { border-left-color: var(--cyan); }
-  .step.ph-routes        { border-left-color: var(--purple); }
-  .step.ph-dns           { border-left-color: var(--cyan); }
-  .step.ph-bonding       { border-left-color: var(--purple); }
-  .step.ph-vlan          { border-left-color: var(--purple); }
-  .step.ph-fw-state      { border-left-color: var(--amber); }
-  .step.ph-fw-add        { border-left-color: var(--amber); }
-  .step.ph-fw-rich       { border-left-color: var(--amber); }
-  .step.ph-fw-remove     { border-left-color: var(--red); }
-  .step.ph-verify        { border-left-color: var(--cyan); }
-  .step.ph-fail          { border-left-color: var(--red); }
+  .step.ph-identify      { border-left-color: var(--ochre); }
+  .step.ph-fundamentals  { border-left-color: var(--ochre); }
+  .step.ph-config-dhcp   { border-left-color: var(--sage); }
+  .step.ph-config-static { border-left-color: var(--sage); }
+  .step.ph-modify        { border-left-color: var(--muted); }
+  .step.ph-nmtui         { border-left-color: var(--ochre); }
+  .step.ph-routes        { border-left-color: var(--muted); }
+  .step.ph-dns           { border-left-color: var(--ochre); }
+  .step.ph-bonding       { border-left-color: var(--muted); }
+  .step.ph-vlan          { border-left-color: var(--muted); }
+  .step.ph-fw-state      { border-left-color: var(--rust); }
+  .step.ph-fw-add        { border-left-color: var(--rust); }
+  .step.ph-fw-rich       { border-left-color: var(--rust); }
+  .step.ph-fw-remove     { border-left-color: var(--rust); }
+  .step.ph-verify        { border-left-color: var(--ochre); }
+  .step.ph-fail          { border-left-color: var(--rust); }
   .step:nth-child(15) { animation-delay: .60s; }
   .step:nth-child(16) { animation-delay: .64s; }
   .step:nth-child(17) { animation-delay: .68s; }
@@ -50,10 +53,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -66,14 +69,14 @@
   .flag-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--purple);
+    color: var(--muted);
     white-space: nowrap;
     width: 60px;
   }
 
   .flag-table td:nth-child(2) {
     font-size: 12.5px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .flag-table tr:last-child td { border-bottom: none; }
@@ -91,10 +94,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -107,18 +110,18 @@
   .summary-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
   .summary-table td:nth-child(2) {
     font-size: 12px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .summary-table td:last-child {
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .summary-table tr:last-child td { border-bottom: none; }
@@ -126,16 +129,20 @@
 </head>
 <body>
 
-<header>
-  <div class="logo-dot" style="color:var(--cyan)"></div>
-  <h1>Linux Networking — Interfaces, Routes, NetworkManager, firewalld</h1>
-  <div class="header-badges">
-    <span class="badge badge-cyan">REFERENCE</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#linux">Linux</a><span class="sep">/</span><a href="../../index.html#linux">Networking</a><span class="sep">/</span>Linux Networking — Interfaces, Routes, NetworkManager, firewalld
+  </nav>
+
+  <h1 class="page-title">Linux Networking — Interfaces, Routes, NetworkManager, firewalld</h1>
+  <p class="page-sub">Reference for everyday Linux network admin on RHEL 8/9 (and derivatives) using NetworkManager + firewalld. Covers identifying NICs, assigning addresses, creating connections, persistent routes, DNS, and host-firewall rules.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">REFERENCE</span>
     <span class="badge">RHEL 8 / 9</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- Meta -->
   <div class="meta">
@@ -643,39 +650,39 @@
         <table class="flag-table">
           <tr><th style="width:auto">Symptom</th><th style="width:auto">First check</th><th style="width:auto">Likely cause</th></tr>
           <tr>
-            <td style="width:auto; color:var(--text-hi); white-space:normal"><code>nmcli con up</code> returns "device not ready"</td>
-            <td style="color:var(--text)"><code>nmcli device status</code> shows <code>unmanaged</code></td>
-            <td style="color:var(--text-dim)">Device managed by another tool, or <code>NM_CONTROLLED=no</code> legacy ifcfg</td>
+            <td style="width:auto; color:var(--ink); white-space:normal"><code>nmcli con up</code> returns "device not ready"</td>
+            <td style="color:var(--ink-2)"><code>nmcli device status</code> shows <code>unmanaged</code></td>
+            <td style="color:var(--faint)">Device managed by another tool, or <code>NM_CONTROLLED=no</code> legacy ifcfg</td>
           </tr>
           <tr>
-            <td style="width:auto; color:var(--text-hi); white-space:normal">Two default routes, traffic flapping</td>
-            <td style="color:var(--text)"><code>ip route</code> shows two <code>default via</code></td>
-            <td style="color:var(--text-dim)">Two connections set <code>ipv4.gateway</code> — clear one</td>
+            <td style="width:auto; color:var(--ink); white-space:normal">Two default routes, traffic flapping</td>
+            <td style="color:var(--ink-2)"><code>ip route</code> shows two <code>default via</code></td>
+            <td style="color:var(--faint)">Two connections set <code>ipv4.gateway</code> — clear one</td>
           </tr>
           <tr>
-            <td style="width:auto; color:var(--text-hi); white-space:normal">Static route disappears on reboot</td>
-            <td style="color:var(--text)">Added with <code>ip route add</code> only</td>
-            <td style="color:var(--text-dim)">Use <code>nmcli +ipv4.routes</code> to persist</td>
+            <td style="width:auto; color:var(--ink); white-space:normal">Static route disappears on reboot</td>
+            <td style="color:var(--ink-2)">Added with <code>ip route add</code> only</td>
+            <td style="color:var(--faint)">Use <code>nmcli +ipv4.routes</code> to persist</td>
           </tr>
           <tr>
-            <td style="width:auto; color:var(--text-hi); white-space:normal">DNS resolves wrong name</td>
-            <td style="color:var(--text)"><code>resolvectl status</code> shows DHCP DNS overriding static</td>
-            <td style="color:var(--text-dim)">Set <code>ipv4.ignore-auto-dns yes</code> on the static connection</td>
+            <td style="width:auto; color:var(--ink); white-space:normal">DNS resolves wrong name</td>
+            <td style="color:var(--ink-2)"><code>resolvectl status</code> shows DHCP DNS overriding static</td>
+            <td style="color:var(--faint)">Set <code>ipv4.ignore-auto-dns yes</code> on the static connection</td>
           </tr>
           <tr>
-            <td style="width:auto; color:var(--text-hi); white-space:normal">Service unreachable, port confirmed listening</td>
-            <td style="color:var(--text)"><code>firewall-cmd --list-all</code> does not show port/service</td>
-            <td style="color:var(--text-dim)">Add port/service + <code>--reload</code></td>
+            <td style="width:auto; color:var(--ink); white-space:normal">Service unreachable, port confirmed listening</td>
+            <td style="color:var(--ink-2)"><code>firewall-cmd --list-all</code> does not show port/service</td>
+            <td style="color:var(--faint)">Add port/service + <code>--reload</code></td>
           </tr>
           <tr>
-            <td style="width:auto; color:var(--text-hi); white-space:normal">Bond shows up but no traffic</td>
-            <td style="color:var(--text)"><code>cat /proc/net/bonding/bond0</code> shows no slaves "Currently Active"</td>
-            <td style="color:var(--text-dim)">Switch-side mode mismatch (LACP vs static)</td>
+            <td style="width:auto; color:var(--ink); white-space:normal">Bond shows up but no traffic</td>
+            <td style="color:var(--ink-2)"><code>cat /proc/net/bonding/bond0</code> shows no slaves "Currently Active"</td>
+            <td style="color:var(--faint)">Switch-side mode mismatch (LACP vs static)</td>
           </tr>
           <tr>
-            <td style="width:auto; color:var(--text-hi); white-space:normal">New NIC has no <code>ifname</code></td>
-            <td style="color:var(--text)"><code>ip link</code> shows no entry for it</td>
-            <td style="color:var(--text-dim)">Check <code>dmesg</code> for driver bind; <code>lspci -nn</code> to confirm hardware seen</td>
+            <td style="width:auto; color:var(--ink); white-space:normal">New NIC has no <code>ifname</code></td>
+            <td style="color:var(--ink-2)"><code>ip link</code> shows no entry for it</td>
+            <td style="color:var(--faint)">Check <code>dmesg</code> for driver bind; <code>lspci -nn</code> to confirm hardware seen</td>
           </tr>
         </table>
       </div>
@@ -726,30 +733,5 @@
   <span>nmcli · nmtui · ip · firewall-cmd</span>
 </footer>
 
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-
-  document.querySelectorAll('.ctrl-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const action = btn.dataset.action;
-      document.querySelectorAll('.step').forEach(s => {
-        if (action === 'expand') s.classList.add('open');
-        else s.classList.remove('open');
-      });
-    });
-  });
-</script>
 </body>
 </html>

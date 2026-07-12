@@ -5,15 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TSM Customer Onboarding Template — Bluechip</title>
 <meta name="description" content="End-to-end onboarding template for new TSM clients — node registration, MAXNUMMP tuning, dsm.sys layout, and dsmcad scheduler setup.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
 /* ── template variable block ── */
   .vars {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--amber);
+    border-left: 3px solid var(--rust);
     border-radius: 0 6px 6px 0;
     padding: 14px 18px;
     margin-bottom: 32px;
@@ -25,7 +28,7 @@
     font-size: 11px;
     letter-spacing: .12em;
     text-transform: uppercase;
-    color: var(--amber);
+    color: var(--rust);
     margin-bottom: 12px;
   }
 
@@ -46,7 +49,7 @@
   .vars-row .vk {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
-    color: var(--text-dim);
+    color: var(--faint);
     min-width: 130px;
     letter-spacing: .04em;
   }
@@ -54,15 +57,15 @@
   .vars-row .vv {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
-    color: var(--text-hi);
+    color: var(--ink);
     font-weight: 600;
   }
 
-  .vars-row .vv.placeholder { color: var(--amber); }
+  .vars-row .vv.placeholder { color: var(--rust); }
 
   .vars-note {
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
     margin-top: 12px;
     padding-top: 10px;
     border-top: 1px solid var(--border);
@@ -72,24 +75,24 @@
   .vars-note code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--amber);
+    color: var(--rust);
   }
-  .meta-val.cool { color: var(--purple); }
+  .meta-val.cool { color: var(--muted); }
 
   /* phase accent colours */
-  .step.ph-pre     { border-left-color: var(--cyan); }
-  .step.ph-domain  { border-left-color: var(--purple); }
-  .step.ph-policy  { border-left-color: var(--amber); }
-  .step.ph-cloptset{ border-left-color: var(--purple); }
-  .step.ph-nodes   { border-left-color: var(--purple); }
-  .step.ph-sched   { border-left-color: var(--green); }
-  .step.ph-verify  { border-left-color: var(--green); }
-  .step.ph-report  { border-left-color: var(--cyan); }
-  .tag-build    { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
-  .cmd .var  { color: var(--amber); font-weight: 600; }
+  .step.ph-pre     { border-left-color: var(--ochre); }
+  .step.ph-domain  { border-left-color: var(--muted); }
+  .step.ph-policy  { border-left-color: var(--rust); }
+  .step.ph-cloptset{ border-left-color: var(--muted); }
+  .step.ph-nodes   { border-left-color: var(--muted); }
+  .step.ph-sched   { border-left-color: var(--sage); }
+  .step.ph-verify  { border-left-color: var(--sage); }
+  .step.ph-report  { border-left-color: var(--ochre); }
+  .tag-build    { background: var(--ochre-tint); color: var(--muted); border: 1px solid var(--ochre-bd); }
+  .cmd .var  { color: var(--rust); font-weight: 600; }
 
   /* ── reference table ── */
   .ref-table {
@@ -107,10 +110,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 7px 12px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -118,13 +121,13 @@
     padding: 7px 12px;
     border-bottom: 1px solid var(--border);
     font-size: 12px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .ref-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
   }
   .ref-table tr:last-child td { border-bottom: none; }
 
@@ -140,10 +143,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -156,27 +159,31 @@
   .summary-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
-  .summary-table td:nth-child(2) { font-size: 12px; color: var(--text); }
-  .summary-table td:last-child { font-size: 12px; color: var(--text-dim); }
+  .summary-table td:nth-child(2) { font-size: 12px; color: var(--ink-2); }
+  .summary-table td:last-child { font-size: 12px; color: var(--faint); }
   .summary-table tr:last-child td { border-bottom: none; }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="logo-dot"></div>
-  <h1>TSM Customer Onboarding Template — Bluechip</h1>
-  <div class="header-badges">
-    <span class="badge badge-green">REUSABLE TEMPLATE</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#backup">Backup</a><span class="sep">/</span><a href="../../index.html#backup">TSM</a><span class="sep">/</span>TSM Customer Onboarding Template — Bluechip
+  </nav>
+
+  <h1 class="page-title">TSM Customer Onboarding Template — Bluechip</h1>
+  <p class="page-sub">End-to-end onboarding template for new TSM clients — node registration, MAXNUMMP tuning, dsm.sys layout, and dsmcad scheduler setup.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">REUSABLE TEMPLATE</span>
     <span class="badge">v2 · shared pool</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- ════ Template variables ════ -->
   <div class="vars">
@@ -782,20 +789,5 @@ OUT=$(<span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span 
   <span>customer onboarding template · v2</span>
 </footer>
 
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-</script>
 </body>
 </html>

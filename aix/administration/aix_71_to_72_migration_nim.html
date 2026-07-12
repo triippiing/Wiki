@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIX 7.1 → 7.2 Migration · nimadm</title>
 <meta name="description" content="Single-LPAR AIX 7.1 to 7.2 version migration via nimadm (NIM Alternate Disk Migration), executed from a NIM master against a clone of the client's rootvg. The running 7.1 system is left untouched until reboot; cutover is a single reboot.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
 .meta-val.mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
 
@@ -29,62 +32,62 @@
   .host-card {
     padding: 16px 18px;
     border-radius: 4px;
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--border-hi);
+    border-left: 3px solid var(--border);
   }
 
-  .host-card.master { border-left-color: var(--cyan); }
-  .host-card.client { border-left-color: var(--amber); }
+  .host-card.master { border-left-color: var(--ochre); }
+  .host-card.client { border-left-color: var(--rust); }
 
   .host-role {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: .12em;
-    color: var(--text-dim);
+    color: var(--faint);
     margin-bottom: 6px;
   }
 
-  .host-card.master .host-role { color: var(--cyan); }
-  .host-card.client .host-role { color: var(--amber); }
+  .host-card.master .host-role { color: var(--ochre); }
+  .host-card.client .host-role { color: var(--rust); }
 
   .host-name {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 16px;
     font-weight: 600;
-    color: var(--text-hi);
+    color: var(--ink);
     margin-bottom: 4px;
   }
 
   .host-ip {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .host-os {
     margin-top: 8px;
     font-size: 11.5px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .arrow {
     font-family: 'IBM Plex Mono', monospace;
     text-align: center;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .arrow .glyph {
     font-size: 22px;
-    color: var(--cyan);
+    color: var(--ochre);
   }
 
   .arrow .label {
     font-size: 10px;
     letter-spacing: .12em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     margin-top: 4px;
   }
 
@@ -102,7 +105,7 @@
     padding: 11px 18px 11px 42px;
     position: relative;
     border-bottom: 1px solid var(--border);
-    color: var(--text);
+    color: var(--ink-2);
     font-size: 13px;
   }
 
@@ -113,32 +116,32 @@
     position: absolute;
     left: 18px;
     top: 10px;
-    color: var(--green);
+    color: var(--sage);
     font-size: 14px;
     font-family: 'IBM Plex Mono', monospace;
   }
 
-  .checklist li strong { color: var(--text-hi); }
+  .checklist li strong { color: var(--ink); }
 
   .checklist li code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   /* phase accent colours */
-  .step.ph-prereq   { border-left-color: var(--cyan); }
-  .step.ph-validate { border-left-color: var(--cyan); }
-  .step.ph-stage    { border-left-color: var(--green); }
-  .step.ph-backup   { border-left-color: var(--purple); }
-  .step.ph-define   { border-left-color: var(--cyan); }
-  .step.ph-install  { border-left-color: var(--red); }
-  .step.ph-verify   { border-left-color: var(--green); }
-  .step.ph-rollback { border-left-color: var(--amber); }
-  .step.ph-cleanup  { border-left-color: var(--text-dim); }
+  .step.ph-prereq   { border-left-color: var(--ochre); }
+  .step.ph-validate { border-left-color: var(--ochre); }
+  .step.ph-stage    { border-left-color: var(--sage); }
+  .step.ph-backup   { border-left-color: var(--muted); }
+  .step.ph-define   { border-left-color: var(--ochre); }
+  .step.ph-install  { border-left-color: var(--rust); }
+  .step.ph-verify   { border-left-color: var(--sage); }
+  .step.ph-rollback { border-left-color: var(--rust); }
+  .step.ph-cleanup  { border-left-color: var(--faint); }
 
   .run-on {
     font-family: 'IBM Plex Mono', monospace;
@@ -148,25 +151,25 @@
     letter-spacing: .05em;
   }
 
-  .run-on.master { background: rgba(88,201,232,.08); color: var(--cyan); border: 1px solid rgba(88,201,232,.25); }
-  .run-on.client { background: rgba(240,163,10,.08); color: var(--amber); border: 1px solid rgba(240,163,10,.3); }
-  .run-on.hmc    { background: rgba(167,139,250,.08); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
-  .note.note-critical strong { color: var(--red); }
-  .note.note-info strong { color: var(--cyan); }
+  .run-on.master { background: var(--ochre-tint); color: var(--ochre); border: 1px solid var(--ochre-bd); }
+  .run-on.client { background: var(--rust-tint); color: var(--rust); border: 1px solid var(--rust-bd); }
+  .run-on.hmc    { background: var(--ochre-tint); color: var(--muted); border: 1px solid var(--ochre-bd); }
+  .note.note-critical strong { color: var(--rust); }
+  .note.note-info strong { color: var(--ochre); }
 
   .note.note-verify {
-    border-left-color: var(--green);
-    background: rgba(57,211,83,.04);
+    border-left-color: var(--sage);
+    background: var(--sage-tint);
     border-radius: 0 4px 4px 0;
   }
-  .note.note-verify strong { color: var(--green); }
+  .note.note-verify strong { color: var(--sage); }
 
   /* ── inline reference table ── */
   .ref-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12.5px;
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
     overflow: hidden;
@@ -178,10 +181,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: rgba(255,255,255,.02);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -189,18 +192,18 @@
     padding: 8px 14px;
     border-bottom: 1px solid var(--border);
     vertical-align: top;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .ref-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
   .ref-table td:last-child {
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .ref-table tr:last-child td { border-bottom: none; }
@@ -208,10 +211,10 @@
   .ref-table code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   /* ── phase strip (nimadm 12 phases) ── */
@@ -223,20 +226,20 @@
   }
 
   .phase-tile {
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 10px 12px;
-    border-left: 2px solid var(--cyan);
+    border-left: 2px solid var(--ochre);
   }
 
-  .phase-tile.long { border-left-color: var(--red); }
-  .phase-tile.fin  { border-left-color: var(--green); }
+  .phase-tile.long { border-left-color: var(--rust); }
+  .phase-tile.fin  { border-left-color: var(--sage); }
 
   .phase-tile-num {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px;
-    color: var(--text-dim);
+    color: var(--faint);
     letter-spacing: .1em;
     text-transform: uppercase;
     margin-bottom: 3px;
@@ -244,7 +247,7 @@
 
   .phase-tile-title {
     font-size: 12px;
-    color: var(--text-hi);
+    color: var(--ink);
     line-height: 1.4;
   }
 
@@ -275,27 +278,27 @@
     font-weight: 600;
   }
 
-  .option-header.opt-a { background: rgba(57,211,83,.1); color: var(--green); border-bottom: 1px solid rgba(57,211,83,.2); }
-  .option-header.opt-b { background: rgba(240,163,10,.1); color: var(--amber); border-bottom: 1px solid rgba(240,163,10,.2); }
+  .option-header.opt-a { background: var(--sage-tint); color: var(--sage); border-bottom: 1px solid var(--sage-bd); }
+  .option-header.opt-b { background: var(--rust-tint); color: var(--rust); border-bottom: 1px solid var(--rust-bd); }
 
   .option-desc {
     padding: 8px 12px;
     font-size: 12px;
-    color: var(--text-dim);
-    background: #080a0d;
+    color: var(--faint);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
   .option-desc:last-child { border-bottom: none; }
 
-  .option-desc strong { color: var(--text-hi); font-weight: 600; }
+  .option-desc strong { color: var(--ink); font-weight: 600; }
   .option-desc code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   /* ── summary table ── */
@@ -319,10 +322,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -335,18 +338,18 @@
   .summary-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
   .summary-table td:nth-child(2) {
     font-size: 12px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .summary-table td:last-child {
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .summary-table tr:last-child td { border-bottom: none; }
@@ -359,16 +362,20 @@
 </head>
 <body>
 
-<header>
-  <div class="logo-dot"></div>
-  <h1>AIX 7.1 → 7.2 Migration · nimadm</h1>
-  <div class="header-badges">
-    <span class="badge badge-cyan">NIMADM</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">Administration</a><span class="sep">/</span>AIX 7.1 → 7.2 Migration · nimadm
+  </nav>
+
+  <h1 class="page-title">AIX 7.1 → 7.2 Migration · nimadm</h1>
+  <p class="page-sub">Single-LPAR AIX 7.1 to 7.2 version migration via nimadm (NIM Alternate Disk Migration), executed from a NIM master against a clone of the client's rootvg. The running 7.1 system is left untouched until reboot; cutover is a single reboot.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">NIMADM</span>
     <span class="badge">AIX 7.1 → 7.2</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- Meta -->
   <div class="meta">
@@ -1020,7 +1027,7 @@ nimadm: Migration completed successfully.</div>
       </div>
       <div class="step-body">
         <p class="note" style="margin-top:0"><strong>The first boot off the migrated 7.2 rootvg may:</strong></p>
-        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--text-dim); line-height:1.7">
+        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--faint); line-height:1.7">
           <li>▸ Take longer than usual while the kernel re-syncs ODM and rebuilds device configuration.</li>
           <li>▸ Drop to a console <code>TERM</code> prompt before login — enter <code>vt100</code> or <code>xterm</code> and continue. Subsequent boots will not prompt.</li>
           <li>▸ Generate informational entries in <code>errpt</code> during initial config — review but expect some noise.</li>
@@ -1081,7 +1088,7 @@ nimadm: Migration completed successfully.</div>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--amber)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong> — don't run any of the cleanup steps in Phase 8 yet.</p>
+        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--rust)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong> — don't run any of the cleanup steps in Phase 8 yet.</p>
       </div>
     </div>
 
@@ -1169,7 +1176,7 @@ nimadm: Migration completed successfully.</div>
 <span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> altinst_rootvg
 <span class="c"># Removes the failed 7.2 alt_rootvg</span></div>
         <p class="note note-info"><strong>Preserve for IBM support:</strong></p>
-        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--text-dim); line-height:1.7">
+        <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--faint); line-height:1.7">
           <li>▸ <code>/var/log/nim/nimadm_lpar01_*.log</code> on the master</li>
           <li>▸ <code>/var/adm/ras/nim.installp</code> on the client</li>
           <li>▸ Any <code>errpt -a</code> output from the failed boot attempts</li>
@@ -1413,22 +1420,6 @@ nimadm: Migration completed successfully.</div>
   <span>RB-PATCH-AIX-002 · AIX 7.1 → 7.2 Migration · nimadm · single LPAR</span>
   <span>NIM master ≥ 7.2 TL5 · client 7.1 TL5 SP12 → 7.2 TL5 SP10</span>
 </footer>
-
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-</script>
 
 </body>
 </html>

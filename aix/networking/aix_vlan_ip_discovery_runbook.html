@@ -5,18 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIX — VLAN IP Discovery Runbook</title>
 <meta name="description" content="Identifying VLAN tags, trunk interfaces, and IP configuration on AIX — entstat, netstat, and ifconfig walkthroughs.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
-.step.ph-sweep   { border-left-color: var(--cyan); }
-  .step.ph-resolve { border-left-color: var(--green); }
-  .step.ph-output  { border-left-color: var(--amber); }
+.step.ph-sweep   { border-left-color: var(--ochre); }
+  .step.ph-resolve { border-left-color: var(--sage); }
+  .step.ph-output  { border-left-color: var(--rust); }
 
   /* ── command breakdown table ── */
   .breakdown {
     margin-top: 14px;
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
     overflow: hidden;
@@ -27,9 +30,9 @@
     font-size: 10px;
     letter-spacing: .12em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     padding: 8px 14px;
-    background: rgba(255,255,255,.02);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -47,28 +50,28 @@
   .breakdown td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
     width: 30%;
   }
 
   .breakdown td:last-child {
-    color: var(--text);
+    color: var(--ink-2);
     line-height: 1.55;
   }
 
   .breakdown td:last-child code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   /* ── output block ── */
   .output {
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 14px 16px;
@@ -77,27 +80,31 @@
     line-height: 1.7;
     white-space: pre;
     overflow-x: auto;
-    color: var(--text);
+    color: var(--ink-2);
     margin-top: 10px;
   }
 
-  .output .ip   { color: var(--cyan); }
-  .output .ptr  { color: var(--text-dim); }
-  .output .mac  { color: var(--green); }
+  .output .ip   { color: var(--ochre); }
+  .output .ptr  { color: var(--faint); }
+  .output .mac  { color: var(--sage); }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="logo-dot"></div>
-  <h1>AIX — VLAN IP Discovery Runbook</h1>
-  <div class="header-badges">
-    <span class="badge badge-cyan">DISCOVERY</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">Networking</a><span class="sep">/</span>AIX — VLAN IP Discovery Runbook
+  </nav>
+
+  <h1 class="page-title">AIX — VLAN IP Discovery Runbook</h1>
+  <p class="page-sub">Identifying VLAN tags, trunk interfaces, and IP configuration on AIX — entstat, netstat, and ifconfig walkthroughs.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">DISCOVERY</span>
     <span class="badge">VLAN 131 · /24</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- Meta -->
   <div class="meta">
@@ -267,20 +274,5 @@ i=1
   <span>vlan / discovery / network audit</span>
 </footer>
 
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-</script>
 </body>
 </html>
