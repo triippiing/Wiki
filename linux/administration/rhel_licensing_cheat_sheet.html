@@ -5,15 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RHEL Licensing — subscription-manager Reference</title>
 <meta name="description" content="Subscription-manager command reference for registering RHEL systems, attaching subscriptions, enabling repos, and diagnosing licensing failure states.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
 /* primer */
   .primer {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--cyan);
+    border-left: 3px solid var(--ochre);
     border-radius: 0 6px 6px 0;
     margin: 32px 0 12px;
     overflow: hidden;
@@ -26,9 +29,9 @@
     font-size: 11px;
     letter-spacing: .12em;
     text-transform: uppercase;
-    color: var(--cyan);
+    color: var(--ochre);
     padding: 10px 18px;
-    background: rgba(88,201,232,.04);
+    background: var(--ochre-tint);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -36,8 +39,8 @@
   }
 
   .primer-header span {
-    background: rgba(88,201,232,.12);
-    color: var(--cyan);
+    background: var(--ochre-tint);
+    color: var(--ochre);
     font-size: 10px;
     padding: 1px 8px;
     border-radius: 3px;
@@ -47,7 +50,7 @@
   .primer-body { padding: 18px 20px; }
   .primer-body p {
     font-size: 13px;
-    color: var(--text);
+    color: var(--ink-2);
     line-height: 1.65;
     margin-bottom: 12px;
   }
@@ -55,15 +58,15 @@
   .primer-body code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
-  .primer-body strong { color: var(--text-hi); font-weight: 600; }
+  .primer-body strong { color: var(--ink); font-weight: 600; }
 
   .flow-diagram {
-    background: #080a0d;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 16px 20px;
@@ -71,28 +74,28 @@
     font-size: 12.5px;
     line-height: 1.8;
     margin: 12px 0;
-    color: var(--text);
+    color: var(--ink-2);
     text-align: center;
     overflow-x: auto;
     white-space: nowrap;
   }
-  .flow-diagram .stage   { color: var(--cyan); font-weight: 600; }
-  .flow-diagram .arrow   { color: var(--text-dim); margin: 0 12px; }
-  .flow-diagram .endgoal { color: var(--green); font-weight: 600; }
+  .flow-diagram .stage   { color: var(--ochre); font-weight: 600; }
+  .flow-diagram .arrow   { color: var(--faint); margin: 0 12px; }
+  .flow-diagram .endgoal { color: var(--sage); font-weight: 600; }
 
-  .step.ph-register { border-left-color: var(--cyan); }
-  .step.ph-audit    { border-left-color: var(--purple); }
-  .step.ph-fix      { border-left-color: var(--amber); }
-  .step.ph-health   { border-left-color: var(--green); }
-  .tag-action   { background: rgba(167,139,250,.1); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+  .step.ph-register { border-left-color: var(--ochre); }
+  .step.ph-audit    { border-left-color: var(--muted); }
+  .step.ph-fix      { border-left-color: var(--rust); }
+  .step.ph-health   { border-left-color: var(--sage); }
+  .tag-action   { background: var(--ochre-tint); color: var(--muted); border: 1px solid var(--ochre-bd); }
 
   .cmd + .cmd { margin-top: 10px; }
-  .cmd .ok   { color: var(--green); }
-  .note.note-ok       { border-left-color: var(--green); background: rgba(57,211,83,.04);  border-radius: 0 4px 4px 0; }
-  .note.note-info strong     { color: var(--cyan); }
-  .note.note-caution strong  { color: var(--amber); }
-  .note.note-critical strong { color: var(--red); }
-  .note.note-ok strong       { color: var(--green); }
+  .cmd .ok   { color: var(--sage); }
+  .note.note-ok       { border-left-color: var(--sage); background: var(--sage-tint);  border-radius: 0 4px 4px 0; }
+  .note.note-info strong     { color: var(--ochre); }
+  .note.note-caution strong  { color: var(--rust); }
+  .note.note-critical strong { color: var(--rust); }
+  .note.note-ok strong       { color: var(--sage); }
 
   /* tables */
   .ref-table {
@@ -107,10 +110,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -124,20 +127,20 @@
   .ref-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
-  .ref-table td.ok   { color: var(--green); }
-  .ref-table td.warn { color: var(--amber); }
-  .ref-table td.bad  { color: var(--red); }
+  .ref-table td.ok   { color: var(--sage); }
+  .ref-table td.warn { color: var(--rust); }
+  .ref-table td.bad  { color: var(--rust); }
   .ref-table td code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 
   .ref-table tr:last-child td { border-bottom: none; }
@@ -150,7 +153,7 @@
   }
   .checklist li {
     font-size: 13px;
-    color: var(--text);
+    color: var(--ink-2);
     padding: 6px 0 6px 26px;
     position: relative;
     line-height: 1.5;
@@ -160,7 +163,7 @@
     position: absolute;
     left: 0;
     top: 6px;
-    color: var(--green);
+    color: var(--sage);
     font-weight: 700;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 13px;
@@ -168,25 +171,29 @@
   .checklist li code {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    background: rgba(255,255,255,.06);
+    background: var(--sidebar);
     padding: 1px 5px;
     border-radius: 3px;
-    color: var(--text-hi);
+    color: var(--ink);
   }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="logo-dot"></div>
-  <h1>RHEL Licensing</h1>
-  <div class="header-badges">
-    <span class="badge badge-red">RHEL</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#linux">Linux</a><span class="sep">/</span><a href="../../index.html#linux">Administration</a><span class="sep">/</span>RHEL Licensing
+  </nav>
+
+  <h1 class="page-title">RHEL Licensing</h1>
+  <p class="page-sub">Subscription-manager command reference for registering RHEL systems, attaching subscriptions, enabling repos, and diagnosing licensing failure states.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">RHEL</span>
     <span class="badge">subscription-manager</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- Meta -->
   <div class="meta">
@@ -479,20 +486,5 @@
   <span>register / attach / repos / status / dnf repolist</span>
 </footer>
 
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-</script>
 </body>
 </html>

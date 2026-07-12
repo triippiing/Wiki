@@ -5,19 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIX rootvg — Mirror Disk Replacement Runbook</title>
 <meta name="description" content="Replacing a failing rootvg mirror disk in place — unmirror, replace, mirror, and rebuild bootlist without downtime.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
 /* phase accent colours */
-  .step.ph-identify  { border-left-color: var(--red); }
-  .step.ph-boot      { border-left-color: var(--amber); }
-  .step.ph-stale     { border-left-color: var(--amber); }
-  .step.ph-remove    { border-left-color: var(--red); }
-  .step.ph-verify    { border-left-color: var(--cyan); }
-  .step.ph-replace   { border-left-color: var(--purple); }
-  .step.ph-remirror  { border-left-color: var(--green); }
-  .step.ph-final     { border-left-color: var(--green); }
+  .step.ph-identify  { border-left-color: var(--rust); }
+  .step.ph-boot      { border-left-color: var(--rust); }
+  .step.ph-stale     { border-left-color: var(--rust); }
+  .step.ph-remove    { border-left-color: var(--rust); }
+  .step.ph-verify    { border-left-color: var(--ochre); }
+  .step.ph-replace   { border-left-color: var(--muted); }
+  .step.ph-remirror  { border-left-color: var(--sage); }
+  .step.ph-final     { border-left-color: var(--sage); }
 
   /* ── decision block (option A / B) ── */
   .option-grid {
@@ -46,14 +49,14 @@
     font-weight: 600;
   }
 
-  .option-header.opt-a { background: rgba(224,92,92,.12); color: var(--red); border-bottom: 1px solid rgba(224,92,92,.2); }
-  .option-header.opt-b { background: rgba(240,163,10,.1); color: var(--amber); border-bottom: 1px solid rgba(240,163,10,.2); }
+  .option-header.opt-a { background: var(--rust-tint); color: var(--rust); border-bottom: 1px solid var(--rust-bd); }
+  .option-header.opt-b { background: var(--rust-tint); color: var(--rust); border-bottom: 1px solid var(--rust-bd); }
 
   .option-desc {
     padding: 8px 12px;
     font-size: 12px;
-    color: var(--text-dim);
-    background: #080a0d;
+    color: var(--faint);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -70,10 +73,10 @@
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     text-align: left;
     padding: 8px 14px;
-    background: #080a0d;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
@@ -86,18 +89,18 @@
   .summary-table td:first-child {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
-    color: var(--cyan);
+    color: var(--ochre);
     white-space: nowrap;
   }
 
   .summary-table td:nth-child(2) {
     font-size: 12px;
-    color: var(--text);
+    color: var(--ink-2);
   }
 
   .summary-table td:last-child {
     font-size: 12px;
-    color: var(--text-dim);
+    color: var(--faint);
   }
 
   .summary-table tr:last-child td { border-bottom: none; }
@@ -105,16 +108,20 @@
 </head>
 <body>
 
-<header>
-  <div class="logo-dot" style="color:var(--red)"></div>
-  <h1>AIX rootvg — Mirror Disk Replacement Runbook</h1>
-  <div class="header-badges">
-    <span class="badge badge-red">DISK FAILURE</span>
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">LVM</a><span class="sep">/</span>AIX rootvg — Mirror Disk Replacement Runbook
+  </nav>
+
+  <h1 class="page-title">AIX rootvg — Mirror Disk Replacement Runbook</h1>
+  <p class="page-sub">Replacing a failing rootvg mirror disk in place — unmirror, replace, mirror, and rebuild bootlist without downtime.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">DISK FAILURE</span>
     <span class="badge">rootvg</span>
   </div>
-</header>
 
-<div class="wrap">
 
   <!-- Meta -->
   <div class="meta">
@@ -422,30 +429,5 @@
   <span>lvm / bosboot / bootlist</span>
 </footer>
 
-<script>
-  function toggle(header) {
-    header.parentElement.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-
-  document.querySelectorAll('.ctrl-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const action = btn.dataset.action;
-      document.querySelectorAll('.step').forEach(s => {
-        if (action === 'expand') s.classList.add('open');
-        else s.classList.remove('open');
-      });
-    });
-  });
-</script>
 </body>
 </html>

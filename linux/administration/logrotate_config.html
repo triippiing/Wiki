@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Logrotate — HMC Backup Logs Runbook</title>
 <meta name="description" content="Building maintainable logrotate policies for HMC backup logs — rotation cadence, compression, retention, and post-rotate hooks.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
 /* ── platform section header ── */
   .platform-bar {
@@ -32,15 +35,15 @@
     border: 1px solid;
   }
 
-  .platform-tag.linux { color: var(--cyan); border-color: var(--cyan); }
-  .platform-tag.aix   { color: var(--amber); border-color: var(--amber); }
+  .platform-tag.linux { color: var(--ochre); border-color: var(--ochre); }
+  .platform-tag.aix   { color: var(--rust); border-color: var(--rust); }
 
   .platform-bar h2 {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
     letter-spacing: .15em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     font-weight: 400;
   }
 
@@ -50,27 +53,33 @@
     font-size: 10px;
     letter-spacing: .15em;
     text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--faint);
     margin-bottom: 16px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
   }
 
-  .steps.aix .step:nth-child(1) { border-left-color: var(--amber); }
-  .steps.aix .step:nth-child(5) { border-left-color: var(--green); }
+  .steps.aix .step:nth-child(1) { border-left-color: var(--rust); }
+  .steps.aix .step:nth-child(5) { border-left-color: var(--sage); }
 
   .cmd + .cmd { margin-top: 10px; }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="logo-dot"></div>
-  <h1>Logrotate — HMC Backup Logs Runbook</h1>
-  <span class="badge">drhmc01 / drhmc02</span>
-</header>
-
 <div class="wrap">
+
+  <nav class="crumb">
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#linux">Linux</a><span class="sep">/</span><a href="../../index.html#linux">Administration</a><span class="sep">/</span>Logrotate — HMC Backup Logs Runbook
+  </nav>
+
+  <h1 class="page-title">Logrotate — HMC Backup Logs Runbook</h1>
+  <p class="page-sub">Building maintainable logrotate policies for HMC backup logs — rotation cadence, compression, retention, and post-rotate hooks.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">drhmc01 / drhmc02</span>
+  </div>
+
 
   <div class="meta">
     <div class="meta-cell"><div class="meta-label">Targets</div><div class="meta-val">drhmc01backup.log<br>drhmc02backup.log</div></div>
@@ -311,21 +320,5 @@ errpt <span class="flag">| head</span></div>
   <span>HMC Backup Log Rotation</span>
 </footer>
 
-<script>
-  function toggle(header) {
-    const step = header.parentElement;
-    step.classList.toggle('open');
-  }
-
-  function copy(id, btn) {
-    const block = document.getElementById(id);
-    const text = block.innerText.replace(/^COPY\n/, '').trim();
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'COPIED';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1800);
-    });
-  }
-</script>
 </body>
 </html>

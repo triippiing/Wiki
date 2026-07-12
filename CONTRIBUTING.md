@@ -55,9 +55,12 @@ The landing page's live search filter checks: title, category tag, filename, and
 <title>Your Runbook Title — Short Tagline</title>
 <meta name="description" content="One-sentence summary.">
 <meta name="keywords" content="optional space-separated search terms">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<script src="../../assets/js/chrome.js" defer></script>
 <style>
   /* bespoke classes only — see "Styling" below */
 </style>
@@ -79,8 +82,9 @@ URLs work either way, but **hyphens are nicer than spaces** for sharing:
 
 Every runbook shares the same design language. The heavy lifting lives in two stylesheets under `assets/css/`:
 
-- **`tokens.css`** — colour palette, typography, reset, base `body` styles, shared `@keyframes`. Edit this to shift the design language across every runbook at once.
-- **`runbook.css`** — shared components: `header` + `.logo-dot` + `.badge`, `.wrap`, `.meta` grid, `.phase-label`, `.steps` / `.step` accordion, `.step-tag` semantic variants (`info` / `ok` / `caution` / `critical`), `.cmd` code blocks + `.copy-btn`, `.note` variants, `.warn-box`, `.controls` / `.ctrl-btn`, `footer`.
+- **`tokens.css`** — the warm stone / ochre palette, the four-font stack (Source Serif 4 · Spectral · Public Sans · IBM Plex Mono), reset, base `body` styles, shared `@keyframes`. Edit this to shift the design language across every runbook at once.
+- **`runbook.css`** — shared components: `.crumb` breadcrumb, `.page-title`, `.badges`, `.wrap`, `.meta` grid, `.phase-label`, `.steps` / `.step` accordion, `.step-tag` semantic variants (`info` / `ok` / `caution` / `critical`), `.code-panel` + `.cmd`, `.note` variants (`info` / `caution` / `critical` / `verify` / `success`), `.warn-box`, `.controls` / `.ctrl-btn`, tables, `footer`.
+- **`assets/js/chrome.js`** — builds the code-block header bar (language label + `⧉ COPY`) around every `.cmd` at load, and binds the step accordions. Runbooks do **not** hand-write code-panel markup or an inline toggle/copy script. Set `data-lang` on a `.cmd` to override the language label (defaults to `shell`).
 
 Runbooks live two folders deep (`aix/administration/foo.html`, `backup/tsm/bar.html`), so link with `../../`:
 
@@ -96,13 +100,13 @@ Load `tokens.css` first — `runbook.css` depends on its `--*` variables.
 Keep an inline `<style>` block **only** for classes specific to your runbook — usually content-shaped tables (`.finding-*`, `.tier-*`, `.primer-*`, `.flag-table`, `.summary-table`) or step-accent overrides:
 
 ```css
-.step.ph-cpu  { border-left-color: var(--amber); }
-.step.ph-disk { border-left-color: var(--cyan);  }
+.step.ph-cpu  { border-left-color: var(--rust);  }
+.step.ph-disk { border-left-color: var(--ochre); }
 ```
 
-Always reference token variables (`var(--cyan)`, `var(--border)`, …) — never hard-code colours in bespoke rules. If you catch yourself copy-pasting the same bespoke component into a second runbook, promote it into `runbook.css` instead.
+Always reference token variables (`var(--ochre)`, `var(--border)`, …) — never hard-code colours in bespoke rules. The palette is deliberately restrained: stone paper, one ochre accent, `--rust` for caution, `--sage` for verify, and mono for anything machine-readable. If you catch yourself copy-pasting the same bespoke component into a second runbook, promote it into `runbook.css` instead.
 
-Existing runbooks still carry their full inline `<style>` block from before the library existed. Migrate them opportunistically when you touch a page — no need for a big-bang cleanup.
+Every runbook now sits on the shared library; inline `<style>` blocks should contain bespoke classes only.
 
 ### Reference cheatsheets — an intentional exception
 
