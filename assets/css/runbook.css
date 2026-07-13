@@ -168,6 +168,89 @@
    dead space beside it — the cell count above it varies per runbook. */
 .meta-reviewed { grid-column: 1 / -1; }
 
+
+/* ── identity strip + environment block ───────────────────────────────
+   The migrated layout. A runbook is either OLD (one .meta grid holding
+   everything, bespoke and inconsistent) or NEW (.meta.meta-identity with
+   exactly three cells, plus a secondary .env block). Both render correctly,
+   so the migration can stop half-way without breaking anything.
+   See docs/META_GRID_MIGRATION.md.                                       */
+
+/* Exactly three cells — ID · Operation · Last reviewed — identical on every
+   runbook. Overrides the auto-fit of the old grid. */
+.meta-identity {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* ...which means the reviewed cell sits inline as the third cell here,
+   rather than spanning a row to avoid an orphan as it must in the old grid. */
+.meta-identity .meta-reviewed { grid-column: auto; }
+
+@media (max-width: 640px) {
+  .meta-identity { grid-template-columns: 1fr; }
+}
+
+/* Per-runbook facts: host, versions, windows, rollback, spare disk. Real
+   pre-flight content, but secondary to the identity strip — quieter surface,
+   no shadow, tighter cells. */
+.env {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 32px;
+  overflow: hidden;
+  animation: fadeUp .4s .05s ease both;
+  opacity: 0;
+}
+
+.env-head {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.env-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.env-cell {
+  padding: 9px 16px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.env-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 3px;
+}
+
+.env-val {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.env-val.mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+}
+
+/* Semantic variants carried over from .meta-val so migrated cells keep
+   whatever emphasis they already had. */
+.env-val.info { color: var(--ochre); }
+.env-val.ok   { color: var(--sage); }
+.env-val.warn { color: var(--rust); }
+
 .meta-val.bad  { color: var(--rust);  }
 .meta-val.warn { color: var(--rust);  }
 .meta-val.ok   { color: var(--sage);  }
