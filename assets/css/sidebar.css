@@ -1,0 +1,221 @@
+/* ──────────────────────────────────────────────────────────────
+   sidebar.css — 212px category rail, warm stone theme.
+   Requires tokens.css. Markup is built at runtime by chrome.js
+   from window.WIKI_NAV (assets/js/nav-data.js), so runbooks adopt
+   the rail with zero edits to their own markup.
+   ────────────────────────────────────────────────────────────── */
+
+:root { --rail: 212px; }
+
+
+/* ── the rail ── */
+.rail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--rail);
+  height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  padding: 26px 0 34px;
+  z-index: 40;
+}
+
+/* Slim scrollbar — the rail is furniture, not a focal point. */
+.rail::-webkit-scrollbar { width: 7px; }
+.rail::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.rail::-webkit-scrollbar-track { background: transparent; }
+
+
+/* ── wordmark ── */
+.rail-mark {
+  display: block;
+  padding: 0 18px 22px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+
+.rail-mark:hover { color: var(--ochre); }
+
+/* The ochre tick is the one flourish — it ties the rail to the accent
+   without spending colour anywhere else in the chrome. */
+.rail-mark::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  background: var(--ochre);
+  vertical-align: baseline;
+}
+
+
+/* ── category group ── */
+.rail-group { margin-bottom: 20px; }
+
+.rail-cat {
+  padding: 0 18px 7px;
+  font-family: 'Spectral', Georgia, serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: .01em;
+}
+
+
+/* ── page links ── */
+.rail-link {
+  display: block;
+  position: relative;
+  padding: 6px 18px 6px 18px;
+  border-left: 2px solid transparent;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color .14s ease, background .14s ease, border-color .14s ease;
+}
+
+.rail-link:hover {
+  color: var(--ink-2);
+  background: var(--ochre-tint);
+  border-left-color: var(--ochre-bd);
+}
+
+/* Current page: lifted onto --paper so it reads as "you are here" —
+   the same surface the content column sits on. */
+.rail-link[aria-current='page'] {
+  background: var(--paper);
+  border-left-color: var(--ochre);
+  color: var(--ochre);
+  font-weight: 600;
+}
+
+.rail-link:focus-visible {
+  outline: 2px solid var(--ochre);
+  outline-offset: -2px;
+}
+
+
+/* ── content offset ── */
+@media (min-width: 1080px) {
+  body { padding-left: var(--rail); }
+
+  /* Groups settle in on load, staggered top-to-bottom. One orchestrated
+     reveal, matching the content column's existing fadeUp. */
+  .rail-group {
+    animation: fadeUp .38s ease both;
+    opacity: 0;
+  }
+  .rail-group:nth-child(2) { animation-delay: .04s; }
+  .rail-group:nth-child(3) { animation-delay: .08s; }
+  .rail-group:nth-child(4) { animation-delay: .12s; }
+  .rail-group:nth-child(5) { animation-delay: .16s; }
+  .rail-group:nth-child(6) { animation-delay: .20s; }
+  .rail-group:nth-child(7) { animation-delay: .24s; }
+}
+
+
+/* ── toggle + scrim (narrow screens only) ── */
+.rail-toggle {
+  display: none;
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 60;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.rail-toggle:focus-visible {
+  outline: 2px solid var(--ochre);
+  outline-offset: 2px;
+}
+
+.rail-toggle span,
+.rail-toggle span::before,
+.rail-toggle span::after {
+  position: absolute;
+  width: 15px;
+  height: 1.5px;
+  background: currentColor;
+  transition: transform .2s ease, opacity .2s ease;
+}
+.rail-toggle span::before { content: ''; transform: translateY(-5px); }
+.rail-toggle span::after  { content: ''; transform: translateY(5px); }
+
+/* × when open */
+.rail-open .rail-toggle span { background: transparent; }
+.rail-open .rail-toggle span::before { transform: rotate(45deg); }
+.rail-open .rail-toggle span::after  { transform: rotate(-45deg); }
+
+.rail-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(43, 38, 32, .34);
+  opacity: 0;
+  transition: opacity .22s ease;
+}
+
+@media (max-width: 1079px) {
+  .rail-toggle { display: flex; }
+
+  .rail {
+    transform: translateX(-100%);
+    transition: transform .24s ease;
+    box-shadow: var(--shadow);
+    padding-top: 64px;
+  }
+
+  .rail-open .rail { transform: translateX(0); }
+
+  .rail-scrim { display: block; pointer-events: none; }
+  .rail-open .rail-scrim { opacity: 1; pointer-events: auto; }
+
+  /* Clear the floating toggle so it never sits on the breadcrumb. */
+  .wrap { padding-top: 64px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail,
+  .rail-group,
+  .rail-link,
+  .rail-scrim,
+  .rail-toggle span,
+  .rail-toggle span::before,
+  .rail-toggle span::after {
+    transition: none;
+    animation: none;
+    opacity: 1;
+  }
+}
+
+
+/* ── print: the rail is screen furniture ── */
+@media print {
+  .rail, .rail-toggle, .rail-scrim { display: none; }
+  body { padding-left: 0; }
+}
