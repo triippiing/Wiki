@@ -164,6 +164,10 @@
 
 .meta-val.never { color: var(--rust); }
 
+/* Runs the full width of the grid rather than leaving an orphan cell with
+   dead space beside it — the cell count above it varies per runbook. */
+.meta-reviewed { grid-column: 1 / -1; }
+
 .meta-val.bad  { color: var(--rust);  }
 .meta-val.warn { color: var(--rust);  }
 .meta-val.ok   { color: var(--sage);  }
@@ -243,6 +247,55 @@
 
 .step-header:hover { background: var(--surface); }
 .step.open .step-header { border-bottom-color: var(--border); }
+
+/* ── per-step anchor (added by chrome.js) ──
+   Hidden until the row is hovered — a runbook is read far more often than
+   it is linked, so the affordance shouldn't compete with the step title. */
+.step-link {
+  flex-shrink: 0;
+  opacity: 0;
+  padding: 0 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--faint);
+  text-decoration: none;
+  transition: opacity .14s ease, color .14s ease;
+}
+
+.step-header:hover .step-link,
+.step-link:focus-visible { opacity: 1; }
+
+.step-link:hover  { color: var(--ochre); }
+.step-link.copied { opacity: 1; color: var(--sage); }
+
+.step-link:focus-visible {
+  outline: 2px solid var(--ochre);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Arrival highlight — you followed a link to this step, here it is.
+   Must re-declare fadeUp: .step sets opacity:0 and relies on that animation
+   to reveal itself, so overriding the shorthand with stepFlash alone would
+   leave the linked step invisible. */
+.step.flash {
+  animation: fadeUp .35s ease both, stepFlash 1.8s ease both;
+}
+
+@keyframes stepFlash {
+  0%, 55% { box-shadow: 0 0 0 2px var(--ochre); }
+  100%    { box-shadow: var(--shadow); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step.flash {
+    animation: none;
+    opacity: 1;                       /* fadeUp is what normally reveals it */
+    box-shadow: 0 0 0 2px var(--ochre);
+  }
+}
 
 /* ochre number badge — square at "01", grows for "1.1" / "RB.4" */
 .step-num {
