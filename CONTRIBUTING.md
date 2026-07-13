@@ -60,6 +60,8 @@ The landing page's live search filter checks: title, category tag, filename, and
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<link rel="stylesheet" href="../../assets/css/sidebar.css">
+<script src="../../assets/js/nav-data.js" defer></script>
 <script src="../../assets/js/chrome.js" defer></script>
 <style>
   /* bespoke classes only — see "Styling" below */
@@ -84,16 +86,21 @@ Every runbook shares the same design language. The heavy lifting lives in two st
 
 - **`tokens.css`** — the warm stone / ochre palette, the four-font stack (Source Serif 4 · Spectral · Public Sans · IBM Plex Mono), reset, base `body` styles, shared `@keyframes`. Edit this to shift the design language across every runbook at once.
 - **`runbook.css`** — shared components: `.crumb` breadcrumb, `.page-title`, `.badges`, `.wrap`, `.meta` grid, `.phase-label`, `.steps` / `.step` accordion, `.step-tag` semantic variants (`info` / `ok` / `caution` / `critical`), `.code-panel` + `.cmd`, `.note` variants (`info` / `caution` / `critical` / `verify` / `success`), `.warn-box`, `.controls` / `.ctrl-btn`, tables, `footer`.
-- **`assets/js/chrome.js`** — builds the code-block header bar (language label + `⧉ COPY`) around every `.cmd` at load, and binds the step accordions. Runbooks do **not** hand-write code-panel markup or an inline toggle/copy script. Set `data-lang` on a `.cmd` to override the language label (defaults to `shell`).
+- **`sidebar.css`** — the 212px category rail (`.rail`) and its narrow-screen drawer. Collapses to an off-canvas drawer with a toggle below 1080px; hidden in print.
+- **`assets/js/chrome.js`** — builds the code-block header bar (language label + `⧉ COPY`) around every `.cmd` at load, binds the step accordions, and **injects the sidebar rail**. Runbooks do **not** hand-write code-panel markup, an inline toggle/copy script, or any nav markup. Set `data-lang` on a `.cmd` to override the language label (defaults to `shell`).
+- **`assets/js/nav-data.js`** — **generated**; do not edit. `scripts/build_index.py` writes it alongside `index.html`, and `chrome.js` reads `window.WIKI_NAV` from it to build the rail. A new runbook joins the sidebar automatically the next time the build runs (CI does this on push).
 
 Runbooks live two folders deep (`aix/administration/foo.html`, `backup/tsm/bar.html`), so link with `../../`:
 
 ```html
 <link rel="stylesheet" href="../../assets/css/tokens.css">
 <link rel="stylesheet" href="../../assets/css/runbook.css">
+<link rel="stylesheet" href="../../assets/css/sidebar.css">
 ```
 
-Load `tokens.css` first — `runbook.css` depends on its `--*` variables.
+Load `tokens.css` first — `runbook.css` and `sidebar.css` both depend on its `--*` variables. Load `nav-data.js` before `chrome.js` (both `defer`, which preserves order).
+
+A page one folder deep (`vtl/foo.html`) uses `../` instead. `chrome.js` works out the site root from its own `src`, so nav links resolve correctly from either depth — no configuration needed.
 
 ### Shared vs bespoke
 
