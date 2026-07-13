@@ -126,6 +126,44 @@
   font-size: 12px;
 }
 
+
+/* ── last-reviewed cell (appended to .meta by chrome.js from
+      <meta name="reviewed">). Age drives the colour: the point of the
+      field is to make a stale runbook look stale. ── */
+.meta-age {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.meta-age.fresh {                      /* < 6 months */
+  background: var(--sage-tint);
+  border-color: var(--sage-bd);
+  color: var(--sage);
+}
+
+.meta-age.ageing {                     /* 6 – 12 months */
+  background: var(--ochre-tint);
+  border-color: var(--ochre-bd);
+  color: var(--ochre);
+}
+
+.meta-age.stale {                      /* > 12 months, or never reviewed */
+  background: var(--rust-tint);
+  border-color: var(--rust-bd);
+  color: var(--rust);
+}
+
+.meta-val.never { color: var(--rust); }
+
 .meta-val.bad  { color: var(--rust);  }
 .meta-val.warn { color: var(--rust);  }
 .meta-val.ok   { color: var(--sage);  }

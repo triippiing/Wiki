@@ -90,6 +90,72 @@
     });
   }
 
+  /* ── last-reviewed ────────────────────────────────────────
+     Appends a "Last reviewed" cell to the .meta grid from the page's
+     <meta name="reviewed" content="YYYY-MM-DD">. Deliberately NOT
+     derived from git: a cosmetic commit that touches every runbook
+     would otherwise reset every date and make a stale runbook look
+     fresh, which is the exact failure this field exists to prevent.
+     A missing date is reported loudly, not hidden.                  */
+
+  var MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function monthsSince(d) {
+    var now = new Date();
+    return (now.getFullYear() - d.getFullYear()) * 12 +
+           (now.getMonth() - d.getMonth()) -
+           (now.getDate() < d.getDate() ? 1 : 0);
+  }
+
+  function ageLabel(months) {
+    if (months < 1)  return 'this month';
+    if (months < 24) return months + (months === 1 ? ' month' : ' months');
+    var years = Math.floor(months / 12);
+    return years + ' years';
+  }
+
+  function buildReviewed() {
+    var grid = document.querySelector('.meta');
+    if (!grid || grid.querySelector('.meta-reviewed')) return;
+
+    var tag = document.querySelector('meta[name="reviewed"]');
+    var raw = tag && tag.getAttribute('content');
+
+    var cell = document.createElement('div');
+    cell.className = 'meta-cell meta-reviewed';
+
+    var label = document.createElement('div');
+    label.className = 'meta-label';
+    label.textContent = 'Last reviewed';
+
+    var val = document.createElement('div');
+    val.className = 'meta-val';
+
+    var badge = document.createElement('span');
+    badge.className = 'meta-age';
+
+    var d = raw ? new Date(raw + 'T00:00:00') : null;
+    if (!d || isNaN(d)) {
+      val.classList.add('never');
+      val.textContent = '—';
+      badge.classList.add('stale');
+      badge.textContent = 'never reviewed';
+    } else {
+      var months = monthsSince(d);
+      val.textContent = String(d.getDate()).padStart(2, '0') + ' ' +
+                        MONTH[d.getMonth()] + ' ' + d.getFullYear();
+      badge.classList.add(months < 6 ? 'fresh' : months < 12 ? 'ageing' : 'stale');
+      badge.textContent = ageLabel(months);
+    }
+
+    val.appendChild(badge);
+    cell.appendChild(label);
+    cell.appendChild(val);
+    grid.appendChild(cell);
+  }
+
+
   /* ── sidebar ─────────────────────────────────────────────── */
 
   /* Match the current page against a nav href. Filenames contain spaces
@@ -116,6 +182,22 @@
     mark.textContent = 'Knowledge Base';
     nav.appendChild(mark);
 
+    /* Filter box. The whole nav tree is already in memory via WIKI_NAV, so
+       search works from inside any runbook — no trip back to the index. */
+    var search = document.createElement('div');
+    search.className = 'rail-search';
+    var input = document.createElement('input');
+    input.className = 'rail-input';
+    input.type = 'search';
+    input.placeholder = 'Filter runbooks  /';
+    input.setAttribute('aria-label', 'Filter runbooks');
+    search.appendChild(input);
+    nav.appendChild(search);
+
+    var empty = document.createElement('div');
+    empty.className = 'rail-empty';
+    empty.textContent = 'no matches';
+
     window.WIKI_NAV.forEach(function (cat) {
       var group = document.createElement('div');
       group.className = 'rail-group';
@@ -130,12 +212,37 @@
         a.className = 'rail-link';
         a.href = root + page.href;
         a.textContent = page.title;
+        /* Match on category and sub-folder too, so "lvm" or "tsm" finds the
+           right pages even when the words aren't in the title. */
+        a.dataset.search = (page.title + ' ' + cat.name + ' ' + (page.sub || '')).toLowerCase();
         if (isCurrent(page.href)) a.setAttribute('aria-current', 'page');
         group.appendChild(a);
       });
 
       nav.appendChild(group);
     });
+
+    nav.appendChild(empty);
+
+    function applyFilter() {
+      var q = input.value.trim().toLowerCase();
+      var hits = 0;
+
+      nav.querySelectorAll('.rail-group').forEach(function (group) {
+        var shown = 0;
+        group.querySelectorAll('.rail-link').forEach(function (a) {
+          var match = !q || a.dataset.search.indexOf(q) !== -1;
+          a.classList.toggle('hide', !match);
+          if (match) shown++;
+        });
+        group.classList.toggle('hide', shown === 0);
+        hits += shown;
+      });
+
+      empty.classList.toggle('show', hits === 0);
+    }
+
+    input.addEventListener('input', applyFilter);
 
     var toggle = document.createElement('button');
     toggle.className = 'rail-toggle';
@@ -158,8 +265,30 @@
       setOpen(!document.body.classList.contains('rail-open'));
     });
     scrim.addEventListener('click', function () { setOpen(false); });
+
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') setOpen(false);
+      /* "/" focuses the filter — but not while the user is typing into
+         something, or it would swallow slashes in a path. */
+      var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) ||
+                   e.target.isContentEditable;
+      if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setOpen(true);
+        input.focus();
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        /* Escape clears a live filter first; only close the drawer once
+           there is nothing left to clear. */
+        if (input.value) {
+          input.value = '';
+          applyFilter();
+          return;
+        }
+        input.blur();
+        setOpen(false);
+      }
     });
 
     document.body.appendChild(toggle);
@@ -180,6 +309,7 @@
   function init() {
     buildPanels();
     bindSteps();
+    buildReviewed();
     buildRail();
   }
 

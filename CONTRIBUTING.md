@@ -54,6 +54,7 @@ The landing page's live search filter checks: title, category tag, filename, and
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your Runbook Title — Short Tagline</title>
 <meta name="description" content="One-sentence summary.">
+<meta name="reviewed" content="2026-07-13">
 <meta name="keywords" content="optional space-separated search terms">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,6 +73,31 @@ The landing page's live search filter checks: title, category tag, filename, and
 </body>
 </html>
 ```
+
+## Last reviewed
+
+```html
+<meta name="reviewed" content="YYYY-MM-DD">
+```
+
+**Bump this when you have actually checked the procedure is still correct** — not when you fix a typo, and not when a sweeping change (a restyle, a new shared component) touches the file. It is the one date a reader can trust, and it only means anything if it means *"a human confirmed this still works."*
+
+It is deliberately **not** derived from git. A cosmetic commit across every runbook — exactly what the stone theme and the sidebar rollout both were — would reset every git date at once and make twenty stale runbooks look freshly checked. That is the precise failure this field exists to prevent.
+
+`chrome.js` renders it as a **Last reviewed** cell in the meta grid, colour-coded by age: sage under 6 months, ochre 6–12, rust beyond 12 or if absent. Every card on the index shows the date too, staying quiet until it earns colour. `build_index.py` prints a warning for anything unreviewed for 12+ months or missing the tag. A missing date shows as `UNREVIEWED` rather than being quietly omitted.
+
+### Bumping the date
+
+Don't hand-edit the tag — use the helper, which stamps the date and regenerates the index in one go:
+
+```bash
+python3 scripts/mark_reviewed.py aix/lvm/aix_lvm_basics.html   # stamp today
+python3 scripts/mark_reviewed.py aix/administration/*.html     # several at once
+python3 scripts/mark_reviewed.py --date 2026-06-01 vtl/*.html  # a specific day
+python3 scripts/mark_reviewed.py --stale                       # what needs a look
+```
+
+It adds the tag if the runbook doesn't have one. Commit the runbook, `index.html` and `assets/js/nav-data.js` together.
 
 ## File naming
 
