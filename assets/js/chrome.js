@@ -81,13 +81,87 @@
     });
   }
 
+  /* ── steps ────────────────────────────────────────────────
+     Binds the accordions and gives every step a stable anchor so a runbook
+     can be handed over mid-incident ("start at step 6") as a link that
+     lands on the step and opens it.
+
+     The id comes from the .step-num badge ("01", "1.1", "RB.4"), not the
+     step's position, so inserting a step above another doesn't silently
+     repoint every link that was already shared.                          */
+
+  function stepId(text) {
+    return 'step-' + text.trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
   function bindSteps() {
-    document.querySelectorAll('.step-header').forEach(function (h) {
-      h.removeAttribute('onclick');
-      h.addEventListener('click', function () {
-        h.parentElement.classList.toggle('open');
+    var used = {};
+
+    document.querySelectorAll('.step').forEach(function (step, i) {
+      var header = step.querySelector('.step-header');
+      if (!header) return;
+
+      header.removeAttribute('onclick');
+      header.addEventListener('click', function () {
+        step.classList.toggle('open');
       });
+
+      if (step.id) return;
+
+      var num = step.querySelector('.step-num');
+      var id = (num && num.textContent.trim()) ? stepId(num.textContent)
+                                               : 'step-' + (i + 1);
+      /* A runbook can legitimately repeat a badge across phases; keep the
+         first as-is and suffix the rest so ids stay unique. */
+      used[id] = (used[id] || 0) + 1;
+      if (used[id] > 1) id += '-' + used[id];
+      step.id = id;
+
+      var link = document.createElement('a');
+      link.className = 'step-link';
+      link.href = '#' + id;
+      link.textContent = '#';
+      link.title = 'Copy link to this step';
+      link.setAttribute('aria-label', 'Copy link to this step');
+
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();          /* don't toggle the accordion */
+        history.replaceState(null, '', '#' + id);
+        step.classList.add('open');
+        navigator.clipboard.writeText(location.href).then(function () {
+          link.textContent = '✓';
+          link.classList.add('copied');
+          setTimeout(function () {
+            link.textContent = '#';
+            link.classList.remove('copied');
+          }, 1400);
+        });
+      });
+
+      var chevron = header.querySelector('.step-chevron');
+      if (chevron) header.insertBefore(link, chevron);
+      else header.appendChild(link);
     });
+  }
+
+  /* Open and reveal the step named in the URL. */
+  function openFromHash() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    if (!id) return;
+
+    var step = document.getElementById(id);
+    if (!step || !step.classList.contains('step')) return;
+
+    step.classList.add('open');
+
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    step.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+
+    step.classList.add('flash');
+    setTimeout(function () { step.classList.remove('flash'); }, 1800);
   }
 
   /* ── last-reviewed ────────────────────────────────────────
@@ -311,6 +385,8 @@
     bindSteps();
     buildReviewed();
     buildRail();
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
   }
 
   if (document.readyState === 'loading') {
