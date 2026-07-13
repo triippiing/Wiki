@@ -11,6 +11,7 @@ import html
 import json
 import re
 import urllib.parse
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -44,6 +45,33 @@ KW_RE = re.compile(
     r'<meta\s+name=["\']keywords["\']\s+content=["\']([\s\S]*?)["\']\s*/?>',
     re.IGNORECASE,
 )
+REVIEWED_RE = re.compile(
+    r'<meta\s+name=["\']reviewed["\']\s+content=["\'](\d{4}-\d{2}-\d{2})["\']\s*/?>',
+    re.IGNORECASE,
+)
+
+# A runbook is flagged on the index once it passes this age. Deliberately
+# generous — the point is to catch genuinely abandoned procedures, not to
+# nag about a runbook that is merely a few months old.
+STALE_MONTHS = 12
+
+
+def parse_reviewed(text: str) -> date | None:
+    m = REVIEWED_RE.search(text)
+    if not m:
+        return None
+    try:
+        return date.fromisoformat(m.group(1))
+    except ValueError:
+        return None
+
+
+def months_since(d: date, today: date | None = None) -> int:
+    today = today or date.today()
+    months = (today.year - d.year) * 12 + (today.month - d.month)
+    if today.day < d.day:
+        months -= 1
+    return max(months, 0)
 
 
 def walk_html_files(root: Path) -> list[Path]:
@@ -82,12 +110,29 @@ def build_card(entry: dict) -> str:
     tag    = f'{entry["category"]} · {entry["sub_tag"]}' if entry["sub_tag"] else entry["category"]
     search = f'{entry["title"]} {tag} {entry["keywords"]} {Path(entry["rel_path"]).stem}'.lower()
     desc_html = f'\n        <p>{html.escape(entry["description"])}</p>' if entry["description"] else ""
+
+    # Every card carries its review date; age drives the colour so a stale
+    # runbook stands out without the reader having to do date arithmetic.
+    reviewed = entry["reviewed"]
+    if reviewed is None:
+        rev = '<span class="card-rev stale">unreviewed</span>'
+    else:
+        months = months_since(reviewed)
+        stamp  = f'{reviewed.day:02d} {reviewed.strftime("%b")} {reviewed.year}'
+        if months >= STALE_MONTHS:
+            cls = " stale"
+        elif months >= 6:
+            cls = " ageing"
+        else:
+            cls = ""
+        rev = f'<span class="card-rev{cls}">{stamp}</span>'
+
     return (
         f'      <a class="card card-{accent}" href="{url_encode_path(entry["rel_path"])}" '
         f'data-search="{html.escape(search, quote=True)}">\n'
         f'        <div class="card-tag">{html.escape(tag)}</div>\n'
         f'        <h4>{html.escape(entry["title"])}</h4>{desc_html}\n'
-        f'        <div class="card-foot"><span>{html.escape(Path(entry["rel_path"]).name)}</span>'
+        f'        <div class="card-foot">{rev}'
         f'<span class="arrow">→</span></div>\n'
         f'      </a>'
     )
@@ -190,6 +235,7 @@ def main() -> None:
             "title":       title or fallback_title(rel),
             "description": desc,
             "keywords":    kw,
+            "reviewed":    parse_reviewed(text),
         })
 
     grouped: dict[str, list[dict]] = {}
@@ -229,6 +275,39 @@ def main() -> None:
     nav_path = ROOT / "assets" / "js" / "nav-data.js"
     nav_path.write_text(build_nav_data(sorted_cats, grouped), encoding="utf-8")
     print(f"Wrote {nav_path.relative_to(ROOT)} — sidebar rail nav tree")
+
+    report_review_status(entries)
+
+
+def report_review_status(entries: list[dict]) -> None:
+    """Surface runbooks nobody has vouched for lately.
+
+    Warn only — a stale runbook is a documentation problem, not a build
+    failure, and breaking the build would just stop the wiki updating.
+    """
+    missing = sorted(e["rel_path"] for e in entries if e["reviewed"] is None)
+    stale = sorted(
+        ((months_since(e["reviewed"]), e["rel_path"]) for e in entries
+         if e["reviewed"] is not None and months_since(e["reviewed"]) >= STALE_MONTHS),
+        reverse=True,
+    )
+
+    if not missing and not stale:
+        oldest = max(months_since(e["reviewed"]) for e in entries if e["reviewed"])
+        print(f"Review status: all {len(entries)} runbooks reviewed within {STALE_MONTHS} months "
+              f"(oldest: {oldest} months).")
+        return
+
+    if stale:
+        print(f"\n⚠  {len(stale)} runbook(s) unreviewed for {STALE_MONTHS}+ months:")
+        for months, rel in stale:
+            print(f"     {months:>3} months  {rel}")
+    if missing:
+        print(f"\n⚠  {len(missing)} runbook(s) have no <meta name=\"reviewed\"> date:")
+        for rel in missing:
+            print(f"                {rel}")
+    print('\n   Set it when you have checked the procedure is still correct:')
+    print('     <meta name="reviewed" content="YYYY-MM-DD">')
 
 
 STYLES = """  :root {
@@ -513,6 +592,31 @@ STYLES = """  :root {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px;
     color: var(--faint);
+  }
+
+  /* Review date, on every card. Quiet by default — it only earns colour
+     once the runbook is old enough that someone should look at it. Rust is
+     the same "stop and check" signal the runbooks themselves use. */
+  .card-rev {
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    letter-spacing: .03em;
+  }
+
+  .card-rev.ageing {
+    background: var(--ochre-tint);
+    border-color: var(--ochre-bd);
+    color: var(--ochre);
+    font-weight: 600;
+  }
+
+  .card-rev.stale {
+    background: var(--rust-tint);
+    border-color: var(--rust-bd);
+    color: var(--rust);
+    font-weight: 600;
+    text-transform: uppercase;
   }
 
   .card-foot .arrow {

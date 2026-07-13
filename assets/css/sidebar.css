@@ -63,6 +63,49 @@
 }
 
 
+/* ── filter ── */
+.rail-search {
+  padding: 0 14px 16px;
+}
+
+.rail-input {
+  width: 100%;
+  padding: 6px 9px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--ink);
+  transition: border-color .14s ease;
+}
+
+.rail-input::placeholder {
+  color: var(--faint);
+  font-size: 10.5px;
+}
+
+.rail-input:focus {
+  outline: none;
+  border-color: var(--ochre);
+}
+
+/* Hidden by the filter — display:none rather than a class on the link so
+   an emptied category collapses with it. */
+.rail-link.hide,
+.rail-group.hide { display: none; }
+
+.rail-empty {
+  display: none;
+  padding: 2px 18px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.rail-empty.show { display: block; }
+
+
 /* ── category group ── */
 .rail-group { margin-bottom: 20px; }
 
