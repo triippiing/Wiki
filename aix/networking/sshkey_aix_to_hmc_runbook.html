@@ -165,13 +165,22 @@
 
 
   <!-- Meta -->
-  <div class="meta">
-    <div class="meta-cell"><div class="meta-label">Source</div><div class="meta-val info">trips-testlab</div></div>
-    <div class="meta-cell"><div class="meta-label">Target</div><div class="meta-val warn">drhmc01 (HMC)</div></div>
-    <div class="meta-cell"><div class="meta-label">User</div><div class="meta-val">root → hscroot</div></div>
-    <div class="meta-cell"><div class="meta-label">Key type</div><div class="meta-val">RSA 4096, no passphrase</div></div>
-    <div class="meta-cell"><div class="meta-label">Owner</div><div class="meta-val">Backup &amp; Recovery</div></div>
-    <div class="meta-cell"><div class="meta-label">Last reviewed</div><div class="meta-val ok">2026-04-22</div></div>
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-SEC-AIX-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">SSH key auth · AIX → HMC</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Environment</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Source</div><div class="env-val info">trips-testlab</div></div>
+      <div class="env-cell"><div class="env-label">Target</div><div class="env-val warn">drhmc01 (HMC)</div></div>
+      <div class="env-cell"><div class="env-label">User</div><div class="env-val">root → hscroot</div></div>
+      <div class="env-cell"><div class="env-label">Key type</div><div class="env-val">RSA 4096, no passphrase</div></div>
+      <div class="env-cell"><div class="env-label">Owner</div><div class="env-val">Backup &amp; Recovery</div></div>
+      <div class="env-cell"><div class="env-label">Last reviewed</div><div class="env-val ok">2026-04-22</div></div>
+    </div>
   </div>
 
   <p class="note note-info" style="margin-top:0; margin-bottom:32px;">Runbook for establishing passwordless SSH from a management host (<code>trips-testlab</code>) to an IBM HMC (<code>drhmc01</code>) for unattended monitoring and automation. The HMC's restricted shell means <code>ssh-copy-id</code> won't work — use <code>mkauthkeys</code> instead.</p>

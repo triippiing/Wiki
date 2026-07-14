@@ -148,13 +148,22 @@
 
 
   <!-- Meta -->
-  <div class="meta">
-    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val info">Network admin (interfaces, routes, firewall)</div></div>
-    <div class="meta-cell"><div class="meta-label">Privilege</div><div class="meta-val warn">root / sudo</div></div>
-    <div class="meta-cell"><div class="meta-label">NIC Manager</div><div class="meta-val">NetworkManager</div></div>
-    <div class="meta-cell"><div class="meta-label">Primary Tools</div><div class="meta-val">nmcli · nmtui · ip · firewall-cmd</div></div>
-    <div class="meta-cell"><div class="meta-label">Firewall</div><div class="meta-val">firewalld (nftables)</div></div>
-    <div class="meta-cell"><div class="meta-label">Distro</div><div class="meta-val ok">RHEL 8 / 9 + derivatives</div></div>
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-NET-LNX-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Network configuration &amp; troubleshooting</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Environment</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Scope</div><div class="env-val info">Network admin (interfaces, routes, firewall)</div></div>
+      <div class="env-cell"><div class="env-label">Privilege</div><div class="env-val warn">root / sudo</div></div>
+      <div class="env-cell"><div class="env-label">NIC Manager</div><div class="env-val">NetworkManager</div></div>
+      <div class="env-cell"><div class="env-label">Primary Tools</div><div class="env-val">nmcli · nmtui · ip · firewall-cmd</div></div>
+      <div class="env-cell"><div class="env-label">Firewall</div><div class="env-val">firewalld (nftables)</div></div>
+      <div class="env-cell"><div class="env-label">Distro</div><div class="env-val ok">RHEL 8 / 9 + derivatives</div></div>
+    </div>
   </div>
 
   <p class="note note-info" style="margin-top:0; margin-bottom:24px;">Reference for everyday Linux network administration on RHEL 8/9 (and derivatives) using <strong>NetworkManager</strong> + <strong>firewalld</strong>. Covers identifying NICs, assigning addresses, creating new connections, persistent routes, DNS, and host-firewall rules. On RHEL 9 the legacy <code>network-scripts</code> package is gone — do <em>not</em> hand-edit <code>ifcfg-*</code> files while NetworkManager is running; everything below treats NetworkManager as the source of truth.</p>
