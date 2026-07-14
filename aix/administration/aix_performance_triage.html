@@ -138,13 +138,22 @@
 
 
   <!-- Meta -->
-  <div class="meta">
-    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val info">Bottleneck triage</div></div>
-    <div class="meta-cell"><div class="meta-label">Privilege</div><div class="meta-val warn">root for kernel tools</div></div>
-    <div class="meta-cell"><div class="meta-label">Primary Tools</div><div class="meta-val">topas · vmstat · iostat</div></div>
-    <div class="meta-cell"><div class="meta-label">Deep-Dive Tools</div><div class="meta-val">nmon · svmon · tprof · filemon</div></div>
-    <div class="meta-cell"><div class="meta-label">Decision Path</div><div class="meta-val">CPU · Mem · Disk · Net · Lock</div></div>
-    <div class="meta-cell"><div class="meta-label">Use For</div><div class="meta-val ok">live &amp; post-mortem</div></div>
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-PERF-AIX-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Performance triage · CPU / memory / I/O</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Environment</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Scope</div><div class="env-val info">Bottleneck triage</div></div>
+      <div class="env-cell"><div class="env-label">Privilege</div><div class="env-val warn">root for kernel tools</div></div>
+      <div class="env-cell"><div class="env-label">Primary Tools</div><div class="env-val">topas · vmstat · iostat</div></div>
+      <div class="env-cell"><div class="env-label">Deep-Dive Tools</div><div class="env-val">nmon · svmon · tprof · filemon</div></div>
+      <div class="env-cell"><div class="env-label">Decision Path</div><div class="env-val">CPU · Mem · Disk · Net · Lock</div></div>
+      <div class="env-cell"><div class="env-label">Use For</div><div class="env-val ok">live &amp; post-mortem</div></div>
+    </div>
   </div>
 
   <p class="note note-info" style="margin-top:0; margin-bottom:24px;">First-pass triage when an AIX system is reported slow. The goal is to classify the bottleneck — CPU, memory, disk, network, or lock contention — within roughly five minutes using a top-down sequence of <code>topas</code> → <code>vmstat</code> → branch tool, then drill into the responsible subsystem. Works for both live "it's slow right now" calls and post-mortem analysis from <code>nmon</code> recordings.</p>

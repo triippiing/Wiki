@@ -26,8 +26,9 @@ The five IDs that already existed in the runbooks are preserved exactly.
 (≈ 40 chars) — it sits beside the ID and the review date, and the fuller
 description already appears directly above the grid as the page subtitle.
 
-STATUS: IDs approved by Jack 2026-07-13. The `operation` strings are DRAFTS I
-proposed and are NOT yet approved — review them before or during the migration.
+STATUS: fully approved by Jack — IDs 2026-07-13, operation strings 2026-07-14.
+Changing an `operation` here after the migration has run does NOT propagate:
+the strings are baked into each runbook's markup. Edit the runbook.
 """
 from __future__ import annotations
 
@@ -65,7 +66,7 @@ RUNBOOKS: dict[str, tuple[str, str]] = {
     "linux/administration/logrotate_config.html": (
         "RB-ADM-LNX-002", "Logrotate · HMC backup logs"),
     "linux/networking/linux_networking.html": (
-        "RB-NET-LNX-001", "Interfaces, routes, NetworkManager, firewalld"),
+        "RB-NET-LNX-001", "Network configuration &amp; troubleshooting"),
     "linux/storage/linux_disk_and_lvm_operations.html": (
         "RB-LVM-LNX-001", "Disk & LVM · extend / recover"),
     "linux/storage/Veeam linux fs creation .html": (

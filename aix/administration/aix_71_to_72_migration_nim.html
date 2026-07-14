@@ -381,19 +381,26 @@
 
 
   <!-- Meta -->
-  <div class="meta">
+  <div class="meta meta-identity">
     <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-PATCH-AIX-002</div></div>
-    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Version migration · 7.1 → 7.2</div></div>
-    <div class="meta-cell"><div class="meta-label">Method</div><div class="meta-val mono">nimadm (NIM Alt-Disk Migration)</div></div>
-    <div class="meta-cell"><div class="meta-label">Source level</div><div class="meta-val mono">7100-05-12-2336</div></div>
-    <div class="meta-cell"><div class="meta-label">Target level</div><div class="meta-val mono ok">7200-05-10</div></div>
-    <div class="meta-cell"><div class="meta-label">NIM master</div><div class="meta-val mono">dr_nim_01</div></div>
-    <div class="meta-cell"><div class="meta-label">Client LPAR</div><div class="meta-val mono">lpar01</div></div>
-    <div class="meta-cell"><div class="meta-label">Working VG</div><div class="meta-val mono">nimadmvg · ≥ 2× rootvg</div></div>
-    <div class="meta-cell"><div class="meta-label">Spare disk</div><div class="meta-val mono">hdisk1 · ≥ rootvg</div></div>
-    <div class="meta-cell"><div class="meta-label">Window</div><div class="meta-val mono warn">3 — 4 hr</div></div>
-    <div class="meta-cell"><div class="meta-label">nimadm runtime</div><div class="meta-val">90 — 180 min</div></div>
-    <div class="meta-cell"><div class="meta-label">Cutover</div><div class="meta-val ok">single reboot</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Version migration · 7.1 → 7.2 · nimadm</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Environment</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Method</div><div class="env-val mono">nimadm (NIM Alt-Disk Migration)</div></div>
+      <div class="env-cell"><div class="env-label">Source level</div><div class="env-val mono">7100-05-12-2336</div></div>
+      <div class="env-cell"><div class="env-label">Target level</div><div class="env-val mono ok">7200-05-10</div></div>
+      <div class="env-cell"><div class="env-label">NIM master</div><div class="env-val mono">dr_nim_01</div></div>
+      <div class="env-cell"><div class="env-label">Client LPAR</div><div class="env-val mono">lpar01</div></div>
+      <div class="env-cell"><div class="env-label">Working VG</div><div class="env-val mono">nimadmvg · ≥ 2× rootvg</div></div>
+      <div class="env-cell"><div class="env-label">Spare disk</div><div class="env-val mono">hdisk1 · ≥ rootvg</div></div>
+      <div class="env-cell"><div class="env-label">Window</div><div class="env-val mono warn">3 — 4 hr</div></div>
+      <div class="env-cell"><div class="env-label">nimadm runtime</div><div class="env-val">90 — 180 min</div></div>
+      <div class="env-cell"><div class="env-label">Cutover</div><div class="env-val ok">single reboot</div></div>
+    </div>
   </div>
 
   <!-- Topology -->

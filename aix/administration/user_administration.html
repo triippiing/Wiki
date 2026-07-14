@@ -127,13 +127,22 @@
 
 
   <!-- Meta -->
-  <div class="meta">
-    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val info">User &amp; group lifecycle</div></div>
-    <div class="meta-cell"><div class="meta-label">Privilege</div><div class="meta-val warn">root / security group</div></div>
-    <div class="meta-cell"><div class="meta-label">User Cmds</div><div class="meta-val">mkuser · chuser · rmuser</div></div>
-    <div class="meta-cell"><div class="meta-label">Group Cmds</div><div class="meta-val">mkgroup · chgroup · rmgroup</div></div>
-    <div class="meta-cell"><div class="meta-label">Files Touched</div><div class="meta-val">/etc/passwd · /etc/group · /etc/security/*</div></div>
-    <div class="meta-cell"><div class="meta-label">Linux Analogue</div><div class="meta-val ok">useradd / groupadd</div></div>
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-ADM-AIX-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">User & group administration</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Environment</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Scope</div><div class="env-val info">User &amp; group lifecycle</div></div>
+      <div class="env-cell"><div class="env-label">Privilege</div><div class="env-val warn">root / security group</div></div>
+      <div class="env-cell"><div class="env-label">User Cmds</div><div class="env-val">mkuser · chuser · rmuser</div></div>
+      <div class="env-cell"><div class="env-label">Group Cmds</div><div class="env-val">mkgroup · chgroup · rmgroup</div></div>
+      <div class="env-cell"><div class="env-label">Files Touched</div><div class="env-val">/etc/passwd · /etc/group · /etc/security/*</div></div>
+      <div class="env-cell"><div class="env-label">Linux Analogue</div><div class="env-val ok">useradd / groupadd</div></div>
+    </div>
   </div>
 
   <p class="note note-info" style="margin-top:0; margin-bottom:24px;">User administration on AIX maps closely onto its Linux equivalent — the lifecycle and concepts are identical, but the binaries differ. Edits are committed atomically through the high-level commands below; do not hand-edit <code>/etc/passwd</code> or <code>/etc/group</code> on AIX, as the security ODM and shadow files (<code>/etc/security/passwd</code>, <code>/etc/security/user</code>) must be kept in sync.</p>

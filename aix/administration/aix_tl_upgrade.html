@@ -210,17 +210,24 @@
   </div>
 
   <!-- Meta -->
-  <div class="meta">
+  <div class="meta meta-identity">
     <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-PATCH-AIX-001</div></div>
     <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">In-place TL / SP update</div></div>
-    <div class="meta-cell"><div class="meta-label">Method</div><div class="meta-val mono">install_all_updates</div></div>
-    <div class="meta-cell"><div class="meta-label">OS</div><div class="meta-val">AIX 7.1</div></div>
-    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val">Single LPAR · non-clustered</div></div>
-    <div class="meta-cell"><div class="meta-label">Rollback</div><div class="meta-val ok">alt_disk_copy clone</div></div>
-    <div class="meta-cell"><div class="meta-label">Window (SP)</div><div class="meta-val mono">~90 min</div></div>
-    <div class="meta-cell"><div class="meta-label">Window (TL)</div><div class="meta-val mono warn">2 — 3 hr</div></div>
-    <div class="meta-cell"><div class="meta-label">Privileges</div><div class="meta-val">root / sudo-to-root</div></div>
-    <div class="meta-cell"><div class="meta-label">Spare disk</div><div class="meta-val mono">≥ rootvg size</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Environment</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Method</div><div class="env-val mono">install_all_updates</div></div>
+      <div class="env-cell"><div class="env-label">OS</div><div class="env-val">AIX 7.1</div></div>
+      <div class="env-cell"><div class="env-label">Scope</div><div class="env-val">Single LPAR · non-clustered</div></div>
+      <div class="env-cell"><div class="env-label">Rollback</div><div class="env-val ok">alt_disk_copy clone</div></div>
+      <div class="env-cell"><div class="env-label">Window (SP)</div><div class="env-val mono">~90 min</div></div>
+      <div class="env-cell"><div class="env-label">Window (TL)</div><div class="env-val mono warn">2 — 3 hr</div></div>
+      <div class="env-cell"><div class="env-label">Privileges</div><div class="env-val">root / sudo-to-root</div></div>
+      <div class="env-cell"><div class="env-label">Spare disk</div><div class="env-val mono">≥ rootvg size</div></div>
+    </div>
   </div>
 
   <!-- Worked example -->

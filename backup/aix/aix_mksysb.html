@@ -134,13 +134,22 @@
 
 
   <!-- Meta -->
-  <div class="meta">
-    <div class="meta-cell"><div class="meta-label">Scope</div><div class="meta-val info">Bootable rootvg backup</div></div>
-    <div class="meta-cell"><div class="meta-label">Privilege</div><div class="meta-val warn">root</div></div>
-    <div class="meta-cell"><div class="meta-label">Output Targets</div><div class="meta-val">file · NIM · tape</div></div>
-    <div class="meta-cell"><div class="meta-label">Image Format</div><div class="meta-val">bosboot + backbyname</div></div>
-    <div class="meta-cell"><div class="meta-label">Includes</div><div class="meta-val warn">rootvg only</div></div>
-    <div class="meta-cell"><div class="meta-label">Restore Paths</div><div class="meta-val">bos_inst · alt_disk · restore -x</div></div>
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Runbook ID</div><div class="meta-val mono">RB-BKP-AIX-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">mksysb image · local, NIM, tape</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Environment</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Scope</div><div class="env-val info">Bootable rootvg backup</div></div>
+      <div class="env-cell"><div class="env-label">Privilege</div><div class="env-val warn">root</div></div>
+      <div class="env-cell"><div class="env-label">Output Targets</div><div class="env-val">file · NIM · tape</div></div>
+      <div class="env-cell"><div class="env-label">Image Format</div><div class="env-val">bosboot + backbyname</div></div>
+      <div class="env-cell"><div class="env-label">Includes</div><div class="env-val warn">rootvg only</div></div>
+      <div class="env-cell"><div class="env-label">Restore Paths</div><div class="env-val">bos_inst · alt_disk · restore -x</div></div>
+    </div>
   </div>
 
   <p class="note note-info" style="margin-top:0; margin-bottom:24px;"><code>mksysb</code> captures a bootable image of <strong>rootvg only</strong> — non-rootvg volume groups must be handled separately with <code>savevg</code>. The resulting image is bootable and can be consumed by NIM <code>bos_inst</code>, an alternate-disk install, or a tape boot from SMS. Three delivery methods are covered below: a local file under <code>/backup</code>, a remote push to a NIM master over <code>nimsh</code>, and a bootable tape on <code>/dev/rmt1</code>.</p>
