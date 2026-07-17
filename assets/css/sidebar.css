@@ -19,8 +19,15 @@
   overscroll-behavior: contain;
   background: var(--sidebar);
   border-right: 1px solid var(--border);
-  padding: 26px 0 34px;
+  /* generous top padding: the control pill floats over this corner, so the
+     filter must start below it. */
+  padding: 64px 0 34px;
   z-index: 40;
+  /* Reserve the scrollbar gutter on BOTH edges so an overflowing rail keeps
+     its content centred — otherwise the scrollbar shaves width off the right
+     only, shifting the centred filter left of the (scrollbar-agnostic) pill. */
+  scrollbar-gutter: stable both-edges;
+  transition: transform .26s ease, background .25s ease, border-color .25s ease;
 }
 
 /* Slim scrollbar — the rail is furniture, not a focal point. */
@@ -32,40 +39,10 @@
 .rail::-webkit-scrollbar-track { background: transparent; }
 
 
-/* ── wordmark ── */
-.rail-mark {
-  display: block;
-  padding: 0 18px 22px;
-  margin-bottom: 18px;
-  border-bottom: 1px solid var(--border);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--ink);
-  text-decoration: none;
-  transition: color .15s ease;
-}
-
-.rail-mark:hover { color: var(--ochre); }
-
-/* The ochre tick is the one flourish — it ties the rail to the accent
-   without spending colour anywhere else in the chrome. */
-.rail-mark::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 8px;
-  background: var(--ochre);
-  vertical-align: baseline;
-}
-
-
 /* ── filter ── */
 .rail-search {
-  padding: 0 14px 16px;
+  /* small top gap so the field isn't crowded under the control pill */
+  padding: 10px 14px 16px;
 }
 
 .rail-input {
@@ -77,6 +54,7 @@
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   color: var(--ink);
+  text-align: center;         /* line the placeholder up under the centred pill */
   transition: border-color .14s ease;
 }
 
@@ -155,7 +133,21 @@
 
 /* ── content offset ── */
 @media (min-width: 1080px) {
-  body { padding-left: var(--rail); }
+  body {
+    padding-left: var(--rail);
+    transition: padding-left .26s ease;
+  }
+
+  /* Collapsed (the desktop "pop out"): the rail slides fully off-screen and
+     the content column reclaims its width. State lives in body.rail-collapsed,
+     set by chrome.js and remembered in localStorage. */
+  body.rail-collapsed { padding-left: 0; }
+  body.rail-collapsed .rail { transform: translateX(-100%); }
+
+  /* One-shot guard chrome.js sets around restoring a saved collapsed rail,
+     so it applies instantly on load instead of animating shut. */
+  body.rail-no-anim,
+  body.rail-no-anim .rail { transition: none !important; }
 
   /* Groups settle in on load, staggered top-to-bottom. One orchestrated
      reveal, matching the content column's existing fadeUp. */
@@ -172,47 +164,9 @@
 }
 
 
-/* ── toggle + scrim (narrow screens only) ── */
-.rail-toggle {
-  display: none;
-  position: fixed;
-  top: 14px;
-  left: 14px;
-  z-index: 60;
-  width: 38px;
-  height: 38px;
-  align-items: center;
-  justify-content: center;
-  background: var(--sidebar);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  color: var(--ink);
-  cursor: pointer;
-}
-
-.rail-toggle:focus-visible {
-  outline: 2px solid var(--ochre);
-  outline-offset: 2px;
-}
-
-.rail-toggle span,
-.rail-toggle span::before,
-.rail-toggle span::after {
-  position: absolute;
-  width: 15px;
-  height: 1.5px;
-  background: currentColor;
-  transition: transform .2s ease, opacity .2s ease;
-}
-.rail-toggle span::before { content: ''; transform: translateY(-5px); }
-.rail-toggle span::after  { content: ''; transform: translateY(5px); }
-
-/* × when open */
-.rail-open .rail-toggle span { background: transparent; }
-.rail-open .rail-toggle span::before { transform: rotate(45deg); }
-.rail-open .rail-toggle span::after  { transform: rotate(-45deg); }
-
+/* ── drawer scrim (narrow screens only) ──
+   The rail becomes an overlay drawer below 1080px; the pill's sidebar button
+   opens it (see chrome.js toggleRail) and this scrim backs it. */
 .rail-scrim {
   display: none;
   position: fixed;
@@ -224,13 +178,10 @@
 }
 
 @media (max-width: 1079px) {
-  .rail-toggle { display: flex; }
-
   .rail {
     transform: translateX(-100%);
     transition: transform .24s ease;
     box-shadow: var(--shadow);
-    padding-top: 64px;
   }
 
   .rail-open .rail { transform: translateX(0); }
@@ -238,18 +189,89 @@
   .rail-scrim { display: block; pointer-events: none; }
   .rail-open .rail-scrim { opacity: 1; pointer-events: auto; }
 
-  /* Clear the floating toggle so it never sits on the breadcrumb. */
+  /* Clear the floating control pill so it never sits on the breadcrumb. */
   .wrap { padding-top: 64px; }
 }
+
+/* ── control pill (home · sidebar · theme) ────────────────────
+   One opaque pill pinned top-left, where the "Knowledge Base" wordmark used
+   to sit. Built by chrome.js. It replaces both that wordmark and the old
+   narrow-screen hamburger — the sidebar button collapses the column on
+   desktop and opens the drawer on narrow screens. */
+.wiki-controls {
+  position: fixed;
+  top: 14px;
+  left: 14px;               /* narrow + collapsed: hug the left edge */
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 4px;
+  box-shadow: var(--shadow);
+  transition: left .26s ease, transform .26s ease,
+              background .25s ease, border-color .25s ease;
+}
+
+/* When the rail is an open column, sit the pill centred over it rather than
+   jammed against the left edge. Slides back to the edge on collapse. */
+@media (min-width: 1080px) {
+  body:not(.rail-collapsed) .wiki-controls {
+    left: calc(var(--rail) / 2);
+    transform: translateX(-50%);
+  }
+}
+
+.wiki-btn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--muted);
+  text-decoration: none;         /* the home button is an <a> */
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.wiki-btn:hover {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.wiki-btn:focus-visible {
+  outline: 2px solid var(--ochre);
+  outline-offset: 2px;
+}
+
+.wiki-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* moon in light, sun in dark — swap keyed on the resolved theme, which
+   chrome.js always writes explicitly so this stays a simple attribute test. */
+.wiki-btn .i-sun { display: none; }
+:root[data-theme="dark"] .wiki-btn .i-moon { display: none; }
+:root[data-theme="dark"] .wiki-btn .i-sun  { display: block; }
 
 @media (prefers-reduced-motion: reduce) {
   .rail,
   .rail-group,
   .rail-link,
   .rail-scrim,
-  .rail-toggle span,
-  .rail-toggle span::before,
-  .rail-toggle span::after {
+  .wiki-controls,
+  .wiki-btn {
     transition: none;
     animation: none;
     opacity: 1;
@@ -259,6 +281,6 @@
 
 /* ── print: the rail is screen furniture ── */
 @media print {
-  .rail, .rail-toggle, .rail-scrim { display: none; }
+  .rail, .rail-scrim, .wiki-controls { display: none; }
   body { padding-left: 0; }
 }

@@ -392,7 +392,7 @@
   padding: 0 5px;
   white-space: nowrap;
   background: var(--ochre);
-  color: #fff;
+  color: var(--badge-ink);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
   font-weight: 600;
@@ -474,6 +474,9 @@
 }
 
 .copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: none;
   border: none;
   cursor: pointer;
@@ -486,6 +489,16 @@
   padding: 2px 4px;
   border-radius: 2px;
   transition: opacity .15s;
+}
+
+.copy-btn svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .copy-btn:hover  { opacity: .7; }
@@ -592,11 +605,14 @@
 .note-success::before  { content: 'SUCCESS'; color: var(--sage); }
 .note-success strong   { color: var(--sage); }
 
+/* On a tinted callout the default --surface chip blends in, so lift the
+   chip to --paper: near-white in light, a recessed darker cell in dark —
+   legible against the callout tint either way. */
 .note-info code,
 .note-caution code,
 .note-critical code,
 .note-verify code,
-.note-success code { background: rgba(250, 246, 238, .6); }
+.note-success code { background: var(--paper); }
 
 
 /* ── warn box ── */
