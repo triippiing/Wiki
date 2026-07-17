@@ -282,7 +282,31 @@
      PART 2 -- the interactive maintenance shell
      ════════════════════════════════════════════════════════════════════════ */
 
-  var shellEl, outEl, inputEl, cmdHist = [], hix = 0;
+  var shellEl, outEl, inputEl, psEl, cmdHist = [], hix = 0;
+  var cwd = '/', rbCache = null;
+
+  // the shell prompt reflects the current directory, so `cd` is visible
+  function promptStr() { return cwd === '/' ? '# ' : cwd.replace(/^\//, '') + ' # '; }
+  function setCwd(p) { cwd = p; if (psEl) psEl.textContent = promptStr(); }
+
+  // /runbooks is browsable: scrape the live cards on the page so the listing
+  // never goes stale as runbooks are added or renamed.
+  function getRunbooks() {
+    if (rbCache) return rbCache;
+    rbCache = [];
+    document.querySelectorAll('a.card').forEach(function (a) {
+      if (a.classList.contains('card-placeholder')) return;
+      var href = a.getAttribute('href') || '';
+      if (!href || href.charAt(0) === '#') return;
+      var h4 = a.querySelector('h4');
+      rbCache.push({
+        href: href,
+        name: decodeURIComponent(href.split('/').pop()),
+        title: h4 ? h4.textContent.trim() : href
+      });
+    });
+    return rbCache;
+  }
 
   function buildShell() {
     shellEl = el('div', 'shell');
@@ -293,13 +317,13 @@
     outEl = el('div', 'shell-out');
 
     var row = el('div', 'shell-row');
-    var ps  = el('span', 'shell-ps', '# ');
+    psEl = el('span', 'shell-ps', promptStr());
     inputEl = el('input', 'shell-in');
     inputEl.setAttribute('autocomplete', 'off');
     inputEl.setAttribute('autocapitalize', 'off');
     inputEl.setAttribute('spellcheck', 'false');
     inputEl.setAttribute('aria-label', 'maintenance shell input');
-    row.appendChild(ps);
+    row.appendChild(psEl);
     row.appendChild(inputEl);
 
     shellEl.appendChild(bar);
@@ -349,7 +373,7 @@
       e.preventDefault();
       var raw = inputEl.value;
       inputEl.value = '';
-      print('# ' + raw, 'white');
+      print(promptStr() + raw, 'white');
       var cmd = raw.trim();
       if (cmd) { cmdHist.push(cmd); hix = cmdHist.length; }
       run(cmd);
@@ -372,6 +396,7 @@
     help: function () {
       print('available commands:', 'phos');
       print('  ls            list files          cat <file>   show a file');
+      print('  cd <dir>      change directory    open <name>  open a runbook');
       print('  uname -a      system info         oslevel      AIX level');
       print('  whoami / id   who you are         hostname     node name');
       print('  date          current date        uptime       how long up');
@@ -379,12 +404,41 @@
       print('  clear         clear the screen    reboot       replay the IPL');
       print('  exit          leave the shell');
       print('');
-      print('hint: something in here is worth reading.', 'dim');
+      print('hint: try `cd runbooks/`, and `cat DEVNOTES` is worth a read.', 'dim');
     },
     ls: function (args) {
+      var target = args.find(function (a) { return a.charAt(0) !== '-'; });
+      var here = target ? '/' + target.replace(/^\/|\/$/g, '') : cwd;
+      if (here === '/runbooks') {
+        var rb = getRunbooks();
+        if (!rb.length) { print('(no runbooks found)', 'dim'); return; }
+        rb.forEach(function (r) { print('  ' + r.name, 'phos'); });
+        print('');
+        print(rb.length + ' runbooks.  type `open <name>` to read one.', 'dim');
+        return;
+      }
       var showAll = args.indexOf('-a') !== -1 || args.indexOf('-la') !== -1 || args.indexOf('-al') !== -1;
       var items = LS.filter(function (f) { return showAll || f[0] !== '.'; });
       print(items.join('   '), 'phos');
+    },
+    cd: function (args) {
+      var t = args.find(function (a) { return a.charAt(0) !== '-'; }) || '~';
+      t = t.replace(/\/+$/, '');
+      if (t === '' || t === '~' || t === '/' || t === '..') { setCwd('/'); return; }
+      if (t === 'runbooks' || t === '/runbooks') { setCwd('/runbooks'); COMMANDS.ls([]); return; }
+      print('ksh: cd: ' + t + ': 0403-005 The specified directory does not exist.', 'rust');
+    },
+    open: function (args) {
+      var q = (args.find(function (a) { return a.charAt(0) !== '-'; }) || '').toLowerCase();
+      if (!q) { print('open: usage: open <name>   (try `ls runbooks/` first)', 'rust'); return; }
+      var rb = getRunbooks();
+      var strip = function (s) { return s.toLowerCase().replace(/\.html$/, ''); };
+      var hit = rb.find(function (r) { return strip(r.name) === strip(q); }) ||
+                rb.find(function (r) { return strip(r.name).indexOf(strip(q)) !== -1; }) ||
+                rb.find(function (r) { return r.title.toLowerCase().indexOf(q) !== -1; });
+      if (!hit) { print('open: ' + q + ': no such runbook. try `ls runbooks/`.', 'rust'); return; }
+      print('opening ' + hit.title + ' ...', 'amber');
+      setTimeout(function () { location.href = hit.href; }, 350);
     },
     cat: function (args) {
       var f = args.find(function (a) { return a[0] !== '-'; });
@@ -397,6 +451,10 @@
       if (f === 'runbooks/' || f === 'runbooks') {
         print('cat: runbooks: 0403-016 Cannot find or open the file (it is a directory).', 'rust');
         return;
+      }
+      if (/\.html$/i.test(f)) {
+        var rbHit = getRunbooks().find(function (r) { return r.name.toLowerCase() === f.toLowerCase(); });
+        if (rbHit) { print('cat: ' + f + ': is an HTML runbook. use `open ' + f + '`.', 'rust'); return; }
       }
       if (FILES[f] != null) { print(FILES[f], f === 'DEVNOTES' ? 'phos' : 'dim'); return; }
       print('cat: ' + f + ': 0403-005 Cannot find or open the file.', 'rust');
@@ -412,7 +470,7 @@
     whoami: function () { print('root', 'phos'); },
     id: function () { print('uid=0(root) gid=0(system) groups=2(bin),3(sys),7(security)', 'phos'); },
     hostname: function () { print('wiki', 'phos'); },
-    pwd: function () { print('/', 'phos'); },
+    pwd: function () { print(cwd, 'phos'); },
     date: function () { print(new Date().toString().replace(/\s*\(.*\)$/, ''), 'phos'); },
     uptime: function () {
       var d = 3 + Math.floor(Math.random() * 40);
