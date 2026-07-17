@@ -283,7 +283,7 @@
      ════════════════════════════════════════════════════════════════════════ */
 
   var shellEl, outEl, inputEl, psEl, cmdHist = [], hix = 0;
-  var cwd = '/', rbCache = null;
+  var cwd = '/', oldPwd = '/', rbCache = null;
 
   // the shell prompt reflects the current directory, so `cd` is visible
   function promptStr() { return cwd === '/' ? '# ' : cwd.replace(/^\//, '') + ' # '; }
@@ -348,6 +348,43 @@
     outEl.scrollTop = outEl.scrollHeight;
   }
 
+  function printNode(node) {
+    outEl.appendChild(node);
+    outEl.scrollTop = outEl.scrollHeight;
+  }
+
+  // AIX logo, lifted verbatim from neofetch (drawn entirely in c1 = green).
+  var AIX_LOGO = ["           `:+ssssossossss+-`","        .oys///oyhddddhyo///sy+.","      /yo:+hNNNNNNNNNNNNNNNNh+:oy/","    :h/:yNNNNNNNNNNNNNNNNNNNNNNy-+h:","  `ys.yNNNNNNNNNNNNNNNNNNNNNNNNNNy.ys"," `h+-mNNNNNNNNNNNNNNNNNNNNNNNNNNNNm-oh"," h+-NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN.oy","/d`mNNNNNNN/::mNNNd::m+:/dNNNo::dNNNd`m:","h//NNNNNNN: . .NNNh  mNo  od. -dNNNNN:+y","N.sNNNNNN+ -N/ -NNh  mNNd.   sNNNNNNNo-m","N.sNNNNNs  +oo  /Nh  mNNs` ` /mNNNNNNo-m","h//NNNNh  ossss` +h  md- .hm/ `sNNNNN:+y",":d`mNNN+/yNNNNNd//y//h//oNNNNy//sNNNd`m-"," yo-NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNm.ss"," `h+-mNNNNNNNNNNNNNNNNNNNNNNNNNNNNm-oy","   sy.yNNNNNNNNNNNNNNNNNNNNNNNNNNs.yo","    :h+-yNNNNNNNNNNNNNNNNNNNNNNs-oh-","      :ys:/yNNNNNNNNNNNNNNNmy/:sy:","        .+ys///osyhhhhys+///sy+.","            -/osssossossso/-"];
+
+  var FF_PALETTE = ['#262622', '#a35a35', '#63d68a', '#f0a830',
+                    '#5a7a9c', '#8a6d9c', '#5c9c93', '#c8d0c4'];
+
+  function renderFetch() {
+    var wrap = el('div', 'ff');
+    var logo = el('pre', 'ff-logo', AIX_LOGO.join('\n'));  // textContent: no injection
+    var info = el('div', 'ff-info');
+    var days = 3 + Math.floor(Math.random() * 40);
+    var row = function (k, v) { return '<span class="k">' + k + ':</span> ' + v + '\n'; };
+    info.innerHTML =
+      '<span class="t">root</span>@<span class="t">wiki</span>\n' +
+      '-----------------\n' +
+      row('OS', 'AIX 7.2 powerpc') +
+      row('Host', 'IBM Power System S924 (9009-42A)') +
+      row('Kernel', '7.2.0.0') +
+      row('Uptime', days + ' days') +
+      row('Packages', getRunbooks().length + ' (runbook)') +
+      row('Shell', 'ksh 93u+') +
+      row('Terminal', '/dev/pts/0') +
+      row('CPU', 'POWER9 (4) @ 3.8GHz') +
+      row('Memory', '4096MiB / 16384MiB') +
+      '<div class="ff-pal">' +
+        FF_PALETTE.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') +
+      '</div>';
+    wrap.appendChild(logo);
+    wrap.appendChild(info);
+    printNode(wrap);
+  }
+
   function openShell() {
     if (!shellEl) buildShell();
     if (shellEl.classList.contains('open')) { inputEl.focus(); return; }
@@ -401,6 +438,7 @@
       print('  whoami / id   who you are         hostname     node name');
       print('  date          current date        uptime       how long up');
       print('  motd          message of the day  fortune      words of wisdom');
+      print('  neofetch      system info + logo  fastfetch    (alias)');
       print('  clear         clear the screen    reboot       replay the IPL');
       print('  exit          leave the shell');
       print('');
@@ -422,11 +460,20 @@
       print(items.join('   '), 'phos');
     },
     cd: function (args) {
-      var t = args.find(function (a) { return a.charAt(0) !== '-'; }) || '~';
-      t = t.replace(/\/+$/, '');
-      if (t === '' || t === '~' || t === '/' || t === '..') { setCwd('/'); return; }
-      if (t === 'runbooks' || t === '/runbooks') { setCwd('/runbooks'); COMMANDS.ls([]); return; }
-      print('ksh: cd: ' + t + ': 0403-005 The specified directory does not exist.', 'rust');
+      var t = (args[0] || '~').replace(/\/+$/, '');
+      if (t === '.') return;                       // stay put
+      if (t === '-') {                             // toggle to previous dir
+        var prev = oldPwd; oldPwd = cwd; setCwd(prev);
+        print(cwd, 'dim');
+        return;
+      }
+      var dest;
+      if (t === '' || t === '~' || t === '/' || t === '..') dest = '/';   // parent of /runbooks is /
+      else if (t === 'runbooks' || t === '/runbooks') dest = '/runbooks';
+      else { print('ksh: cd: ' + t + ': 0403-005 The specified directory does not exist.', 'rust'); return; }
+      if (dest === cwd) { if (dest === '/runbooks') COMMANDS.ls([]); return; }
+      oldPwd = cwd; setCwd(dest);
+      if (dest === '/runbooks') COMMANDS.ls([]);
     },
     open: function (args) {
       var q = (args.find(function (a) { return a.charAt(0) !== '-'; }) || '').toLowerCase();
@@ -479,6 +526,8 @@
     },
     motd: function () { print(FILES.motd, 'dim'); },
     fortune: function () { print(FORTUNES[Math.floor(Math.random() * FORTUNES.length)], 'amber'); },
+    neofetch: function () { renderFetch(); },
+    fastfetch: function () { renderFetch(); },
     echo: function (args) { print(args.join(' '), 'phos'); },
     clear: function () { outEl.innerHTML = ''; },
     reboot: function () {

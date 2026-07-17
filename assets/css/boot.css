@@ -251,8 +251,38 @@
   padding: 0;
 }
 
+/* fastfetch / neofetch output: green AIX logo + system info side by side */
+.ff {
+  display: flex;
+  gap: 26px;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+  margin: 4px 0 8px;
+}
+.ff-logo {
+  color: var(--ipl-phos);
+  white-space: pre;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  line-height: 1.12;
+  text-shadow: 0 0 6px rgba(99, 214, 138, .35);
+  flex-shrink: 0;
+}
+.ff-info {
+  white-space: pre;
+  line-height: 1.5;
+  padding-top: 4px;
+}
+.ff-info .t { color: var(--ipl-phos); font-weight: 600; }
+.ff-info .k { color: var(--ipl-phos); font-weight: 600; }
+.ff-pal { margin-top: 9px; display: flex; }
+.ff-pal i { display: inline-block; width: 15px; height: 13px; }
+
 @media (max-width: 640px) {
   .ipl { font-size: 11px; padding: 18px 16px 50px; }
   .ipl-led .code { font-size: 18px; }
   .shell { font-size: 11px; }
+  .ff { flex-direction: column; gap: 10px; }
+  .ff-logo { font-size: 9px; }
 }
