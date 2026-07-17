@@ -264,6 +264,7 @@ def main() -> None:
     page = TEMPLATE.format(
         styles=STYLES,
         script=SCRIPT,
+        theme_boot=THEME_BOOT,
         sections=sections_html,
         total=total,
         runbook_word=runbook_word,
@@ -328,6 +329,38 @@ STYLES = """  :root {
     --header-h:   56px;
   }
 
+  /* dark theme — same warm "workbench" stone as the runbook pages
+     (assets/css/tokens.css). Set by the head script / the toggle, with a
+     prefers-color-scheme fallback for the no-JS case. */
+  :root[data-theme="dark"] {
+    --paper:      #1E1A16;
+    --sidebar:    #262019;
+    --surface:    #2A2521;
+    --border:     #3A342C;
+    --ink:        #ECE4D5;
+    --ink-2:      #D3CAB8;
+    --muted:      #A79C88;
+    --faint:      #7C725F;
+    --ochre:      #D9B87C;
+    --ochre-tint: #322818;
+    --ochre-bd:   #4A3B22;
+    --rust:       #E0975E;
+    --rust-tint:  #38271C;
+    --rust-bd:    #543829;
+    --sage:       #A9BE7E;
+    --shadow:     0 2px 14px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#1E1A16; --sidebar:#262019; --surface:#2A2521; --border:#3A342C;
+      --ink:#ECE4D5; --ink-2:#D3CAB8; --muted:#A79C88; --faint:#7C725F;
+      --ochre:#D9B87C; --ochre-tint:#322818; --ochre-bd:#4A3B22;
+      --rust:#E0975E; --rust-tint:#38271C; --rust-bd:#543829; --sage:#A9BE7E;
+      --shadow:0 2px 14px rgba(0,0,0,.5); color-scheme:dark;
+    }
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -338,9 +371,38 @@ STYLES = """  :root {
     line-height: 1.55;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    transition: background .25s ease, color .25s ease;
   }
 
   a { color: inherit; text-decoration: none; }
+
+  /* header glass + card hover shadow are hand-mixed rgba, so they need an
+     explicit dark counterpart the token swap can't reach. */
+  :root[data-theme="dark"] header { background: rgba(30, 26, 22, .82); }
+  :root[data-theme="dark"] .card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, .55); }
+
+  /* theme toggle — lives directly in <header> (not .header-meta, which hides
+     on mobile) so it stays reachable at every width, like the "#_" affordance. */
+  .theme-btn {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .theme-btn:hover { background: var(--surface); border-color: var(--border); color: var(--ink); }
+  .theme-btn:focus-visible { outline: 2px solid var(--ochre); outline-offset: 2px; }
+  .theme-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .theme-btn .i-sun { display: none; }
+  :root[data-theme="dark"] .theme-btn .i-moon { display: none; }
+  :root[data-theme="dark"] .theme-btn .i-sun  { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    body, .theme-btn { transition: none; }
+  }
 
   header {
     height: var(--header-h);
@@ -661,7 +723,16 @@ STYLES = """  :root {
   }"""
 
 
-SCRIPT = """  const input    = document.getElementById('filter');
+SCRIPT = """  /* theme toggle — flips data-theme and remembers it under the shared
+     "wiki-theme" key, so the choice carries to and from the runbook pages. */
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark'
+      ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('wiki-theme', next); } catch (e) { /* ignore */ }
+  });
+
+  const input    = document.getElementById('filter');
   const cards    = document.querySelectorAll('.card');
   const sections = document.querySelectorAll('.section');
   const empty    = document.getElementById('empty-state');
@@ -699,6 +770,19 @@ SCRIPT = """  const input    = document.getElementById('filter');
   });"""
 
 
+# Blocking head script: set data-theme before first paint. Kept as a separate
+# constant (not inline in TEMPLATE) so its { } braces don't collide with
+# TEMPLATE.format(). Injected via the {theme_boot} placeholder.
+THEME_BOOT = (
+    "<script>(function(){try{"
+    "var t=localStorage.getItem('wiki-theme');"
+    "if(t!=='dark'&&t!=='light')"
+    "t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';"
+    "document.documentElement.setAttribute('data-theme',t);"
+    "}catch(e){}})();</script>"
+)
+
+
 TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -706,6 +790,9 @@ TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Knowledge Base — AIX / Linux / Backup Runbooks</title>
 <meta name="description" content="A curated collection of AIX, Linux, and backup operations runbooks built from production experience.">
+<!-- Resolve theme before first paint so a repeat visit (boot skipped) doesn't
+     flash light. Shares the "wiki-theme" key with the runbook pages. -->
+{theme_boot}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
@@ -724,6 +811,10 @@ TEMPLATE = """<!DOCTYPE html>
     <span id="total-count">{total} {runbook_word}</span>
     <a href="https://github.com/triippiing/Wiki" target="_blank" rel="noopener">GITHUB ↗</a>
   </div>
+  <button class="theme-btn" id="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle light / dark">
+    <svg class="i-moon" viewBox="0 0 24 24"><path d="M20 13A8 8 0 1 1 11 4a6.2 6.2 0 0 0 9 9z"></path></svg>
+    <svg class="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+  </button>
 </header>
 
 <section class="hero">
