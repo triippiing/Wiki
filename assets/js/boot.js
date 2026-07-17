@@ -559,7 +559,9 @@
 
   /* ── header affordance: the subtle "#_" ──────────────────────────────────── */
   function addShellKey() {
-    var host = document.querySelector('.header-meta') || document.querySelector('header');
+    // Attach to <header>, NOT .header-meta: that block is display:none on
+    // mobile (<=640px), which would hide the shell entry with it.
+    var host = document.querySelector('header') || document.querySelector('.header-meta');
     if (!host) return;
     var btn = el('button', 'shell-key');
     btn.type = 'button';

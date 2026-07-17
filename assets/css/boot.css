@@ -149,6 +149,7 @@
   border: none;
   cursor: pointer;
   padding: 2px 4px;
+  margin-left: 2px;
   display: inline-flex;
   align-items: center;
   line-height: 1;
@@ -285,4 +286,11 @@
   .shell { font-size: 11px; }
   .ff { flex-direction: column; gap: 10px; }
   .ff-logo { font-size: 9px; }
+  /* .header-meta is hidden on mobile, so push the shell key to the far right
+     and give it a proper touch target. */
+  .shell-key {
+    margin-left: auto;
+    font-size: 13px;
+    padding: 8px 6px;
+  }
 }
