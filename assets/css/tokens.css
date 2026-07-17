@@ -57,6 +57,104 @@
   /* ── elevation ── */
   --shadow:     0 2px 10px rgba(43, 38, 32, .07);
   --radius:     6px;
+
+  /* text that sits on an --ochre fill (step badge). Flips in dark, where
+     --ochre brightens and white would be unreadable. */
+  --badge-ink:  #fff;
+}
+
+
+/* ──────────────────────────────────────────────────────────────
+   dark theme — warm "workbench" stone. Extends the code-panel
+   aesthetic (light ink on near-black warm brown) to the whole page,
+   so dark mode reads like the terminal blocks grew to fill it.
+
+   Two entry points:
+     · :root[data-theme="dark"]      — the manual toggle (chrome.js)
+     · prefers-color-scheme, unless the reader forced "light" — a no-JS
+       fallback so an OS-dark reader still gets dark if scripting fails.
+   The token names are identical to :root above; only the values move.
+   ────────────────────────────────────────────────────────────── */
+:root[data-theme="dark"] { color-scheme: dark; }
+
+:root[data-theme="dark"],
+:root:not([data-theme="light"]) { }        /* readability anchor; no rules */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+}
+
+/* the palette itself, shared by both entry points via this custom-property
+   block. Declared twice (attribute + media) because CSS has no "or" for
+   selectors; the media copy is the JS-less fallback. */
+:root[data-theme="dark"] {
+  --paper:      #1E1A16;
+  --sidebar:    #262019;
+  --surface:    #2A2521;
+  --border:     #3A342C;
+
+  --ink:        #ECE4D5;
+  --ink-2:      #D3CAB8;
+  --muted:      #A79C88;
+  --faint:      #7C725F;
+
+  --ochre:      #D9B87C;
+  --ochre-tint: #322818;
+  --ochre-bd:   #4A3B22;
+
+  --rust:       #E0975E;
+  --rust-tint:  #38271C;
+  --rust-bd:    #543829;
+
+  --sage:       #A9BE7E;
+  --sage-tint:  #262E1C;
+  --sage-bd:    #3C4A2A;
+
+  /* the code panel goes a shade darker than the page so it still lifts
+     off --paper instead of merging with the raised --surface. */
+  --code-bg:    #171310;
+  --code-head:  #201A15;
+
+  --rule-head:  #3A342C;
+  --rule-row:   #2C2620;
+
+  --shadow:     0 2px 14px rgba(0, 0, 0, .5);
+  --badge-ink:  #221E19;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:      #1E1A16;
+    --sidebar:    #262019;
+    --surface:    #2A2521;
+    --border:     #3A342C;
+
+    --ink:        #ECE4D5;
+    --ink-2:      #D3CAB8;
+    --muted:      #A79C88;
+    --faint:      #7C725F;
+
+    --ochre:      #D9B87C;
+    --ochre-tint: #322818;
+    --ochre-bd:   #4A3B22;
+
+    --rust:       #E0975E;
+    --rust-tint:  #38271C;
+    --rust-bd:    #543829;
+
+    --sage:       #A9BE7E;
+    --sage-tint:  #262E1C;
+    --sage-bd:    #3C4A2A;
+
+    --code-bg:    #171310;
+    --code-head:  #201A15;
+
+    --rule-head:  #3A342C;
+    --rule-row:   #2C2620;
+
+    --shadow:     0 2px 14px rgba(0, 0, 0, .5);
+    --badge-ink:  #221E19;
+  }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -69,6 +167,11 @@ body {
   line-height: 1.55;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  transition: background .25s ease, color .25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
 }
 
 @keyframes fadeUp {

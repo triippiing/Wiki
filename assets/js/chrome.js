@@ -5,7 +5,7 @@
    edits to its own markup:
 
      1. .code-panel  — wraps every .cmd in a header bar (language
-        label left, ⧉ COPY right), moving any existing inline copy
+        label left, copy-icon button right), moving any existing inline copy
         button into it.
      2. step accordions — binds .step-header click handlers.
      3. .rail        — the 212px category sidebar, built from
@@ -17,6 +17,50 @@
 
 (function () {
   'use strict';
+
+  /* ── preferences store ─────────────────────────────────────
+     localStorage throws in private windows / when disabled, so every
+     access is guarded — a broken store just means prefs don't persist,
+     never a broken page. */
+  var THEME_KEY = 'wiki-theme';       /* "light" | "dark"              */
+  var RAIL_KEY  = 'wiki-rail';        /* "collapsed" | "open"          */
+
+  function getPref(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function setPref(key, val) {
+    try { localStorage.setItem(key, val); } catch (e) { /* ignore */ }
+  }
+
+  /* ── theme, applied as early as this script runs ───────────
+     A saved choice wins; otherwise fall back to the OS preference. We
+     always write an explicit data-theme so the icon swap and the rest of
+     the CSS have one thing to test. tokens.css also carries a
+     prefers-color-scheme fallback for the (rare) case this never runs. */
+  function resolveTheme() {
+    var saved = getPref(THEME_KEY);
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia &&
+           window.matchMedia('(prefers-color-scheme: dark)').matches
+             ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', resolveTheme());
+
+  /* ── icons (from the wiki style spec — Feather-weight, 1.75 stroke) ── */
+  var ICON = {
+    home:    '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"></path><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"></path></svg>',
+    sidebar: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="9" y1="4" x2="9" y2="20"></line></svg>',
+    moon:    '<svg class="i-moon" viewBox="0 0 24 24"><path d="M20 13A8 8 0 1 1 11 4a6.2 6.2 0 0 0 9 9z"></path></svg>',
+    sun:     '<svg class="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>',
+    copy:    '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg>',
+    check:   '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg>'
+  };
+
+  /* copy-button contents: the spec's copy glyph (a check on success) + label */
+  function copyBtnHTML(label) {
+    return (label === 'COPIED' ? ICON.check : ICON.copy) +
+           '<span class="copy-label">' + label + '</span>';
+  }
 
   /* ── site root ─────────────────────────────────────────────
      Runbooks live at depth 1 (vtl/x.html) or depth 2
@@ -37,10 +81,10 @@
 
   function copyText(cmd, btn) {
     navigator.clipboard.writeText(cmd.innerText.trim()).then(function () {
-      btn.textContent = '⧉ COPIED';
+      btn.innerHTML = copyBtnHTML('COPIED');
       btn.classList.add('copied');
       setTimeout(function () {
-        btn.textContent = '⧉ COPY';
+        btn.innerHTML = copyBtnHTML('COPY');
         btn.classList.remove('copied');
       }, 1800);
     });
@@ -72,7 +116,7 @@
         btn.className = 'copy-btn';
       }
       btn.type = 'button';
-      btn.textContent = '⧉ COPY';
+      btn.innerHTML = copyBtnHTML('COPY');
       btn.addEventListener('click', function () { copyText(cmd, btn); });
       head.appendChild(btn);
 
@@ -241,6 +285,43 @@
     return here.endsWith('/' + there) || here === '/' + there;
   }
 
+  /* ── rail toggle, shared by the pill (trigger) and buildRail (drawer) ──
+     Below 1080px the rail is an overlay drawer (body.rail-open); at desktop
+     widths it is a persistent column that collapses (body.rail-collapsed).
+     One button in the control pill drives whichever model is in play. */
+  var railRefs = { btn: null, input: null };
+
+  function railIsDrawer() {
+    return window.matchMedia &&
+           window.matchMedia('(max-width: 1079px)').matches;
+  }
+
+  function setDrawer(open) {
+    document.body.classList.toggle('rail-open', open);
+    if (railRefs.btn) railRefs.btn.setAttribute('aria-expanded', String(open));
+  }
+
+  function toggleRail() {
+    if (railIsDrawer()) {
+      setDrawer(!document.body.classList.contains('rail-open'));
+    } else {
+      var collapsed = document.body.classList.toggle('rail-collapsed');
+      setPref(RAIL_KEY, collapsed ? 'collapsed' : 'open');
+      if (railRefs.btn) railRefs.btn.setAttribute('aria-pressed', String(collapsed));
+    }
+  }
+
+  /* Make the rail visible in whichever model, so "/" can then focus its filter. */
+  function revealRail() {
+    if (railIsDrawer()) {
+      setDrawer(true);
+    } else if (document.body.classList.contains('rail-collapsed')) {
+      document.body.classList.remove('rail-collapsed');
+      setPref(RAIL_KEY, 'open');
+      if (railRefs.btn) railRefs.btn.setAttribute('aria-pressed', 'false');
+    }
+  }
+
   function buildRail() {
     if (!Array.isArray(window.WIKI_NAV) || document.querySelector('.rail')) return;
 
@@ -250,23 +331,20 @@
     nav.className = 'rail';
     nav.setAttribute('aria-label', 'Runbooks');
 
-    var mark = document.createElement('a');
-    mark.className = 'rail-mark';
-    mark.href = root + 'index.html';
-    mark.textContent = 'Knowledge Base';
-    nav.appendChild(mark);
-
     /* Filter box. The whole nav tree is already in memory via WIKI_NAV, so
-       search works from inside any runbook — no trip back to the index. */
+       search works from inside any runbook — no trip back to the index.
+       (The old "Knowledge Base" wordmark link lived here; its job — going
+       home — is now the pill's home button.) */
     var search = document.createElement('div');
     search.className = 'rail-search';
     var input = document.createElement('input');
     input.className = 'rail-input';
     input.type = 'search';
-    input.placeholder = 'Filter runbooks  /';
+    input.placeholder = 'filter runbooks';
     input.setAttribute('aria-label', 'Filter runbooks');
     search.appendChild(input);
     nav.appendChild(search);
+    railRefs.input = input;
 
     var empty = document.createElement('div');
     empty.className = 'rail-empty';
@@ -318,36 +396,21 @@
 
     input.addEventListener('input', applyFilter);
 
-    var toggle = document.createElement('button');
-    toggle.className = 'rail-toggle';
-    toggle.type = 'button';
-    toggle.setAttribute('aria-label', 'Toggle navigation');
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.setAttribute('aria-controls', 'rail');
-    toggle.appendChild(document.createElement('span'));
     nav.id = 'rail';
 
+    /* Scrim behind the drawer on narrow screens; tapping it closes the rail. */
     var scrim = document.createElement('div');
     scrim.className = 'rail-scrim';
-
-    function setOpen(open) {
-      document.body.classList.toggle('rail-open', open);
-      toggle.setAttribute('aria-expanded', String(open));
-    }
-
-    toggle.addEventListener('click', function () {
-      setOpen(!document.body.classList.contains('rail-open'));
-    });
-    scrim.addEventListener('click', function () { setOpen(false); });
+    scrim.addEventListener('click', function () { setDrawer(false); });
 
     document.addEventListener('keydown', function (e) {
-      /* "/" focuses the filter — but not while the user is typing into
-         something, or it would swallow slashes in a path. */
+      /* "/" reveals the rail and focuses the filter — but not while the user is
+         typing into something, or it would swallow slashes in a path. */
       var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) ||
                    e.target.isContentEditable;
       if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        setOpen(true);
+        revealRail();
         input.focus();
         return;
       }
@@ -361,11 +424,10 @@
           return;
         }
         input.blur();
-        setOpen(false);
+        setDrawer(false);
       }
     });
 
-    document.body.appendChild(toggle);
     document.body.appendChild(scrim);
     document.body.appendChild(nav);
 
@@ -380,11 +442,78 @@
     }
   }
 
+  /* ── control pill ─────────────────────────────────────────
+     Home · sidebar · theme, pinned top-left where the old "Knowledge Base"
+     wordmark used to sit. This single cluster replaces both that wordmark
+     and the old narrow-screen hamburger — the sidebar button opens the drawer
+     on narrow screens and collapses the column on desktop (see toggleRail). */
+  function buildControls() {
+    if (document.querySelector('.wiki-controls')) return;
+
+    var pill = document.createElement('div');
+    pill.className = 'wiki-controls';
+
+    /* Home — back to the index (what the wordmark link used to do). A real
+       <a> so middle-click / open-in-new-tab behave as expected. */
+    var homeBtn = document.createElement('a');
+    homeBtn.className = 'wiki-btn';
+    homeBtn.href = siteRoot() + 'index.html';
+    homeBtn.setAttribute('aria-label', 'Back to the knowledge base index');
+    homeBtn.title = 'Home — knowledge base index';
+    homeBtn.innerHTML = ICON.home;
+
+    var railBtn = document.createElement('button');
+    railBtn.type = 'button';
+    railBtn.className = 'wiki-btn';
+    railBtn.setAttribute('aria-label', 'Show or hide the sidebar');
+    railBtn.setAttribute('aria-controls', 'rail');
+    railBtn.title = 'Show / hide sidebar';
+    railBtn.innerHTML = ICON.sidebar;
+    railBtn.setAttribute('aria-pressed',
+      String(document.body.classList.contains('rail-collapsed')));
+    railBtn.addEventListener('click', toggleRail);
+    railRefs.btn = railBtn;
+
+    var themeBtn = document.createElement('button');
+    themeBtn.type = 'button';
+    themeBtn.className = 'wiki-btn';
+    themeBtn.setAttribute('aria-label', 'Toggle light or dark theme');
+    themeBtn.title = 'Toggle light / dark';
+    themeBtn.innerHTML = ICON.moon + ICON.sun;
+    themeBtn.addEventListener('click', function () {
+      var next = document.documentElement.getAttribute('data-theme') === 'dark'
+        ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      setPref(THEME_KEY, next);
+    });
+
+    pill.appendChild(homeBtn);
+    pill.appendChild(railBtn);
+    pill.appendChild(themeBtn);
+    document.body.appendChild(pill);
+  }
+
+  /* Restore a collapsed rail before first paint, with the transition briefly
+     suppressed so a remembered-collapsed rail doesn't slide shut on load. */
+  function applyRailState() {
+    document.body.classList.add('rail-no-anim');
+    if (getPref(RAIL_KEY) === 'collapsed') {
+      document.body.classList.add('rail-collapsed');
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        document.body.classList.remove('rail-no-anim');
+      });
+    });
+  }
+
   function init() {
+    applyRailState();
     buildPanels();
     bindSteps();
     buildReviewed();
     buildRail();
+    buildControls();
     openFromHash();
     window.addEventListener('hashchange', openFromHash);
   }
