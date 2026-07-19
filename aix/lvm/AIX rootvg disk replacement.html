@@ -194,8 +194,13 @@
 
 <span class="c"># Confirm BLV (hd5) exists and is healthy on good disk</span>
 <span class="kw">lslv</span> hd5
-<span class="kw">lspv</span> <span class="flag">-l</span> hdisk0 <span class="flag">| grep</span> hd5</div>
+<span class="kw">lspv</span> <span class="flag">-l</span> hdisk0 <span class="flag">| grep</span> hd5
+
+<span class="c"># Check quorum. On a 2-disk rootvg mirror it should be disabled</span>
+<span class="c"># (QUORUM shows 1 / Disabled). See the caution below.</span>
+<span class="kw">lsvg</span> rootvg <span class="flag">| grep</span> <span class="flag">-i</span> quorum</div>
         <p class="note note-critical"><strong>Do not proceed</strong> until the surviving disk (hdisk0) is confirmed first in the bootlist. If the system reboots with the failed disk as primary boot device, the system will fail to boot entirely.</p>
+        <p class="note note-caution"><strong>Quorum on a 2-disk mirror:</strong> if <code>lsvg rootvg</code> shows <code>QUORUM: 2 (Enabled)</code> (any value above 1), quorum is still on. With only two disks the three VGDA copies are split 2:1, so losing the disk that holds two of them takes the majority with it and rootvg will fail to vary on at the next reboot. Disable quorum now, before the disk swap forces a reboot: <code>chvg -Qn rootvg</code>. The change is recorded immediately but only takes effect at the next <code>varyonvg</code> or reboot, so set it before Phase 6, not after.</p>
       </div>
     </div>
   </div>
@@ -290,8 +295,13 @@
 <span class="kw">lspv</span>
 
 <span class="c"># Reconfirm bootlist is clean</span>
-<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span></div>
+<span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
+
+<span class="c"># Confirm the primary dump device did not live on the failed disk</span>
+<span class="kw">sysdumpdev</span> <span class="flag">-l</span>
+<span class="kw">lslv</span> <span class="flag">-l</span> lg_dumplv 2&gt;/dev/null   <span class="c"># which PV holds the dump LV?</span></div>
         <p class="note">At this point rootvg is running single-copy on hdisk0 only. The system is operational but unprotected — complete the replacement and re-mirror as soon as possible.</p>
+        <p class="note note-caution"><strong>Check the dump device.</strong> The primary dump device (typically <code>/dev/lg_dumplv</code>, or <code>/dev/hd7</code> on older systems) is not mirrored and may have physically lived on the failed disk. If <code>sysdumpdev -l</code> points at a device that was on hdisk1, reset it to a surviving device with <code>sysdumpdev -P -p /dev/lg_dumplv</code>, or the next crash produces no dump. Re-create the dump LV on the replacement disk in Phase 7 if it was lost with the disk.</p>
       </div>
     </div>
   </div>
@@ -329,7 +339,7 @@
 <span class="c"># Verify new disk size is >= hdisk0 before proceeding</span>
 <span class="kw">lspv</span> hdisk0   <span class="c"># note PP SIZE and total PP count</span>
 <span class="kw">lspv</span> hdisk1   <span class="c"># confirm new disk is equal or larger</span></div>
-        <p class="note note-caution"><strong>Size requirement:</strong> The replacement disk must be equal to or larger than hdisk0. If the PP size or total PP count is smaller, <code>extendvg</code> will fail. Replacement disk must present with no existing PVID — if it has one from a previous system, clear it with <code>chpv -C hdisk1</code>.</p>
+        <p class="note note-caution"><strong>Size requirement:</strong> The replacement disk must be equal to or larger than hdisk0. If the PP size or total PP count is smaller, <code>extendvg</code> will fail. Replacement disk must present with no existing PVID. If it has one from a previous system, clear it with <code>chdev -l hdisk1 -a pv=clear</code>. If the disk is a recycled SAN LUN carrying a residual VGDA or reservation, also run <code>chpv -C hdisk1</code> (that clears the VGDA / SCSI reservation, not the PVID).</p>
       </div>
     </div>
   </div>
@@ -394,7 +404,11 @@
 <span class="kw">lsvg</span> <span class="flag">-l</span> rootvg
 
 <span class="c"># Confirm hd5 (BLV) is mirrored to new disk</span>
-<span class="kw">lspv</span> <span class="flag">-l</span> hdisk1 <span class="flag">| grep</span> hd5</div>
+<span class="kw">lspv</span> <span class="flag">-l</span> hdisk1 <span class="flag">| grep</span> hd5
+
+<span class="c"># Confirm the dump device resolves to a valid, present device</span>
+<span class="kw">sysdumpdev</span> <span class="flag">-l</span>
+<span class="kw">sysdumpdev</span> <span class="flag">-e</span>              <span class="c"># estimated dump size vs device size</span></div>
         <p class="note note-critical"><strong>bosboot is mandatory</strong> on the new disk. Without it, the disk contains a valid XFS/JFS2 partition and mirrored data but no AIX boot record — the system cannot boot from it if hdisk0 fails. Always run <code>bosboot -a -d</code> on every disk in the bootlist after a mirror rebuild.</p>
       </div>
     </div>
@@ -415,6 +429,8 @@
       <tr><td>cfgmgr -v</td><td>Rediscover replacement disk</td><td>New disk must have no PVID</td></tr>
       <tr><td>extendvg rootvg hdisk1</td><td>Add replacement disk to rootvg</td><td>Disk must be &gt;= hdisk0 size</td></tr>
       <tr><td>mirrorvg rootvg hdisk1</td><td>Rebuild mirror — syncs all LVs</td><td>Background sync, do not interrupt</td></tr>
+      <tr><td>chvg -Qn rootvg</td><td>Disable quorum (2-disk mirror)</td><td>Set before swap; effective next varyon</td></tr>
+      <tr><td>sysdumpdev -l</td><td>Show primary / secondary dump device</td><td>Verify after removal and re-mirror</td></tr>
       <tr><td>bosboot -a -d /dev/hdiskX</td><td>Write boot record to new disk</td><td>Mandatory — run on both disks</td></tr>
       <tr><td>bootlist -m normal hdisk0 hdisk1</td><td>Register both disks in bootlist</td><td>Run for normal and service mode</td></tr>
     </table>
@@ -428,7 +444,9 @@
       <li>Use <code>reducevg -d</code> only when the disk is confirmed dead. The <code>-d</code> flag silently discards all stale PP copies with no recovery path.</li>
       <li>ODM deletion (<code>odmdelete</code>) is a last resort. Incorrect ODM manipulation can corrupt the device database — document the PVID before attempting.</li>
       <li>The replacement disk must be equal to or larger than the surviving disk. Smaller disks will cause <code>extendvg</code> to fail with insufficient PP count.</li>
-      <li>If the replacement disk has a PVID from a prior system, clear it first: <code>chpv -C hdisk1</code>.</li>
+      <li>If the replacement disk has a PVID from a prior system, clear it first: <code>chdev -l hdisk1 -a pv=clear</code>. Use <code>chpv -C hdisk1</code> only to clear a residual VGDA / SCSI reservation on a recycled SAN LUN; it does not clear a PVID.</li>
+      <li>On a 2-disk rootvg mirror, disable quorum with <code>chvg -Qn rootvg</code> before the disk swap. With quorum enabled, losing the disk that holds the majority of VGDA copies stops rootvg varying on at reboot. The change only takes effect at the next varyon.</li>
+      <li>Check the dump device after removing the failed disk with <code>sysdumpdev -l</code>. The dump LV is not mirrored; if it lived on the failed disk it is gone and must be reassigned or recreated, or the next crash yields no dump.</li>
       <li><code>bosboot</code> on the new disk is non-optional — without it the disk holds data but no boot record and cannot serve as a boot device.</li>
       <li>datavg (2× PV) is unaffected by this procedure — confirm with <code>lsvg datavg</code> and <code>lsvg -l datavg</code> after completion.</li>
     </ul>
