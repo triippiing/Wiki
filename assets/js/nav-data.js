@@ -150,5 +150,26 @@ window.WIKI_NAV = [
         "sub": ""
       }
     ]
+  },
+  {
+    "key": "meta",
+    "name": "Meta",
+    "pages": [
+      {
+        "title": "Architecture & Build",
+        "href": "meta/architecture.html",
+        "sub": ""
+      },
+      {
+        "title": "Contributing",
+        "href": "meta/contributing.html",
+        "sub": ""
+      },
+      {
+        "title": "Design System",
+        "href": "meta/design_system.html",
+        "sub": ""
+      }
+    ]
   }
 ];

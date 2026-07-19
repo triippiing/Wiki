@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture &amp; Build</title>
+<meta name="description" content="How the wiki assembles itself: the build_index.py generator, the shared asset layer, what chrome.js does at load, the identity-strip model, and the IPL boot landing.">
+<meta name="reviewed" content="2026-07-19">
+<meta name="keywords" content="architecture build_index nav-data chrome.js boot.js ipl assets tokens generated github action meta grid identity strip">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/runbook.css">
+<link rel="stylesheet" href="../assets/css/sidebar.css">
+<script src="../assets/js/nav-data.js" defer></script>
+<script src="../assets/js/chrome.js" defer></script>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../index.html">Wiki</a><span class="sep">/</span><a href="../index.html#meta">Meta</a><span class="sep">/</span>Architecture &amp; Build
+  </nav>
+
+  <h1 class="page-title">Architecture &amp; Build</h1>
+  <p class="page-sub">How the site assembles itself. Hand-built static HTML, no framework and no runtime build step. One Python script regenerates the index and the nav tree, and a small JavaScript layer wires the shared behaviour at load.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">static site</span>
+    <span class="badge">Python stdlib</span>
+    <span class="badge">GitHub Pages</span>
+    <span class="badge">zero deps</span>
+  </div>
+
+  <!-- Meta -->
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Doc ID</div><div class="meta-val mono">DOC-ARCH-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">How the wiki builds itself</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Moving parts</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Generator</div><div class="env-val mono">scripts/build_index.py</div></div>
+      <div class="env-cell"><div class="env-label">CI</div><div class="env-val mono">.github/workflows/build-index.yml</div></div>
+      <div class="env-cell"><div class="env-label">Runtime JS</div><div class="env-val mono">chrome.js · boot.js</div></div>
+      <div class="env-cell"><div class="env-label">Generated</div><div class="env-val warn">index.html · nav-data.js</div></div>
+      <div class="env-cell"><div class="env-label">Host</div><div class="env-val">GitHub Pages</div></div>
+      <div class="env-cell"><div class="env-label">Local server</div><div class="env-val mono">./serve.sh · :8765</div></div>
+    </div>
+  </div>
+
+  <!-- ════ 01 ════ -->
+  <div class="phase-label"><span>01</span> The generator</div>
+  <div class="steps">
+    <div class="step open">
+      <div class="step-header">
+        <span class="step-num">01</span>
+        <span class="step-title">build_index.py walks the repo and regenerates two files</span>
+        <span class="step-tag tag-info">GENERATOR</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The script globs <code>*.html</code>, reads <code>&lt;title&gt;</code>, <code>&lt;meta name="description"&gt;</code>, <code>keywords</code>, and <code>reviewed</code> from each, groups by top-level folder (the category) with the second-level folder as the sub-tag, and writes both the landing page and the sidebar's nav tree.</p>
+        <div class="cmd" data-lang="bash">python3 scripts/build_index.py
+<span class="c"># Wrote index.html, N runbooks across M categories</span>
+<span class="c"># Wrote assets/js/nav-data.js, sidebar rail nav tree</span></div>
+        <p class="note">It skips <code>.git/</code>, <code>.github/</code>, <code>node_modules/</code>, <code>scripts/</code>, <code>docs/</code>, <code>assets/</code>, <code>_sandbox/</code>, and <code>index.html</code> itself. Categories, their display name, accent, and order live in the <code>CATEGORIES</code> dict near the top; the page HTML lives in the <code>STYLES</code>, <code>SCRIPT</code>, and <code>TEMPLATE</code> string constants lower down.</p>
+        <p class="note note-verify"><strong>Also a linter:</strong> the build prints a warning for any runbook unreviewed for 12+ months or missing a <code>reviewed</code> tag. It warns rather than fails; a stale runbook is a documentation problem, and failing the build would just stop the wiki updating.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">02</span>
+        <span class="step-title">CI runs it on push</span>
+        <span class="step-tag tag-info">CI</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0"><code>.github/workflows/build-index.yml</code> runs the script on every push that touches an HTML file or the build script, then commits the regenerated <code>index.html</code> and <code>nav-data.js</code> back with <code>[skip ci]</code> in the message, so there is no loop. A new runbook becomes a card and a rail entry within about 30 seconds of the push.</p>
+        <p class="note note-caution"><strong>Never hand-edit <code>index.html</code> or <code>nav-data.js</code>.</strong> Both are regenerated on every push and manual edits are overwritten. Change the landing page through the template constants in <code>build_index.py</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 02 ════ -->
+  <div class="phase-label"><span>02</span> The asset layer</div>
+  <p class="note" style="margin-bottom:14px">Every page loads the same five shared files. This is where the design language and behaviour live, so a runbook is almost entirely content.</p>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><th>File</th><th>Responsibility</th></tr>
+      <tr><td>css/tokens.css</td><td>Palette, four-font stack, reset, base body, keyframes, and the dark theme (single token swap)</td></tr>
+      <tr><td>css/runbook.css</td><td>Shared components: crumb, title, badges, identity strip, env, phase label, steps, code panel, notes, warn-box, tables, footer</td></tr>
+      <tr><td>css/sidebar.css</td><td>The category rail, its filter, and the top-left control pill; collapse on desktop, drawer below 1080px</td></tr>
+      <tr><td>js/chrome.js</td><td>Runtime wiring for every page (see below)</td></tr>
+      <tr><td>js/nav-data.js</td><td>Generated nav tree; chrome.js reads window.WIKI_NAV to build the rail</td></tr>
+      <tr><td>js/boot.js + css/boot.css</td><td>Landing page only: the IPL boot sequence and hidden shell</td></tr>
+    </table>
+  </div>
+
+  <!-- ════ 03 ════ -->
+  <div class="phase-label"><span>03</span> What chrome.js does at load</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">03</span>
+        <span class="step-title">One script wires every shared behaviour</span>
+        <span class="step-tag tag-info">RUNTIME</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Because <code>chrome.js</code> does all of this, runbooks carry no panel markup, no copy script, and no nav markup of their own.</p>
+        <table class="ref-table">
+          <thead><tr><th>On load</th><th>Effect</th></tr></thead>
+          <tbody>
+            <tr><td>Code panels</td><td>Wraps every <code>.cmd</code> in a header bar (mono language label left, copy-icon button right). <code>data-lang</code> overrides the label, default <code>shell</code>.</td></tr>
+            <tr><td>Steps</td><td>Binds the accordion toggle on each <code>.step-header</code> and adds a hover-revealed <code>#</code> deep-link anchor per step; a linked step opens and flashes on arrival.</td></tr>
+            <tr><td>Reviewed cell</td><td>Appends the third identity-strip cell from <code>&lt;meta name="reviewed"&gt;</code>, colour-coded by age.</td></tr>
+            <tr><td>Sidebar rail</td><td>Builds the rail from <code>window.WIKI_NAV</code>, with its own filter. Works out the site root from its own <code>src</code>, so links resolve from any folder depth.</td></tr>
+            <tr><td>Control pill</td><td>Home, sidebar toggle, and theme toggle. Persists theme (<code>wiki-theme</code>) and rail state (<code>wiki-rail</code>) in localStorage, shared across every page.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 04 ════ -->
+  <div class="phase-label"><span>04</span> The identity-strip model</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">04</span>
+        <span class="step-title">Fixed identity strip, variable environment block</span>
+        <span class="step-tag tag-info">LAYOUT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Every runbook opens with a three-cell <code>.meta.meta-identity</code> strip (Runbook ID · Operation · Last reviewed) that is identical in shape everywhere, followed by an <code>.env</code> block whose cells vary per runbook. The strip is the constant a reader learns to scan; the environment block is the per-procedure detail. The reviewed cell is authored nowhere, <code>chrome.js</code> appends it, so the shape can't drift.</p>
+        <p class="note note-info">The full history of moving from bespoke per-runbook meta grids to this fixed strip is in <code>docs/META_GRID_MIGRATION.md</code>. Both layouts render correctly, so the migration could stop half-way without breaking anything.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 05 ════ -->
+  <div class="phase-label"><span>05</span> The IPL boot landing</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">05</span>
+        <span class="step-title">The landing page boots like a pSeries box, once</span>
+        <span class="step-tag tag-ok">EASTER EGG</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0"><code>boot.js</code> (landing page only) plays an AIX / pSeries IPL sequence, operator-panel LED checkpoints, the boot banner, <code>rc.boot</code> device configuration, then reveals the index. It runs <strong>once ever</strong> per browser, tracked in localStorage, and <code>prefers-reduced-motion</code> skips it entirely.</p>
+        <table class="ref-table">
+          <thead><tr><th>Trigger</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>#ipl in the URL</td><td>Replay the full IPL on demand</td></tr>
+            <tr><td>"#_" in the header</td><td>Drops into an interactive maintenance shell</td></tr>
+            <tr><td>help, then cat DEVNOTES</td><td>The payoff, developer notes and TODOs</td></tr>
+            <tr><td>reboot (in the shell)</td><td>Plays the IPL again</td></tr>
+          </tbody>
+        </table>
+        <p class="note">The shell's "filesystem" and the DEVNOTES text live at the top of <code>boot.js</code>, flagged <code>EDIT ME</code>, swap in whatever you want people to find. Keep it ASCII so it stays on-brand.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 06 ════ -->
+  <div class="phase-label"><span>06</span> Working on it locally</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">06</span>
+        <span class="step-title">Rebuild, serve over http, check in a private window</span>
+        <span class="step-tag tag-ok">PREVIEW</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="bash">python3 scripts/build_index.py     <span class="c"># regenerate index + nav-data</span>
+./serve.sh                          <span class="c"># python3 -m http.server on :8765</span>
+open http://localhost:8765/</div>
+        <p class="note note-caution"><strong>Never open a runbook from Finder.</strong> <code>file://</code> blocks the shared stylesheets in <code>assets/css/</code> from loading (they live in a parent directory) and the page renders unstyled. Serve over http. And check in a private window, <code>chrome.js</code> is a stable URL that keeps gaining behaviour, so a cached copy will make a working change look broken.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>Hand-built static HTML, no framework, no runtime build step, just <code>build_index.py</code>, the shared assets, and a browser.</li>
+      <li><code>index.html</code> and <code>nav-data.js</code> are generated. Edit the template constants in <code>build_index.py</code>, never the output.</li>
+      <li>The palette is fixed at five families, stone paper, ochre, rust, sage, code panel. Adding a sixth colour always looks wrong.</li>
+      <li>Reviewed dates come from <code>&lt;meta name="reviewed"&gt;</code>, not git. A cosmetic commit must never make a stale runbook look fresh.</li>
+      <li>Serve over http and verify in a private window before pushing.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>DOC-ARCH-001 · Architecture &amp; Build · how the wiki assembles itself</span>
+  <span>meta · build_index.py · chrome.js</span>
+</footer>
+
+</body>
+</html>

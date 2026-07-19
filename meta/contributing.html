@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contributing</title>
+<meta name="description" content="How to add a runbook so it appears on the landing page and in the sidebar rail: file location, required head metadata, the identity strip, review dates, styling, and the build.">
+<meta name="reviewed" content="2026-07-19">
+<meta name="keywords" content="contributing add runbook build_index metadata reviewed identity strip category accent style guide">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/runbook.css">
+<link rel="stylesheet" href="../assets/css/sidebar.css">
+<script src="../assets/js/nav-data.js" defer></script>
+<script src="../assets/js/chrome.js" defer></script>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../index.html">Wiki</a><span class="sep">/</span><a href="../index.html#meta">Meta</a><span class="sep">/</span>Contributing
+  </nav>
+
+  <h1 class="page-title">Contributing</h1>
+  <p class="page-sub">How to add a runbook so it lands as a card on the index and in the sidebar rail. Save the file in the right place with the right <code>&lt;head&gt;</code>, push, and a GitHub Action regenerates everything else.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">workflow</span>
+    <span class="badge">static HTML</span>
+    <span class="badge">no build step</span>
+  </div>
+
+  <!-- Meta -->
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Doc ID</div><div class="meta-val mono">DOC-CONTRIB-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Add a runbook end to end</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">At a glance</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Generator</div><div class="env-val mono">scripts/build_index.py</div></div>
+      <div class="env-cell"><div class="env-label">CI</div><div class="env-val mono">.github/workflows/build-index.yml</div></div>
+      <div class="env-cell"><div class="env-label">Shared assets</div><div class="env-val">tokens · runbook · sidebar · chrome</div></div>
+      <div class="env-cell"><div class="env-label">Local preview</div><div class="env-val mono">./serve.sh</div></div>
+      <div class="env-cell"><div class="env-label">Generated (don't edit)</div><div class="env-val warn">index.html · nav-data.js</div></div>
+      <div class="env-cell"><div class="env-label">Dependencies</div><div class="env-val ok">Python stdlib only</div></div>
+    </div>
+  </div>
+
+  <p class="note note-info" style="margin-bottom:24px"><strong>TL;DR:</strong> Save the file under <code>&lt;category&gt;/&lt;subtag&gt;/your-runbook.html</code>, give it a <code>&lt;title&gt;</code>, a <code>&lt;meta name="description"&gt;</code>, and a <code>&lt;meta name="reviewed"&gt;</code>, link the shared assets, open with the identity strip, then commit and push to <code>main</code>. The card and the sidebar entry appear within about 30 seconds.</p>
+
+  <!-- ════ PHASE 1 ════ -->
+  <div class="phase-label"><span>Phase 1</span> Where the file goes</div>
+  <p class="note" style="margin-bottom:14px">Place the runbook in one of the category folders. The top-level folder is the category; the second-level folder becomes the card's sub-tag, shown as <code>aix · lvm</code>.</p>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><th>Category</th><th>Path</th><th>Index accent</th></tr>
+      <tr><td>AIX</td><td>aix/</td><td>ochre</td></tr>
+      <tr><td>Linux</td><td>linux/</td><td>sage</td></tr>
+      <tr><td>Backup</td><td>backup/</td><td>rust</td></tr>
+      <tr><td>Cohesity</td><td>cohesity/</td><td>faint</td></tr>
+      <tr><td>Reference</td><td>reference/</td><td>muted</td></tr>
+      <tr><td>VTL</td><td>vtl/</td><td>ink</td></tr>
+      <tr><td>Security</td><td>security/</td><td>border</td></tr>
+      <tr><td>Meta</td><td>meta/</td><td>ink-2</td></tr>
+    </table>
+  </div>
+  <p class="note note-caution"><strong>File naming:</strong> URLs work either way, but hyphens beat spaces for sharing. <code>aix-rootvg-disk-replacement.html</code> is nicer than <code>AIX rootvg disk replacement.html</code>, which resolves as <code>...AIX%20rootvg%20disk%20replacement.html</code>.</p>
+
+  <!-- ════ PHASE 2 ════ -->
+  <div class="phase-label"><span>Phase 2</span> Required head metadata</div>
+  <div class="steps">
+
+    <div class="step open">
+      <div class="step-header">
+        <span class="step-num">01</span>
+        <span class="step-title">The three tags the build reads</span>
+        <span class="step-tag tag-critical">REQUIRED</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="html">&lt;title&gt;Your Runbook Title&lt;/title&gt;
+&lt;meta name="description" content="One-sentence summary that becomes the card body."&gt;
+&lt;meta name="reviewed" content="2026-07-19"&gt;</div>
+        <p class="note"><code>build_index.py</code> reads all three. Without <code>&lt;title&gt;</code> it falls back to the filename. Without a description the card has no body paragraph. Without a review date the card reads <code>UNREVIEWED</code> and the build prints a warning.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">02</span>
+        <span class="step-title">Optional: searchable keywords</span>
+        <span class="step-tag tag-info">OPTIONAL</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="html">&lt;meta name="keywords" content="vg lv jfs2 mklv crfs extendvg"&gt;</div>
+        <p class="note">The landing page's live search checks title, category tag, filename, and these keywords. Add terms a reader might search for that aren't already in the title.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">03</span>
+        <span class="step-title">Minimum boilerplate</span>
+        <span class="step-tag tag-info">TEMPLATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&lt;meta charset="UTF-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+&lt;title&gt;Your Runbook Title&lt;/title&gt;
+&lt;meta name="description" content="One-sentence summary."&gt;
+&lt;meta name="reviewed" content="2026-07-19"&gt;
+&lt;meta name="keywords" content="optional space-separated search terms"&gt;
+&lt;link rel="preconnect" href="https://fonts.googleapis.com"&gt;
+&lt;link rel="preconnect" href="https://fonts.gstatic.com" crossorigin&gt;
+&lt;link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Public+Sans:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,600&amp;family=Spectral:wght@600&amp;display=swap" rel="stylesheet"&gt;
+&lt;link rel="stylesheet" href="../../assets/css/tokens.css"&gt;
+&lt;link rel="stylesheet" href="../../assets/css/runbook.css"&gt;
+&lt;link rel="stylesheet" href="../../assets/css/sidebar.css"&gt;
+&lt;script src="../../assets/js/nav-data.js" defer&gt;&lt;/script&gt;
+&lt;script src="../../assets/js/chrome.js" defer&gt;&lt;/script&gt;
+&lt;style&gt;
+  /* bespoke classes only */
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;!-- runbook content --&gt;
+&lt;/body&gt;
+&lt;/html&gt;</div>
+        <p class="note note-caution"><strong>Asset depth:</strong> runbooks two folders deep (<code>aix/lvm/foo.html</code>) link with <code>../../</code>. A page one folder deep (<code>vtl/foo.html</code>, <code>meta/foo.html</code>) uses <code>../</code>. Load <code>tokens.css</code> first, <code>runbook.css</code> and <code>sidebar.css</code> depend on its variables. Load <code>nav-data.js</code> before <code>chrome.js</code>; both are <code>defer</code>, which preserves order.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 3 ════ -->
+  <div class="phase-label"><span>Phase 3</span> The identity strip and environment block</div>
+  <p class="note" style="margin-bottom:14px">Every runbook opens with the same two blocks, in this order. This shape is live on every runbook and new ones should match it.</p>
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">04</span>
+        <span class="step-title">Identity strip, three cells, always the same shape</span>
+        <span class="step-tag tag-info">STRUCTURE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">You author two cells. The third, Last reviewed, is appended at load by <code>chrome.js</code> from <code>&lt;meta name="reviewed"&gt;</code>, so the markup never writes it.</p>
+        <div class="cmd" data-lang="html">&lt;div class="meta meta-identity"&gt;
+  &lt;div class="meta-cell"&gt;&lt;div class="meta-label"&gt;Runbook ID&lt;/div&gt;&lt;div class="meta-val mono"&gt;RB-PERF-AIX-001&lt;/div&gt;&lt;/div&gt;
+  &lt;div class="meta-cell"&gt;&lt;div class="meta-label"&gt;Operation&lt;/div&gt;&lt;div class="meta-val info"&gt;Performance triage · CPU / memory / I/O&lt;/div&gt;&lt;/div&gt;
+  &lt;!-- Last reviewed cell appended at load by chrome.js --&gt;
+&lt;/div&gt;</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">05</span>
+        <span class="step-title">Environment block, everything else, per runbook</span>
+        <span class="step-tag tag-info">STRUCTURE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The <code>.env</code> block holds hosts, OS levels, NIM masters, windows, rollback method, spare-disk requirements, whatever this procedure needs confirmed before you start. Its contents vary per runbook, and that is correct. It sits on a quieter surface so it reads as secondary to the identity strip.</p>
+        <div class="cmd" data-lang="html">&lt;div class="env"&gt;
+  &lt;div class="env-head"&gt;Environment&lt;/div&gt;
+  &lt;div class="env-grid"&gt;
+    &lt;div class="env-cell"&gt;&lt;div class="env-label"&gt;Scope&lt;/div&gt;&lt;div class="env-val info"&gt;Bottleneck triage&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="env-cell"&gt;&lt;div class="env-label"&gt;Privilege&lt;/div&gt;&lt;div class="env-val warn"&gt;root for kernel tools&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="env-cell"&gt;&lt;div class="env-label"&gt;Primary Tools&lt;/div&gt;&lt;div class="env-val"&gt;topas · vmstat · iostat&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+        <p class="note">Value cells take the same semantic variants in both blocks: <code>info</code> (ochre), <code>ok</code> (sage), <code>warn</code> (rust), <code>mono</code>.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">06</span>
+        <span class="step-title">Runbook IDs</span>
+        <span class="step-tag tag-caution">CONVENTION</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The scheme is <code>RB-&lt;DOMAIN&gt;-&lt;PLATFORM&gt;-&lt;NNN&gt;</code>. Existing allocations live in <code>scripts/runbook_meta.py</code>, read it to pick the next free number in your domain, then write the ID into the identity strip yourself. That file is a record of what has been allocated, not a live source; editing a string there does not propagate into any page.</p>
+        <p class="note note-caution"><strong>Keep the RB-ID out of the <code>&lt;title&gt;</code> and the <code>&lt;h1&gt;</code>.</strong> Both surface in browsers, search, and the index card, and the ID is noise in all three. It belongs in the identity strip and the footer. Keep the <code>Operation</code> line short, roughly 40 characters, the fuller description already appears as the page subtitle.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ PHASE 4 ════ -->
+  <div class="phase-label"><span>Phase 4</span> Last reviewed</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">07</span>
+        <span class="step-title">The one date a reader can trust</span>
+        <span class="step-tag tag-critical">IMPORTANT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-critical" style="margin-top:0"><strong>Bump this only when you have actually checked the procedure is still correct.</strong> Not for a typo, and not when a sweeping change (a restyle, a new shared component) touches the file. It only means anything if it means "a human confirmed this still works." It is deliberately <strong>not</strong> derived from git: a cosmetic commit across every runbook would reset every date at once and make stale runbooks look freshly checked.</p>
+        <p class="note">Don't hand-edit the tag. Use the helper, it stamps the date and regenerates the index in one go:</p>
+        <div class="cmd" data-lang="bash">python3 scripts/mark_reviewed.py aix/lvm/aix_lvm_basics.html   <span class="c"># stamp today</span>
+python3 scripts/mark_reviewed.py aix/administration/*.html     <span class="c"># several at once</span>
+python3 scripts/mark_reviewed.py --date 2026-06-01 vtl/*.html  <span class="c"># a specific day</span>
+python3 scripts/mark_reviewed.py --stale                       <span class="c"># what needs a look</span></div>
+        <p class="note"><code>chrome.js</code> renders it as the third identity-strip cell, colour-coded by age: sage under 6 months, ochre 6 to 12, rust beyond 12 or if absent. Commit the runbook, <code>index.html</code>, and <code>nav-data.js</code> together.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 5 ════ -->
+  <div class="phase-label"><span>Phase 5</span> Styling, shared vs bespoke</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">08</span>
+        <span class="step-title">The asset layer does the heavy lifting</span>
+        <span class="step-tag tag-info">ASSETS</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <thead><tr><th>File</th><th>What it carries</th></tr></thead>
+          <tbody>
+            <tr><td>css/tokens.css</td><td>The stone / ochre palette, the four-font stack, reset, base body styles, keyframes, and the dark theme. Edit to shift the design across every runbook at once.</td></tr>
+            <tr><td>css/runbook.css</td><td>Shared components: crumb, page title, badges, wrap, identity strip, env block, phase label, step accordion, code panel, note variants, warn-box, tables, footer.</td></tr>
+            <tr><td>css/sidebar.css</td><td>The 212px category rail and its filter, plus the top-left control pill. Collapses on desktop, becomes a drawer below 1080px.</td></tr>
+            <tr><td>js/chrome.js</td><td>Builds code-panel headers and copy buttons, binds step accordions and deep links, appends the reviewed cell, injects the rail, and handles theme + rail state.</td></tr>
+            <tr><td>js/nav-data.js</td><td>Generated. The nav tree the rail is built from. Never edit by hand.</td></tr>
+          </tbody>
+        </table>
+        <p class="note note-caution"><strong>Runbooks do not hand-write</strong> code-panel markup, a copy script, or any nav markup, <code>chrome.js</code> builds all of it around each <code>.cmd</code> at load. Set <code>data-lang</code> on a <code>.cmd</code> to override the language label, which defaults to <code>shell</code>.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">09</span>
+        <span class="step-title">Keep bespoke CSS to content-shaped classes only</span>
+        <span class="step-tag tag-caution">DISCIPLINE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">An inline <code>&lt;style&gt;</code> block is only for classes specific to your runbook, usually content-shaped tables or step-accent overrides:</p>
+        <div class="cmd" data-lang="css">.step.ph-cpu  { border-left-color: var(--rust);  }
+.step.ph-disk { border-left-color: var(--ochre); }</div>
+        <p class="note">Always reference token variables (<code>var(--ochre)</code>, <code>var(--border)</code>). Never hard-code colours. The palette is deliberately restrained: stone paper, one ochre accent, rust for caution, sage for verify, mono for anything machine-readable. If you catch yourself copy-pasting a bespoke component into a second runbook, promote it into <code>runbook.css</code> instead.</p>
+        <p class="note note-info"><strong>Reference cheatsheets are an intentional exception.</strong> Pages under <code>reference/</code> use a different, denser lookup-card design on purpose. Model a new cheatsheet on the existing two, not on the runbook library. A <em>procedural</em> runbook placed in <code>reference/</code> still uses the standard layout.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 6 ════ -->
+  <div class="phase-label"><span>Phase 6</span> Adding a new category</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">10</span>
+        <span class="step-title">Give a new folder a name, order, and accent</span>
+        <span class="step-tag tag-info">CONFIG</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Drop a runbook into a new folder and it appears under a section with a neutral accent. To name and colour it, add an entry to the <code>CATEGORIES</code> dict near the top of <code>scripts/build_index.py</code>:</p>
+        <div class="cmd" data-lang="python">CATEGORIES = {
+    <span class="c"># ...existing categories...</span>
+    "database": {"name": "Database", "accent": "ref", "order": 9},
+}</div>
+        <p class="note"><code>order</code> is the position on the landing page. To add a fresh accent, define an <code>.accent-&lt;name&gt;</code> rule in the <code>STYLES</code> constant lower in the same file, pointing at a token colour, exactly how the <code>Meta</code> section you're reading was added (<code>.accent-meta { background: var(--ink-2); }</code>).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PHASE 7 ════ -->
+  <div class="phase-label"><span>Phase 7</span> Build and test locally</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">11</span>
+        <span class="step-title">Regenerate, then serve over http</span>
+        <span class="step-tag tag-ok">PREVIEW</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="bash"><span class="c"># regenerate index.html + assets/js/nav-data.js</span>
+python3 scripts/build_index.py
+
+<span class="c"># serve over http, do NOT open from Finder (file:// blocks ../assets)</span>
+./serve.sh
+open http://localhost:8765/</div>
+        <p class="note note-caution"><strong>Check pages in a private window.</strong> <code>chrome.js</code> is a stable URL that keeps gaining behaviour, so a browser will happily serve a cached copy and you'll conclude a change is broken when it isn't. Cmd+Option+R ("Reload From Origin") also works.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>Never edit <code>index.html</code> or <code>assets/js/nav-data.js</code> by hand, both are regenerated on every push and manual edits are overwritten. Change the landing page via the <code>STYLES</code> / <code>SCRIPT</code> / <code>TEMPLATE</code> constants in <code>build_index.py</code>.</li>
+      <li>Bump <code>reviewed</code> only when a human has confirmed the procedure still works. It is the one field a reader is meant to trust.</li>
+      <li>Keep the RB-ID in the identity strip and footer, never in the <code>&lt;title&gt;</code> or <code>&lt;h1&gt;</code>.</li>
+      <li>Load <code>tokens.css</code> first; load <code>nav-data.js</code> before <code>chrome.js</code>.</li>
+      <li>Reference token variables in bespoke CSS. Never hard-code a colour, and don't add a sixth accent to the palette.</li>
+      <li>Serve over http and check in a private window, never open a runbook from <code>file://</code>.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>DOC-CONTRIB-001 · Contributing · how to add a runbook</span>
+  <span>meta · build_index.py</span>
+</footer>
+
+</body>
+</html>

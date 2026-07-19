@@ -24,6 +24,7 @@ CATEGORIES: dict[str, dict] = {
     "reference": {"name": "Reference", "accent": "ref",      "order": 5},
     "vtl":       {"name": "VTL",       "accent": "vtl",      "order": 6},
     "security":  {"name": "Security",  "accent": "sec",      "order": 7},
+    "meta":      {"name": "Meta",      "accent": "meta",     "order": 8},
 }
 
 # Categories with no real runbooks yet render a "coming soon" placeholder
@@ -581,6 +582,7 @@ STYLES = """  :root {
   .accent-vtl      { background: var(--ink);   }
   .accent-cohesity { background: var(--faint); }
   .accent-sec      { background: var(--border); }
+  .accent-meta     { background: var(--ink-2); }
 
   .grid {
     display: grid;

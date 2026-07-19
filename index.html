@@ -284,6 +284,7 @@
   .accent-vtl      { background: var(--ink);   }
   .accent-cohesity { background: var(--faint); }
   .accent-sec      { background: var(--border); }
+  .accent-meta     { background: var(--ink-2); }
 
   .grid {
     display: grid;
@@ -432,7 +433,7 @@
   <span class="logo-dot"></span>
   <h1>WIKI &nbsp;/&nbsp; KNOWLEDGE BASE</h1>
   <div class="header-meta">
-    <span id="total-count">23 RUNBOOKS</span>
+    <span id="total-count">26 RUNBOOKS</span>
     <a href="https://github.com/triippiing/Wiki" target="_blank" rel="noopener">GITHUB ↗</a>
   </div>
   <button class="theme-btn" id="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle light / dark">
@@ -651,6 +652,34 @@
         <h4>Tomcat Hardening Runbook</h4>
         <p>Patching and hardening the Apache Tomcat instance behind a virtual tape library — CVE remediation, config hardening, and rollback.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
+      </a>
+    </div>
+  </section>
+
+  <section class="section" data-cat="meta">
+    <div class="section-head">
+      <span class="accent accent-meta"></span>
+      <h3>Meta</h3>
+      <span class="count">03 runbooks</span>
+    </div>
+    <div class="grid">
+      <a class="card card-meta" href="meta/architecture.html" data-search="architecture &amp; build meta architecture build_index nav-data chrome.js boot.js ipl assets tokens generated github action meta grid identity strip architecture">
+        <div class="card-tag">meta</div>
+        <h4>Architecture &amp; Build</h4>
+        <p>How the wiki assembles itself: the build_index.py generator, the shared asset layer, what chrome.js does at load, the identity-strip model, and the IPL boot landing.</p>
+        <div class="card-foot"><span class="card-rev">19 Jul 2026</span><span class="arrow">→</span></div>
+      </a>
+      <a class="card card-meta" href="meta/contributing.html" data-search="contributing meta contributing add runbook build_index metadata reviewed identity strip category accent style guide contributing">
+        <div class="card-tag">meta</div>
+        <h4>Contributing</h4>
+        <p>How to add a runbook so it appears on the landing page and in the sidebar rail: file location, required head metadata, the identity strip, review dates, styling, and the build.</p>
+        <div class="card-foot"><span class="card-rev">19 Jul 2026</span><span class="arrow">→</span></div>
+      </a>
+      <a class="card card-meta" href="meta/design_system.html" data-search="design system meta design system style guide tokens palette colours typography components badges notes callouts steps code panel tables swatches design_system">
+        <div class="card-tag">meta</div>
+        <h4>Design System</h4>
+        <p>A live, interactable reference for the wiki&#x27;s design language: colour tokens, the four-font stack, and every shared component rendered as it actually renders.</p>
+        <div class="card-foot"><span class="card-rev">19 Jul 2026</span><span class="arrow">→</span></div>
       </a>
     </div>
   </section>

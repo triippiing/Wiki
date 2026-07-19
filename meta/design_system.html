@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design System</title>
+<meta name="description" content="A live, interactable reference for the wiki's design language: colour tokens, the four-font stack, and every shared component rendered as it actually renders.">
+<meta name="reviewed" content="2026-07-19">
+<meta name="keywords" content="design system style guide tokens palette colours typography components badges notes callouts steps code panel tables swatches">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/runbook.css">
+<link rel="stylesheet" href="../assets/css/sidebar.css">
+<script src="../assets/js/nav-data.js" defer></script>
+<script src="../assets/js/chrome.js" defer></script>
+<style>
+  /* ── bespoke: token swatch grid ── */
+  .tok-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 10px;
+    margin: 14px 0 8px;
+  }
+  .tok {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--paper);
+    box-shadow: var(--shadow);
+  }
+  .tok-chip { height: 50px; border-bottom: 1px solid var(--border); }
+  .tok-meta { padding: 8px 10px; }
+  .tok-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    color: var(--ink);
+  }
+  .tok-role { font-size: 10.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+  /* checkerboard behind tint chips so pale fills are still visible */
+  .tok-chip.tint {
+    background-image:
+      linear-gradient(45deg, var(--border) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--border) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--border) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--border) 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  }
+  .tok-chip.tint > span { display: block; height: 100%; }
+
+  /* ── bespoke: type specimens ── */
+  .type-row {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 13px 16px;
+    margin-bottom: 10px;
+    background: var(--paper);
+    box-shadow: var(--shadow);
+  }
+  .type-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .type-sample { margin-top: 7px; color: var(--ink); line-height: 1.2; }
+
+  /* ── bespoke: a plain row of chips for the tag legend ── */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../index.html">Wiki</a><span class="sep">/</span><a href="../index.html#meta">Meta</a><span class="sep">/</span>Design System
+  </nav>
+
+  <h1 class="page-title">Design System</h1>
+  <p class="page-sub">The wiki's design language, rendered as it actually renders. Every swatch and component below is driven by the shared tokens, so flip the theme toggle (top-left pill) and watch the whole page recolour. This page is also the rendering test: if a component looks wrong here, it looks wrong everywhere.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">living reference</span>
+    <span class="badge">tokens.css</span>
+    <span class="badge">runbook.css</span>
+    <span class="badge">interactable</span>
+  </div>
+
+  <!-- Meta -->
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Doc ID</div><div class="meta-val mono">DOC-STYLE-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Component + token reference</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <!-- ════ COLOUR ════ -->
+  <div class="phase-label"><span>01</span> Colour tokens</div>
+  <p class="note" style="margin-bottom:6px">The palette is deliberately restrained: warm stone paper, one ochre accent, rust for caution, sage for verify, and a warm-dark code panel. Never hard-code a colour in a runbook; reference these variables. Never add a sixth accent family.</p>
+
+  <p class="note note-info" style="margin:14px 0 4px"><strong>Surfaces</strong>: page background through to 1px hairlines.</p>
+  <div class="tok-grid">
+    <div class="tok"><div class="tok-chip" style="background:var(--paper)"></div><div class="tok-meta"><div class="tok-name">--paper</div><div class="tok-role">page background</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--sidebar)"></div><div class="tok-meta"><div class="tok-name">--sidebar</div><div class="tok-role">chips, table heads</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--surface)"></div><div class="tok-meta"><div class="tok-name">--surface</div><div class="tok-role">raised panels, cards</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--border)"></div><div class="tok-meta"><div class="tok-name">--border</div><div class="tok-role">1px hairlines</div></div></div>
+  </div>
+
+  <p class="note note-info" style="margin:18px 0 4px"><strong>Ink</strong>: the text scale, primary through faint.</p>
+  <div class="tok-grid">
+    <div class="tok"><div class="tok-chip" style="background:var(--ink)"></div><div class="tok-meta"><div class="tok-name">--ink</div><div class="tok-role">primary text, dark UI</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--ink-2)"></div><div class="tok-meta"><div class="tok-name">--ink-2</div><div class="tok-role">secondary body</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--muted)"></div><div class="tok-meta"><div class="tok-name">--muted</div><div class="tok-role">table body, secondary</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--faint)"></div><div class="tok-meta"><div class="tok-name">--faint</div><div class="tok-role">mono labels, crumbs</div></div></div>
+  </div>
+
+  <p class="note note-info" style="margin:18px 0 4px"><strong>Ochre</strong>: the accent. Solid, tint fill, tint border.</p>
+  <div class="tok-grid">
+    <div class="tok"><div class="tok-chip" style="background:var(--ochre)"></div><div class="tok-meta"><div class="tok-name">--ochre</div><div class="tok-role">accent, links, step num</div></div></div>
+    <div class="tok"><div class="tok-chip tint"><span style="background:var(--ochre-tint)"></span></div><div class="tok-meta"><div class="tok-name">--ochre-tint</div><div class="tok-role">info callout fill</div></div></div>
+    <div class="tok"><div class="tok-chip tint"><span style="background:var(--ochre-bd)"></span></div><div class="tok-meta"><div class="tok-name">--ochre-bd</div><div class="tok-role">info callout border</div></div></div>
+  </div>
+
+  <p class="note note-info" style="margin:18px 0 4px"><strong>Rust</strong>: caution / critical. <strong>Sage</strong>: verify / success.</p>
+  <div class="tok-grid">
+    <div class="tok"><div class="tok-chip" style="background:var(--rust)"></div><div class="tok-meta"><div class="tok-name">--rust</div><div class="tok-role">caution, critical</div></div></div>
+    <div class="tok"><div class="tok-chip tint"><span style="background:var(--rust-tint)"></span></div><div class="tok-meta"><div class="tok-name">--rust-tint</div><div class="tok-role">caution fill</div></div></div>
+    <div class="tok"><div class="tok-chip tint"><span style="background:var(--rust-bd)"></span></div><div class="tok-meta"><div class="tok-name">--rust-bd</div><div class="tok-role">caution border</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--sage)"></div><div class="tok-meta"><div class="tok-name">--sage</div><div class="tok-role">verify, success</div></div></div>
+    <div class="tok"><div class="tok-chip tint"><span style="background:var(--sage-tint)"></span></div><div class="tok-meta"><div class="tok-name">--sage-tint</div><div class="tok-role">verify fill</div></div></div>
+    <div class="tok"><div class="tok-chip tint"><span style="background:var(--sage-bd)"></span></div><div class="tok-meta"><div class="tok-name">--sage-bd</div><div class="tok-role">verify border</div></div></div>
+  </div>
+
+  <p class="note note-info" style="margin:18px 0 4px"><strong>Code panel</strong>: the terminal surface and its restrained syntax set.</p>
+  <div class="tok-grid">
+    <div class="tok"><div class="tok-chip" style="background:var(--code-bg)"></div><div class="tok-meta"><div class="tok-name">--code-bg</div><div class="tok-role">panel background</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--code-kw)"></div><div class="tok-meta"><div class="tok-name">--code-kw</div><div class="tok-role">commands / keywords</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--code-str)"></div><div class="tok-meta"><div class="tok-name">--code-str</div><div class="tok-role">strings</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--code-flag)"></div><div class="tok-meta"><div class="tok-name">--code-flag</div><div class="tok-role">flags / switches</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--code-ph)"></div><div class="tok-meta"><div class="tok-name">--code-ph</div><div class="tok-role">placeholders to sub in</div></div></div>
+    <div class="tok"><div class="tok-chip" style="background:var(--code-bad)"></div><div class="tok-meta"><div class="tok-name">--code-bad</div><div class="tok-role">destructive / warning</div></div></div>
+  </div>
+
+  <!-- ════ TYPE ════ -->
+  <div class="phase-label"><span>02</span> Typography</div>
+  <p class="note" style="margin-bottom:6px">Four families, each with one job. Page titles in a serif, section dividers in a display serif, body and step titles in a humanist sans, and anything machine-readable in mono.</p>
+  <div class="type-row">
+    <div class="type-label">Source Serif 4 · 600 · page titles (.page-title)</div>
+    <div class="type-sample" style="font-family:'Source Serif 4',Georgia,serif; font-size:30px; font-weight:600; letter-spacing:-.008em;">AIX rootvg Mirror Disk Replacement</div>
+  </div>
+  <div class="type-row">
+    <div class="type-label">Spectral · 600 · section dividers (.phase-label)</div>
+    <div class="type-sample" style="font-family:'Spectral',Georgia,serif; font-size:19px; font-weight:600;">Phase 3 · Handle Stale PPs</div>
+  </div>
+  <div class="type-row">
+    <div class="type-label">Public Sans · 400/500/600 · body + step titles</div>
+    <div class="type-sample" style="font-family:'Public Sans',system-ui,sans-serif; font-size:14px; line-height:1.55;">Clone rootvg to the spare disk, verify the bootlist still points at the live disk, then apply the update. Body copy sits at 13-14px for comfortable reading.</div>
+  </div>
+  <div class="type-row">
+    <div class="type-label">IBM Plex Mono · 400/600 · labels, commands, metadata</div>
+    <div class="type-sample" style="font-family:'IBM Plex Mono',monospace; font-size:13px;">oslevel -s &nbsp;→&nbsp; 7100-05-12-2320</div>
+  </div>
+
+  <!-- ════ BADGES ════ -->
+  <div class="phase-label"><span>03</span> Badges</div>
+  <p class="note" style="margin-bottom:6px">The row under a page title. Neutral by default; one accent variant for the headline fact.</p>
+  <div class="badges" style="margin-bottom:16px">
+    <span class="badge badge-accent">.badge-accent</span>
+    <span class="badge">.badge</span>
+    <span class="badge">AIX 7.1</span>
+    <span class="badge">in-place</span>
+  </div>
+
+  <!-- ════ CALLOUTS ════ -->
+  <div class="phase-label"><span>04</span> Notes and callouts</div>
+  <p class="note" style="margin-bottom:6px">Tinted fill, matching 1px border, and a generated mono label. The variant class sets both the colour and the label text. Inline <code>code</code> lifts to <code>--paper</code> on a tinted callout so it stays legible.</p>
+  <p class="note">Default <code>.note</code>, neutral background, <code>NOTE</code> label. For context and asides. <strong>Bold</strong> reads as ink.</p>
+  <p class="note note-info"><strong>.note-info</strong>: ochre. Rationale, "why this works", background the reader benefits from but isn't required to act on.</p>
+  <p class="note note-caution"><strong>.note-caution</strong>: rust. A tradeoff or a place people get burned. Not necessarily a stop.</p>
+  <p class="note note-critical"><strong>.note-critical</strong>: rust, harder. A genuine stop condition: do not proceed / do not reboot until this is true.</p>
+  <p class="note note-verify"><strong>.note-verify</strong>: sage. The acceptance check. What "good" looks like after a step.</p>
+  <p class="note note-success"><strong>.note-success</strong>: sage. Confirmation the phase is complete.</p>
+
+  <!-- ════ PHASE + STEPS ════ -->
+  <div class="phase-label"><span>05</span> Phase divider and step accordion</div>
+  <p class="note" style="margin-bottom:6px">The <code>.phase-label</code> above is the section divider, a mono tag beside a Spectral heading, on a 2px ink rule. Below is the <code>.step</code> accordion. These are live: click a header to toggle it, hover a row to reveal its <code>#</code> deep-link anchor, and use the copy button on the code panel. All of that is wired by <code>chrome.js</code>, not by markup.</p>
+  <div class="steps">
+
+    <div class="step open">
+      <div class="step-header">
+        <span class="step-num">01</span>
+        <span class="step-title">A step, open by default</span>
+        <span class="step-tag tag-critical">CRITICAL</span>
+        <span class="run-on">TARGET</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The header carries a numbered ochre badge, a title, one or more tags, an optional neutral run-on location chip, and a chevron. The body holds notes, code panels, and tables. Below is a code panel with the full syntax set, its header bar and copy button are built by <code>chrome.js</code> at load.</p>
+        <div class="cmd"><span class="cmd-section">Pre-flight</span>
+<span class="kw">oslevel</span> <span class="flag">-s</span>                  <span class="c"># expect: 7100-05-11-2246</span>
+<span class="kw">lppchk</span> <span class="flag">-v</span>                  <span class="c"># MUST return clean</span>
+
+<span class="cmd-section">Destructive, read before running</span>
+<span class="kw">chdev</span> <span class="flag">-l</span> <span class="ph">hdiskX</span> <span class="flag">-a</span> pv=clear   <span class="c"># clears the PVID</span>
+<span class="kw">rm</span> <span class="flag">-rf</span> <span class="bad">/var/update_staging</span>       <span class="c"># no recovery</span></div>
+        <p class="note note-verify"><strong>✓ Verify:</strong> <code>lppchk -v</code> returns clean and <code>oslevel -s</code> reports the expected level.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">02</span>
+        <span class="step-title">A collapsed step, click to open</span>
+        <span class="step-tag tag-caution">CAUTION</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Steps default closed. The first step in a phase usually carries the <code>open</code> class so the reader lands on something.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">RB.1</span>
+        <span class="step-title">Numbers grow to fit, "RB.1", "1.1", "A.3"</span>
+        <span class="step-tag tag-ok">ROLLBACK</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The number badge is square at <code>01</code> and widens for rollback, appendix, or sub-step labels.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="note note-info" style="margin-top:16px"><strong>Step tag legend</strong>: severity drives the colour. Rust for caution / critical, sage for ok, ochre for info, neutral for a location chip.</p>
+  <div class="chip-row">
+    <span class="step-tag tag-critical">CRITICAL</span>
+    <span class="step-tag tag-caution">CAUTION</span>
+    <span class="step-tag tag-info">INFO</span>
+    <span class="step-tag tag-ok">OK</span>
+    <span class="run-on">RUN-ON</span>
+  </div>
+
+  <!-- ════ TABLES ════ -->
+  <div class="phase-label"><span>06</span> Tables</div>
+  <p class="note" style="margin-bottom:6px">Two shared table styles. <code>.ref-table</code> for inline reference inside a step; <code>.summary-table</code> (wrapped in <code>.summary-wrap</code> for the panel + horizontal scroll) for the quick-reference block at the foot of a runbook. The first column is mono ink in both.</p>
+  <table class="ref-table">
+    <thead><tr><th>Flag</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>-i</td><td>Regenerate /image.data, captures current LV layout</td></tr>
+      <tr><td>-X</td><td>Auto-extend /tmp if needed during backup</td></tr>
+      <tr><td>-p</td><td>Disable software packing</td></tr>
+    </tbody>
+  </table>
+
+  <div class="summary-wrap" style="margin-top:14px">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
+      <tr><td>oslevel -s</td><td>Current TL/SP level</td><td>Full V.R.M.F-build</td></tr>
+      <tr><td>lppchk -v</td><td>Verify fileset consistency</td><td>MUST be clean pre and post</td></tr>
+      <tr><td>alt_disk_copy -d &lt;disk&gt;</td><td>Clone rootvg to spare disk</td><td>Primary rollback</td></tr>
+    </table>
+  </div>
+
+  <!-- ════ WARN BOX ════ -->
+  <div class="phase-label"><span>07</span> Warn box</div>
+  <p class="note" style="margin-bottom:6px">The ochre-tinted <code>.warn-box</code> closes a runbook, a dash-led list of the things that most often bite. One per page, at the end.</p>
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>Every component on this page is token-driven, toggle the theme and nothing hard-codes a colour.</li>
+      <li>Reach for the callout variant whose label matches intent: <code>caution</code> for a tradeoff, <code>critical</code> for a genuine stop, <code>verify</code> for an acceptance check.</li>
+      <li>Let <code>chrome.js</code> build code panels and accordions. Runbooks carry no copy script and no panel markup of their own.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>DOC-STYLE-001 · Design System · live component + token reference</span>
+  <span>meta · tokens.css · runbook.css</span>
+</footer>
+
+</body>
+</html>
