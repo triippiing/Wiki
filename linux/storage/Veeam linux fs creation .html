@@ -188,7 +188,7 @@ echo <span class="str">"/dev/sdd1  /mnt/<span class="ph">&lt;REPONAME&gt;</span>
 
 <span class="c"># Confirm line landed correctly</span>
 tail <span class="flag">-3</span> <span class="str">/etc/fstab</span></div>
-        <p class="note"><strong>Convention:</strong> existing mounts use <code>/dev/sdXN</code> with <code>defaults  0  0</code> — no nofail, no UUID.</p>
+        <p class="note note-caution"><strong>Convention vs resilience:</strong> existing mounts use <code>/dev/sdXN</code> with <code>defaults  0  0</code> (no nofail, no UUID). Know the tradeoff before matching it: bare <code>/dev/sdX</code> names can renumber across reboots or a SAN rescan, and without <code>nofail</code> a missing device drops the host to emergency mode at boot (Step 10). On a 90TB SAN-backed repo both are real. Safer form if you can break convention: <code>UUID=&lt;uuid&gt;  /mnt/&lt;REPONAME&gt;  xfs  defaults,nofail  0  2</code>. UUID (or a <code>/dev/disk/by-id/</code> path) survives renumbering, and <code>nofail</code> lets the host boot when the LUN is absent. Match the <code>/dev/sdX</code> convention only if estate consistency outweighs that, and record the decision in the change.</p>
       </div>
     </div>
 
@@ -216,6 +216,7 @@ chmod 755 <span class="str">/mnt/<span class="ph">&lt;REPONAME&gt;</span></span>
     <ul>
       <li>No LVM on this host — raw partition directly to XFS, matching sdb1/sdc1 convention.</li>
       <li>No multipath configured — build on <code>/dev/sddX</code> directly.</li>
+      <li><code>/dev/sdX</code> in fstab plus no <code>nofail</code> is the local convention but a real risk on a SAN-backed repo: device renumbering can mount the wrong disk, and a missing LUN drops the host to emergency mode. <code>UUID=</code> (or <code>/dev/disk/by-id/</code>) plus <code>defaults,nofail</code> avoids both. Whichever you pick, record it in the change.</li>
       <li>GPT mandatory — MBR 2TB limit would be exceeded.</li>
       <li><code>mkfs.xfs</code> on 90TB may take several minutes — do not interrupt.</li>
       <li><code>>></code> appends to fstab. <code>></code> overwrites it — never use <code>></code> on fstab.</li>
