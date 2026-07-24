@@ -15,8 +15,8 @@ shape, so a partly-migrated wiki is merely inconsistent, not broken.
 See docs/META_GRID_MIGRATION.md.
 
 What it does, per runbook:
-  · the identity strip gets exactly two authored cells — Runbook ID and
-    Operation — from scripts/runbook_meta.py. chrome.js appends the third
+  · the identity strip gets exactly two authored cells, Runbook ID and
+    Operation, from scripts/runbook_meta.py. chrome.js appends the third
     (Last reviewed) at load.
   · EVERY other cell moves, unchanged, into a secondary .env block. Nothing
     is discarded: these are pre-flight facts (host, versions, windows,
@@ -45,7 +45,7 @@ CELL_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Superseded by the manifest — dropped rather than moved to .env.
+# Superseded by the manifest: dropped rather than moved to .env.
 IDENTITY_LABELS = {"runbook id", "operation"}
 
 MIGRATED_MARK = "meta-identity"
@@ -100,7 +100,7 @@ def migrate(path: Path, dry_run: bool = False) -> str:
     rel = path.relative_to(ROOT).as_posix()
     entry = RUNBOOKS.get(rel)
     if not entry:
-        return f"!! not in runbook_meta.py — skipped: {rel}"
+        return f"!! not in runbook_meta.py, skipped: {rel}"
     rb_id, operation = entry
 
     text = path.read_text(encoding="utf-8")
@@ -109,13 +109,13 @@ def migrate(path: Path, dry_run: bool = False) -> str:
 
     span = find_grid(text)
     if not span:
-        return f"!! no <div class=\"meta\"> grid found — skipped: {rel}"
+        return f"!! no <div class=\"meta\"> grid found, skipped: {rel}"
     start, end = span
     grid = text[start:end]
 
     cells = list(CELL_RE.finditer(grid))
     if not cells:
-        return f"!! grid found but no .meta-cell parsed — skipped: {rel}"
+        return f"!! grid found but no .meta-cell parsed, skipped: {rel}"
 
     env_cells = [
         (c.group("label").strip(), c.group("cls").rstrip(), c.group("val").strip())

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIX rootvg — Mirror Disk Replacement Runbook</title>
-<meta name="description" content="Replacing a failing rootvg mirror disk in place — unmirror, replace, mirror, and rebuild bootlist without downtime.">
+<title>AIX rootvg: Mirror Disk Replacement Runbook</title>
+<meta name="description" content="Replacing a failing rootvg mirror disk in place: unmirror, replace, mirror, and rebuild bootlist without downtime.">
 <meta name="reviewed" content="2026-05-02">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -114,11 +114,11 @@
 <div class="wrap">
 
   <nav class="crumb">
-    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">LVM</a><span class="sep">/</span>AIX rootvg — Mirror Disk Replacement Runbook
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">LVM</a><span class="sep">/</span>AIX rootvg: Mirror Disk Replacement Runbook
   </nav>
 
-  <h1 class="page-title">AIX rootvg — Mirror Disk Replacement Runbook</h1>
-  <p class="page-sub">Replacing a failing rootvg mirror disk in place — unmirror, replace, mirror, and rebuild bootlist without downtime.</p>
+  <h1 class="page-title">AIX rootvg: Mirror Disk Replacement Runbook</h1>
+  <p class="page-sub">Replacing a failing rootvg mirror disk in place: unmirror, replace, mirror, and rebuild bootlist without downtime.</p>
 
   <div class="badges">
     <span class="badge badge-accent">DISK FAILURE</span>
@@ -138,9 +138,9 @@
     <div class="env-grid">
       <div class="env-cell"><div class="env-label">VG</div><div class="env-val">rootvg</div></div>
       <div class="env-cell"><div class="env-label">VG Type</div><div class="env-val">Mirrored (2-copy)</div></div>
-      <div class="env-cell"><div class="env-label">Good Disk</div><div class="env-val ok">hdisk0 — active</div></div>
-      <div class="env-cell"><div class="env-label">Failed Disk</div><div class="env-val bad">hdisk1 — failed</div></div>
-      <div class="env-cell"><div class="env-label">Other VGs</div><div class="env-val warn">datavg (2× PV) — unaffected</div></div>
+      <div class="env-cell"><div class="env-label">Good Disk</div><div class="env-val ok">hdisk0 · active</div></div>
+      <div class="env-cell"><div class="env-label">Failed Disk</div><div class="env-val bad">hdisk1 · failed</div></div>
+      <div class="env-cell"><div class="env-label">Other VGs</div><div class="env-val warn">datavg (2× PV) · unaffected</div></div>
       <div class="env-cell"><div class="env-label">Spare PVs</div><div class="env-val bad">None</div></div>
     </div>
   </div>
@@ -156,10 +156,10 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># List all PVs — failed disk will show "missing" or no VG association</span>
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># List all PVs: failed disk will show "missing" or no VG association</span>
 <span class="kw">lspv</span>
 
-<span class="c"># Check VG state — note STALE PPs count</span>
+<span class="c"># Check VG state: note STALE PPs count</span>
 <span class="kw">lsvg</span> rootvg
 
 <span class="c"># Confirm which LVs/PPs are on each disk</span>
@@ -168,7 +168,7 @@
 
 <span class="c"># Check for stale PPs explicitly</span>
 <span class="kw">lsvg</span> rootvg <span class="flag">| grep</span> <span class="str">-i stale</span></div>
-        <p class="note">A failed mirror member will appear as <code>missing</code> in <code>lspv</code> output. <code>lsvg rootvg</code> will report a non-zero STALE PP count equal to the LP count of all mirrored LVs. Note the PVID of the failed disk from <code>lspv</code> — you may need it if ODM manipulation is required.</p>
+        <p class="note">A failed mirror member will appear as <code>missing</code> in <code>lspv</code> output. <code>lsvg rootvg</code> will report a non-zero STALE PP count equal to the LP count of all mirrored LVs. Note the PVID of the failed disk from <code>lspv</code>. You may need it if ODM manipulation is required.</p>
       </div>
     </div>
   </div>
@@ -179,16 +179,16 @@
     <div class="step ph-boot open">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">02</span>
-        <span class="step-title">Confirm surviving disk is in bootlist — correct if necessary</span>
+        <span class="step-title">Confirm surviving disk is in bootlist: correct if necessary</span>
         <span class="step-tag tag-critical">CRITICAL</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># Check current bootlist — failed disk must NOT be first</span>
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># Check current bootlist: failed disk must NOT be first</span>
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
 <span class="kw">bootlist</span> <span class="flag">-m</span> service <span class="flag">-o</span>
 
-<span class="c"># If failed disk appears — correct both bootlists immediately</span>
+<span class="c"># If failed disk appears: correct both bootlists immediately</span>
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal  hdisk0
 <span class="kw">bootlist</span> <span class="flag">-m</span> service hdisk0
 
@@ -216,15 +216,15 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># Confirm stale PP count — will be non-zero on a failed mirror member</span>
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># Confirm stale PP count: will be non-zero on a failed mirror member</span>
 <span class="kw">lsvg</span> rootvg
 
 <span class="c"># Attempt sync only if disk is intermittently accessible (likely to fail if truly dead)</span>
 <span class="kw">syncvg</span> <span class="flag">-v</span> rootvg
 
-<span class="c"># Re-check — if STALE PPs remain, disk is unrecoverable, proceed to Phase 4</span>
+<span class="c"># Re-check: if STALE PPs remain, disk is unrecoverable, proceed to Phase 4</span>
 <span class="kw">lsvg</span> rootvg <span class="flag">| grep</span> <span class="str">-i stale</span></div>
-        <p class="note"><code>syncvg</code> will almost certainly fail against a truly dead disk. Its value here is in confirming the disk is unrecoverable before proceeding with forced removal. If STALE PPs drop to 0, you have a degraded-but-recoverable disk — treat as Option B in the next step.</p>
+        <p class="note"><code>syncvg</code> will almost certainly fail against a truly dead disk. Its value here is in confirming the disk is unrecoverable before proceeding with forced removal. If STALE PPs drop to 0, you have a degraded-but-recoverable disk. Treat as Option B in the next step.</p>
       </div>
     </div>
   </div>
@@ -235,32 +235,32 @@
     <div class="step ph-remove">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">04</span>
-        <span class="step-title">Remove mirror — Option A: disk is dead / missing</span>
+        <span class="step-title">Remove mirror, Option A: disk is dead / missing</span>
         <span class="step-tag tag-critical">DISK DEAD</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
         <div class="option-grid">
           <div class="option-card">
-            <div class="option-header opt-a">Option A — Disk dead / missing</div>
+            <div class="option-header opt-a">Option A · Disk dead / missing</div>
             <div class="option-desc">Disk is unresponsive. lspv shows "missing". syncvg fails. Use -d flag to force removal of stale PPs.</div>
           </div>
           <div class="option-card">
-            <div class="option-header opt-b">Option B — Disk degraded / accessible</div>
+            <div class="option-header opt-b">Option B · Disk degraded / accessible</div>
             <div class="option-desc">Disk responds intermittently. Use unmirrorvg to gracefully migrate PP allocations before reducevg.</div>
           </div>
         </div>
-        <div class="cmd" id="c4a"><button class="copy-btn" onclick="copy('c4a',this)">COPY</button><span class="cmd-section">Option A — Force removal (dead disk)</span>
+        <div class="cmd" id="c4a"><button class="copy-btn" onclick="copy('c4a',this)">COPY</button><span class="cmd-section">Option A · Force removal (dead disk)</span>
 <span class="c"># -d forces removal even with allocated (stale) PPs on hdisk1</span>
 <span class="kw">reducevg</span> <span class="flag">-d</span> rootvg hdisk1
 
-<span class="c"># If reducevg still refuses (disk ODM entry blocking) — remove from ODM</span>
+<span class="c"># If reducevg still refuses (disk ODM entry blocking): remove from ODM</span>
 <span class="kw">chpv</span> <span class="flag">-vr</span> hdisk1
 <span class="kw">odmdelete</span> <span class="flag">-o</span> CuAt <span class="flag">-q</span> <span class="str">"name=hdisk1"</span>
 <span class="kw">odmdelete</span> <span class="flag">-o</span> CuDv <span class="flag">-q</span> <span class="str">"name=hdisk1"</span>
-<span class="c"># Reboot after ODM deletion — rootvg will no longer reference the missing disk</span>
+<span class="c"># Reboot after ODM deletion: rootvg will no longer reference the missing disk</span>
 
-<span class="cmd-section">Option B — Graceful removal (degraded disk)</span>
+<span class="cmd-section">Option B · Graceful removal (degraded disk)</span>
 <span class="c"># Unmirror: migrates all PP allocations off hdisk1 to hdisk0</span>
 <span class="kw">unmirrorvg</span> rootvg hdisk1
 
@@ -269,7 +269,7 @@
 
 <span class="c"># Now safe to remove from VG</span>
 <span class="kw">reducevg</span> rootvg hdisk1</div>
-        <p class="note note-caution"><strong>reducevg -d vs unmirrorvg:</strong> Use <code>unmirrorvg</code> when the disk responds — it gracefully migrates LP allocations. Use <code>reducevg -d</code> only when the disk is confirmed dead and stale PPs cannot be resolved. The <code>-d</code> flag bypasses the allocated-PPs guard and discards the stale mirror copies.</p>
+        <p class="note note-caution"><strong>reducevg -d vs unmirrorvg:</strong> Use <code>unmirrorvg</code> when the disk responds. It gracefully migrates LP allocations. Use <code>reducevg -d</code> only when the disk is confirmed dead and stale PPs cannot be resolved. The <code>-d</code> flag bypasses the allocated-PPs guard and discards the stale mirror copies.</p>
       </div>
     </div>
   </div>
@@ -280,12 +280,12 @@
     <div class="step ph-verify">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">05</span>
-        <span class="step-title">Verify rootvg is clean — no stale PPs, single-copy LVs</span>
+        <span class="step-title">Verify rootvg is clean: no stale PPs, single-copy LVs</span>
         <span class="step-tag tag-info">VERIFY</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># STALE PPs must be 0 — LP count should equal PP count (1:1, no mirror)</span>
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># STALE PPs must be 0: LP count should equal PP count (1:1, no mirror)</span>
 <span class="kw">lsvg</span> rootvg
 
 <span class="c"># Each LV should show LPs == PPs (no mirror copies remaining)</span>
@@ -300,7 +300,7 @@
 <span class="c"># Confirm the primary dump device did not live on the failed disk</span>
 <span class="kw">sysdumpdev</span> <span class="flag">-l</span>
 <span class="kw">lslv</span> <span class="flag">-l</span> lg_dumplv 2&gt;/dev/null   <span class="c"># which PV holds the dump LV?</span></div>
-        <p class="note">At this point rootvg is running single-copy on hdisk0 only. The system is operational but unprotected — complete the replacement and re-mirror as soon as possible.</p>
+        <p class="note">At this point rootvg is running single-copy on hdisk0 only. The system is operational but unprotected. Complete the replacement and re-mirror as soon as possible.</p>
         <p class="note note-caution"><strong>Check the dump device.</strong> The primary dump device (typically <code>/dev/lg_dumplv</code>, or <code>/dev/hd7</code> on older systems) is not mirrored and may have physically lived on the failed disk. If <code>sysdumpdev -l</code> points at a device that was on hdisk1, reset it to a surviving device with <code>sysdumpdev -P -p /dev/lg_dumplv</code>, or the next crash produces no dump. Re-create the dump LV on the replacement disk in Phase 7 if it was lost with the disk.</p>
       </div>
     </div>
@@ -317,11 +317,11 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">Cold swap — no hot-plug</span>
-<span class="c"># Schedule maintenance window — halt cleanly</span>
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">Cold swap · no hot-plug</span>
+<span class="c"># Schedule maintenance window: halt cleanly</span>
 <span class="kw">shutdown</span> <span class="flag">-h</span> now
 
-<span class="cmd-section">Hot swap — SAS backplane / hot-plug capable</span>
+<span class="cmd-section">Hot swap · SAS backplane / hot-plug capable</span>
 <span class="c"># Unconfigure the device before physical removal</span>
 <span class="kw">rmdev</span> <span class="flag">-dl</span> hdisk1
 
@@ -329,7 +329,7 @@
 <span class="c">#   diag → Task Selection → Hot Plug Task → SCSI/FC Hot Plug Manager</span>
 <span class="kw">diag</span>
 
-<span class="cmd-section">After physical insertion — rediscover new disk</span>
+<span class="cmd-section">After physical insertion: rediscover new disk</span>
 <span class="c"># Probe for new hardware</span>
 <span class="kw">cfgmgr</span> <span class="flag">-v</span>
 
@@ -364,12 +364,12 @@
 <span class="c"># Mirror all LVs in rootvg onto hdisk1 (includes hd5 BLV)</span>
 <span class="kw">mirrorvg</span> rootvg hdisk1
 
-<span class="c"># Monitor sync progress — wait until STALE PPs = 0 before proceeding</span>
+<span class="c"># Monitor sync progress: wait until STALE PPs = 0 before proceeding</span>
 <span class="kw">lsvg</span> rootvg <span class="flag">| grep</span> <span class="str">-i stale</span>
 
 <span class="c"># Loop to watch sync progress (Ctrl+C to exit when 0)</span>
 <span class="kw">while true</span>; <span class="kw">do</span> <span class="kw">lsvg</span> rootvg <span class="flag">| grep</span> <span class="str">STALE</span>; sleep 10; <span class="kw">done</span></div>
-        <p class="note"><code>mirrorvg</code> will immediately begin background synchronisation of all PPs. Do not reboot or interrupt power during this phase. On heavily loaded systems or large rootvg, sync may take 10–30+ minutes. The system remains fully operational throughout.</p>
+        <p class="note"><code>mirrorvg</code> will immediately begin background synchronisation of all PPs. Do not reboot or interrupt power during this phase. On heavily loaded systems or large rootvg, sync may take 10 to 30+ minutes. The system remains fully operational throughout.</p>
       </div>
     </div>
   </div>
@@ -392,7 +392,7 @@
 <span class="kw">bosboot</span> <span class="flag">-a -d</span> /dev/hdisk0
 <span class="kw">bosboot</span> <span class="flag">-a -d</span> /dev/hdisk1
 
-<span class="c"># Update bootlist — both disks in normal and service mode</span>
+<span class="c"># Update bootlist: both disks in normal and service mode</span>
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal  hdisk0 hdisk1
 <span class="kw">bootlist</span> <span class="flag">-m</span> service hdisk0 hdisk1
 
@@ -400,7 +400,7 @@
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
 <span class="kw">bootlist</span> <span class="flag">-m</span> service <span class="flag">-o</span>
 
-<span class="c"># Final mirror state — each LV should show PPs = 2x LPs</span>
+<span class="c"># Final mirror state: each LV should show PPs = 2x LPs</span>
 <span class="kw">lsvg</span> <span class="flag">-l</span> rootvg
 
 <span class="c"># Confirm hd5 (BLV) is mirrored to new disk</span>
@@ -409,7 +409,7 @@
 <span class="c"># Confirm the dump device resolves to a valid, present device</span>
 <span class="kw">sysdumpdev</span> <span class="flag">-l</span>
 <span class="kw">sysdumpdev</span> <span class="flag">-e</span>              <span class="c"># estimated dump size vs device size</span></div>
-        <p class="note note-critical"><strong>bosboot is mandatory</strong> on the new disk. Without it, the disk contains a valid XFS/JFS2 partition and mirrored data but no AIX boot record — the system cannot boot from it if hdisk0 fails. Always run <code>bosboot -a -d</code> on every disk in the bootlist after a mirror rebuild.</p>
+        <p class="note note-critical"><strong>bosboot is mandatory</strong> on the new disk. Without it, the disk contains a valid XFS/JFS2 partition and mirrored data but no AIX boot record. The system cannot boot from it if hdisk0 fails. Always run <code>bosboot -a -d</code> on every disk in the bootlist after a mirror rebuild.</p>
       </div>
     </div>
   </div>
@@ -423,15 +423,15 @@
       <tr><td>bootlist -m normal -o</td><td>Verify surviving disk is boot primary</td><td>Fix before any other action</td></tr>
       <tr><td>syncvg -v rootvg</td><td>Confirm disk is unrecoverable</td><td>Will fail if disk is dead</td></tr>
       <tr><td>unmirrorvg rootvg hdisk1</td><td>Graceful LP migration (degraded disk)</td><td>Option B path</td></tr>
-      <tr><td>reducevg -d rootvg hdisk1</td><td>Force remove dead disk + stale PPs</td><td>Option A path — -d bypasses guard</td></tr>
+      <tr><td>reducevg -d rootvg hdisk1</td><td>Force remove dead disk + stale PPs</td><td>Option A path: -d bypasses guard</td></tr>
       <tr><td>lsvg rootvg (STALE=0)</td><td>Confirm clean single-copy VG</td><td>Must be 0 before swap</td></tr>
       <tr><td>rmdev -dl hdisk1</td><td>Unconfigure before hot-swap</td><td>Skip for cold swap</td></tr>
       <tr><td>cfgmgr -v</td><td>Rediscover replacement disk</td><td>New disk must have no PVID</td></tr>
       <tr><td>extendvg rootvg hdisk1</td><td>Add replacement disk to rootvg</td><td>Disk must be &gt;= hdisk0 size</td></tr>
-      <tr><td>mirrorvg rootvg hdisk1</td><td>Rebuild mirror — syncs all LVs</td><td>Background sync, do not interrupt</td></tr>
+      <tr><td>mirrorvg rootvg hdisk1</td><td>Rebuild mirror: syncs all LVs</td><td>Background sync, do not interrupt</td></tr>
       <tr><td>chvg -Qn rootvg</td><td>Disable quorum (2-disk mirror)</td><td>Set before swap; effective next varyon</td></tr>
       <tr><td>sysdumpdev -l</td><td>Show primary / secondary dump device</td><td>Verify after removal and re-mirror</td></tr>
-      <tr><td>bosboot -a -d /dev/hdiskX</td><td>Write boot record to new disk</td><td>Mandatory — run on both disks</td></tr>
+      <tr><td>bosboot -a -d /dev/hdiskX</td><td>Write boot record to new disk</td><td>Mandatory: run on both disks</td></tr>
       <tr><td>bootlist -m normal hdisk0 hdisk1</td><td>Register both disks in bootlist</td><td>Run for normal and service mode</td></tr>
     </table>
   </div>
@@ -440,15 +440,15 @@
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li>Fix the bootlist <strong>before touching the VG</strong> — if the failed disk is first in the bootlist and the system reboots, it will not boot.</li>
+      <li>Fix the bootlist <strong>before touching the VG</strong>. If the failed disk is first in the bootlist and the system reboots, it will not boot.</li>
       <li>Use <code>reducevg -d</code> only when the disk is confirmed dead. The <code>-d</code> flag silently discards all stale PP copies with no recovery path.</li>
-      <li>ODM deletion (<code>odmdelete</code>) is a last resort. Incorrect ODM manipulation can corrupt the device database — document the PVID before attempting.</li>
+      <li>ODM deletion (<code>odmdelete</code>) is a last resort. Incorrect ODM manipulation can corrupt the device database. Document the PVID before attempting.</li>
       <li>The replacement disk must be equal to or larger than the surviving disk. Smaller disks will cause <code>extendvg</code> to fail with insufficient PP count.</li>
       <li>If the replacement disk has a PVID from a prior system, clear it first: <code>chdev -l hdisk1 -a pv=clear</code>. Use <code>chpv -C hdisk1</code> only to clear a residual VGDA / SCSI reservation on a recycled SAN LUN; it does not clear a PVID.</li>
       <li>On a 2-disk rootvg mirror, disable quorum with <code>chvg -Qn rootvg</code> before the disk swap. With quorum enabled, losing the disk that holds the majority of VGDA copies stops rootvg varying on at reboot. The change only takes effect at the next varyon.</li>
       <li>Check the dump device after removing the failed disk with <code>sysdumpdev -l</code>. The dump LV is not mirrored; if it lived on the failed disk it is gone and must be reassigned or recreated, or the next crash yields no dump.</li>
-      <li><code>bosboot</code> on the new disk is non-optional — without it the disk holds data but no boot record and cannot serve as a boot device.</li>
-      <li>datavg (2× PV) is unaffected by this procedure — confirm with <code>lsvg datavg</code> and <code>lsvg -l datavg</code> after completion.</li>
+      <li><code>bosboot</code> on the new disk is non-optional. Without it the disk holds data but no boot record and cannot serve as a boot device.</li>
+      <li>datavg (2× PV) is unaffected by this procedure. Confirm with <code>lsvg datavg</code> and <code>lsvg -l datavg</code> after completion.</li>
     </ul>
   </div>
 

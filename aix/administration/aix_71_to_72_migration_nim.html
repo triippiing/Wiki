@@ -397,8 +397,8 @@
       <div class="env-cell"><div class="env-label">Client LPAR</div><div class="env-val mono">lpar01</div></div>
       <div class="env-cell"><div class="env-label">Working VG</div><div class="env-val mono">nimadmvg · ≥ 2× rootvg</div></div>
       <div class="env-cell"><div class="env-label">Spare disk</div><div class="env-val mono">hdisk1 · ≥ rootvg</div></div>
-      <div class="env-cell"><div class="env-label">Window</div><div class="env-val mono warn">3 — 4 hr</div></div>
-      <div class="env-cell"><div class="env-label">nimadm runtime</div><div class="env-val">90 — 180 min</div></div>
+      <div class="env-cell"><div class="env-label">Window</div><div class="env-val mono warn">3 to 4 hr</div></div>
+      <div class="env-cell"><div class="env-label">nimadm runtime</div><div class="env-val">90 to 180 min</div></div>
       <div class="env-cell"><div class="env-label">Cutover</div><div class="env-val ok">single reboot</div></div>
     </div>
   </div>
@@ -408,7 +408,7 @@
     <div class="host-card master">
       <div class="host-role">NIM Master</div>
       <div class="host-name">dr_nim_01</div>
-      <div class="host-ip">≥ 7.2 TL5 — must be at or above target</div>
+      <div class="host-ip">≥ 7.2 TL5: must be at or above target</div>
       <div class="host-os">lpp_source · SPOT · nimadmvg working store</div>
     </div>
     <div class="arrow">
@@ -425,23 +425,23 @@
 
   <p class="note note-info" style="margin-bottom:24px"><strong>Worked example:</strong> All commands assume <code>lpar01</code> as the client (already a defined NIM machine object on <code>dr_nim_01</code>), <code>hdisk0</code> = live 7.1 rootvg, <code>hdisk1</code> = unassigned spare, lpp_source <code>lpp_aix72tl5sp10</code>, SPOT <code>spot_aix72tl5sp10</code>, working VG <code>nimadmvg</code>, media path <code>/export/nim/media/AIX_7.2_TL5_SP10/</code>. Sub in your own values throughout.</p>
 
-  <p class="note note-caution" style="margin-bottom:32px"><strong>Out of scope:</strong> new installations / "preservation" installs · PowerHA / HACMP-clustered nodes (cluster must be quiesced; migrate one node at a time per IBM's PowerHA migration procedure) · LPAR migrations (LPM is unrelated to nimadm). For 7.1 → 7.3 the procedure is identical — use a 7.3 NIM master and target a 7.3 lpp_source.</p>
+  <p class="note note-caution" style="margin-bottom:32px"><strong>Out of scope:</strong> new installations / "preservation" installs · PowerHA / HACMP-clustered nodes (cluster must be quiesced; migrate one node at a time per IBM's PowerHA migration procedure) · LPAR migrations (LPM is unrelated to nimadm). For 7.1 → 7.3 the procedure is identical. Use a 7.3 NIM master and target a 7.3 lpp_source.</p>
 
-  <p class="note note-info" style="margin-bottom:32px"><strong>SP version drift:</strong> SP versions evolve. Confirm the latest 7.2 TL5 SP available on IBM Entitled Software Support (ESS) and target that — there is no benefit to migrating to an older SP and then patching forward.</p>
+  <p class="note note-info" style="margin-bottom:32px"><strong>SP version drift:</strong> SP versions evolve. Confirm the latest 7.2 TL5 SP available on IBM Entitled Software Support (ESS) and target that. There is no benefit to migrating to an older SP and then patching forward.</p>
 
   <!-- ════ PHASE 1 ════ -->
   <div class="phase-label"><span>Phase 1</span> Pre-change planning · T-7 to T-2 days</div>
   <ul class="checklist">
-    <li><strong>Change ticket raised</strong> — CAB approval logged.</li>
+    <li><strong>Change ticket raised</strong>: CAB approval logged.</li>
     <li><strong>Maintenance window agreed</strong> with application owners.</li>
     <li><strong>AIX 7.2 entitlement confirmed</strong> in ESS.</li>
     <li><strong>AIX 7.2 base media downloaded</strong> to NIM master.</li>
-    <li><strong>NIM master at ≥ target client level</strong> — <code>oslevel -s</code> on master must be ≥ <code>7200-05-10</code>.</li>
+    <li><strong>NIM master at ≥ target client level</strong>: <code>oslevel -s</code> on master must be ≥ <code>7200-05-10</code>.</li>
     <li><strong>NIM master has free space</strong> for lpp_source (~6 GB) and SPOT.</li>
     <li><strong>NIM master has nimadmvg</strong> with ≥ 2× client rootvg in free PPs.</li>
     <li><strong>Client LPAR has free disk</strong> for migration target (≥ rootvg size).</li>
     <li><strong>Client reachable from NIM master</strong> and resolves both ways.</li>
-    <li><strong>Backup strategy confirmed</strong> — mksysb to NIM, plus TSM file-level coverage.</li>
+    <li><strong>Backup strategy confirmed</strong>: mksysb to NIM, plus TSM file-level coverage.</li>
     <li><strong>Third-party software confirmed compatible</strong> with AIX 7.2 (see note below).</li>
     <li><strong>HMC console access tested</strong> for the client LPAR.</li>
   </ul>
@@ -453,9 +453,9 @@
       <tr><td>TSM / IBM Spectrum Protect client</td><td>Per IBM support matrix for AIX 7.2 TL5 SPx supported client versions. Older clients may need upgrading post-migration.</td></tr>
       <tr><td>PowerHA / HACMP</td><td>Hard version dependency. Do not migrate clustered nodes ad-hoc.</td></tr>
       <tr><td>Oracle, DB2, SAP</td><td>Each has its own AIX 7.2 certification matrix.</td></tr>
-      <tr><td>Kernel extensions</td><td><code>genkex</code> shows the loaded list — anything 3rd-party must be re-validated.</td></tr>
+      <tr><td>Kernel extensions</td><td><code>genkex</code> shows the loaded list: anything 3rd-party must be re-validated.</td></tr>
       <tr><td>Java, OpenSSL, OpenSSH</td><td>Ship at newer baselines on 7.2.</td></tr>
-      <tr><td>Monitoring / AV agents</td><td>ITM, Nagios, Tanium, etc. — confirm with vendor.</td></tr>
+      <tr><td>Monitoring / AV agents</td><td>ITM, Nagios, Tanium, etc. Confirm with vendor.</td></tr>
     </tbody>
   </table>
 
@@ -482,7 +482,7 @@
 
 <span class="kw">lssrc</span> <span class="flag">-ls</span> nimesis
 <span class="c"># NIM service must be active.</span></div>
-        <p class="note note-critical"><strong>Hard rule:</strong> NIM master must be at or above the target client level. A 7.1 master cannot migrate a client to 7.2 — there's no "upgrade" path mid-flight. If the master is below target, upgrade the master first.</p>
+        <p class="note note-critical"><strong>Hard rule:</strong> NIM master must be at or above the target client level. A 7.1 master cannot migrate a client to 7.2. There's no "upgrade" path mid-flight. If the master is below target, upgrade the master first.</p>
       </div>
     </div>
 
@@ -507,7 +507,7 @@
 
 <span class="cmd-section">Verify checksums against ESS download page</span>
 <span class="kw">csum</span> <span class="flag">-h</span> SHA256 *.iso</div>
-        <p class="note note-verify"><strong>✓ Verify:</strong> SHA256 from <code>csum</code> matches the value listed on the ESS download page for each ISO. A bad ISO becomes a corrupt lpp_source — catch it at the doorstep.</p>
+        <p class="note note-verify"><strong>✓ Verify:</strong> SHA256 from <code>csum</code> matches the value listed on the ESS download page for each ISO. A bad ISO becomes a corrupt lpp_source. Catch it at the doorstep.</p>
       </div>
     </div>
 
@@ -520,7 +520,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">The lpp_source is the fileset repository — a directory of <code>.bff</code> files extracted from the install media. ISO 1 builds the initial lpp_source; ISO 2's contents are layered in via <code>bffcreate</code>.</p>
+        <p class="note" style="margin-top:0">The lpp_source is the fileset repository, a directory of <code>.bff</code> files extracted from the install media. ISO 1 builds the initial lpp_source; ISO 2's contents are layered in via <code>bffcreate</code>.</p>
         <div class="cmd" id="c03"><button class="copy-btn" onclick="copy('c03',this)">COPY</button><span class="cmd-section">Create the target directory for the lpp_source</span>
 <span class="kw">mkdir</span> <span class="flag">-p</span> /export/nim/lpp_source/lpp_aix72tl5sp10
 
@@ -553,7 +553,7 @@
 
 <span class="kw">lsnim</span> <span class="flag">-l</span> lpp_aix72tl5sp10
 <span class="c"># Look for: simages = yes  (means it contains a complete BOS image)</span></div>
-        <p class="note note-critical"><strong>simages = yes is non-negotiable.</strong> Without it, <code>nimadm</code> refuses to use this lpp_source for migration. If the attribute is absent, the lpp_source is incomplete — confirm both ISOs were processed and that <code>inutoc</code> ran successfully against the merged tree.</p>
+        <p class="note note-critical"><strong>simages = yes is non-negotiable.</strong> Without it, <code>nimadm</code> refuses to use this lpp_source for migration. If the attribute is absent, the lpp_source is incomplete. Confirm both ISOs were processed and that <code>inutoc</code> ran successfully against the merged tree.</p>
       </div>
     </div>
 
@@ -573,12 +573,12 @@
     <span class="flag">-a</span> source=lpp_aix72tl5sp10 \
     spot_aix72tl5sp10
 
-<span class="cmd-section">SPOT creation takes 15 — 30 minutes — it builds a bootable image</span>
+<span class="cmd-section">SPOT creation takes 15 to 30 minutes: it builds a bootable image</span>
 <span class="kw">lsnim</span> <span class="flag">-l</span> spot_aix72tl5sp10
 
 <span class="kw">nim</span> <span class="flag">-o</span> check spot_aix72tl5sp10
 <span class="c"># Expect no errors.</span></div>
-        <p class="note note-info"><strong>Tip:</strong> Keep the old 7.1 SPOT around until burn-in is complete — you'll need it for the worst-case <code>bos_inst</code> rollback (see RB.3).</p>
+        <p class="note note-info"><strong>Tip:</strong> Keep the old 7.1 SPOT around until burn-in is complete. You'll need it for the worst-case <code>bos_inst</code> rollback (see RB.3).</p>
       </div>
     </div>
 
@@ -598,7 +598,7 @@
 
 <span class="kw">lsvg</span> nimadmvg
 <span class="c"># Note FREE PPs and PP SIZE; multiply for free GB.</span></div>
-        <p class="note note-caution"><strong>Sizing:</strong> Free GB = FREE PPs × PP SIZE / 1024. Need ≥ 2× the client rootvg used capacity. Skimping here causes phase 7 failures partway through filest migration — and phase 7 is the longest phase.</p>
+        <p class="note note-caution"><strong>Sizing:</strong> Free GB = FREE PPs × PP SIZE / 1024. Need ≥ 2× the client rootvg used capacity. Skimping here causes phase 7 failures partway through filest migration, and phase 7 is the longest phase.</p>
       </div>
     </div>
 
@@ -664,7 +664,7 @@
       <div class="step-body">
         <div class="cmd" id="c08"><button class="copy-btn" onclick="copy('c08',this)">COPY</button><span class="kw">lppchk</span> <span class="flag">-v</span>                      <span class="c"># MUST return clean</span>
 <span class="kw">lppchk</span> <span class="flag">-c</span>                      <span class="c"># checksum verify (optional)</span></div>
-        <p class="note note-critical"><strong>Stop condition:</strong> If <code>lppchk -v</code> reports issues, remediate before migration. A migration that inherits a broken 7.1 fileset state will not produce a clean 7.2 — the breakage is carried into the new build, sometimes amplified.</p>
+        <p class="note note-critical"><strong>Stop condition:</strong> If <code>lppchk -v</code> reports issues, remediate before migration. A migration that inherits a broken 7.1 fileset state will not produce a clean 7.2. The breakage is carried into the new build, sometimes amplified.</p>
       </div>
     </div>
 
@@ -765,7 +765,7 @@
 <span class="kw">no</span> <span class="flag">-a</span> &gt; /tmp/no_pre.txt
 <span class="kw">lsattr</span> <span class="flag">-El</span> sys0 &gt; /tmp/sys0_pre.txt
 <span class="kw">genkex</span> &gt; /tmp/genkex_pre.txt    <span class="c"># loaded kernel extensions</span></div>
-        <p class="note">Diff baseline post-migration. Kernel extensions matter especially — anything 3rd-party that doesn't reload on 7.2 is the migration's most common silent-failure mode.</p>
+        <p class="note">Diff baseline post-migration. Kernel extensions matter especially: anything 3rd-party that doesn't reload on 7.2 is the migration's most common silent-failure mode.</p>
       </div>
     </div>
 
@@ -791,7 +791,7 @@
     <span class="flag">-a</span> source=lpar01 \
     <span class="flag">-a</span> mk_image=yes \
     lpar01_pre72_$(<span class="kw">date</span> +%Y%m%d)</div>
-        <p class="note note-info"><strong>Pull, not push:</strong> This pulls a mksysb <em>from</em> the client <em>to</em> the master in one operation. Runtime depends on rootvg size and network speed (allow 30 — 90 min).</p>
+        <p class="note note-info"><strong>Pull, not push:</strong> This pulls a mksysb <em>from</em> the client <em>to</em> the master in one operation. Runtime depends on rootvg size and network speed (allow 30 to 90 min).</p>
       </div>
     </div>
 
@@ -822,11 +822,11 @@
         <div class="cmd" id="c16"><button class="copy-btn" onclick="copy('c16',this)">COPY</button><span class="kw">lspv</span> | <span class="kw">grep</span> hdisk1
 <span class="c"># Expect: hdisk1  00fXXXXXXXXXXXXX  None</span></div>
         <p class="note note-caution" style="margin-top:14px"><strong>Stale VG metadata:</strong> If <code>hdisk1</code> shows <code>old_rootvg</code>, <code>altinst_rootvg</code>, or another stale VG from a previous operation, clean it first:</p>
-        <div class="cmd" id="c16b"><button class="copy-btn" onclick="copy('c16b',this)">COPY</button><span class="cmd-section">Only if necessary — destructive to whatever is on hdisk1</span>
+        <div class="cmd" id="c16b"><button class="copy-btn" onclick="copy('c16b',this)">COPY</button><span class="cmd-section">Only if necessary: destructive to whatever is on hdisk1</span>
 <span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> old_rootvg     <span class="c"># for old_rootvg</span>
 <span class="c"># OR</span>
 <span class="kw">chpv</span> <span class="flag">-C</span> hdisk1                  <span class="c"># clears VGDA, USE WITH CARE</span></div>
-        <p class="note note-info"><strong>Do not pre-clone with alt_disk_copy.</strong> nimadm creates its own clone of rootvg on hdisk1 — it <em>is</em> the clone operation. Taking <code>alt_disk_copy</code> on top would just consume another disk for no benefit.</p>
+        <p class="note note-info"><strong>Do not pre-clone with alt_disk_copy.</strong> nimadm creates its own clone of rootvg on hdisk1. It <em>is</em> the clone operation. Taking <code>alt_disk_copy</code> on top would just consume another disk for no benefit.</p>
       </div>
     </div>
 
@@ -863,7 +863,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">nimadm runs in 12 phases (see step 20). You can preview without committing — phase 1 is the validation phase, it checks all prerequisites without modifying anything on the client. Useful for catching configuration errors before the real run.</p>
+        <p class="note" style="margin-top:0">nimadm runs in 12 phases (see step 20). You can preview without committing: phase 1 is the validation phase, it checks all prerequisites without modifying anything on the client. Useful for catching configuration errors before the real run.</p>
         <div class="cmd" id="c18"><button class="copy-btn" onclick="copy('c18',this)">COPY</button><span class="kw">nimadm</span> <span class="flag">-c</span> lpar01 \
        <span class="flag">-s</span> spot_aix72tl5sp10 \
        <span class="flag">-l</span> lpp_aix72tl5sp10 \
@@ -906,14 +906,14 @@
             <tr><td>-Y</td><td>Accept software licenses non-interactively</td></tr>
           </tbody>
         </table>
-        <p class="note">Total runtime: 90 — 180 min depending on rootvg size, network speed, and NIM master CPU.</p>
+        <p class="note">Total runtime: 90 to 180 min depending on rootvg size, network speed, and NIM master CPU.</p>
       </div>
     </div>
 
     <div class="step ph-install">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">20</span>
-        <span class="step-title">nimadm phases — what to expect in the log</span>
+        <span class="step-title">nimadm phases: what to expect in the log</span>
         <span class="step-tag tag-info">REFERENCE</span>
         <span class="run-on master">dr_nim_01</span>
         <span class="step-chevron">▶</span>
@@ -933,7 +933,7 @@
           <div class="phase-tile"><div class="phase-tile-num">Phase 11</div><div class="phase-tile-title">Wake up alt_disk on client · re-import VG metadata</div></div>
           <div class="phase-tile fin"><div class="phase-tile-num">Phase 12</div><div class="phase-tile-title">Set client bootlist to alt disk · finalize</div></div>
         </div>
-        <p class="note note-caution"><strong>Common failure modes:</strong> insufficient space (phase 7), broken filesets inherited from the client (phase 1 or 7), NFS export problems (phase 4 — check firewalls and <code>/etc/exports</code> on the master). The error at the top of the failure usually states which phase to restart from with <code>-r</code> or <code>-P N</code>.</p>
+        <p class="note note-caution"><strong>Common failure modes:</strong> insufficient space (phase 7), broken filesets inherited from the client (phase 1 or 7), NFS export problems (phase 4, check firewalls and <code>/etc/exports</code> on the master). The error at the top of the failure usually states which phase to restart from with <code>-r</code> or <code>-P N</code>.</p>
       </div>
     </div>
 
@@ -1008,7 +1008,7 @@ nimadm: Migration completed successfully.</div>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">Follow your application shutdown runbook. Database engines, JVMs, and middleware should be stopped cleanly before reboot — orphan transactions on a 7.1 socket that comes up under 7.2 are exactly the kind of subtle bug that takes weeks to chase.</p>
+        <p class="note" style="margin-top:0">Follow your application shutdown runbook. Database engines, JVMs, and middleware should be stopped cleanly before reboot. Orphan transactions on a 7.1 socket that comes up under 7.2 are exactly the kind of subtle bug that takes weeks to chase.</p>
       </div>
     </div>
 
@@ -1023,7 +1023,7 @@ nimadm: Migration completed successfully.</div>
       <div class="step-body">
         <div class="cmd" id="c25"><button class="copy-btn" onclick="copy('c25',this)">COPY</button><span class="kw">sync</span>; <span class="kw">sync</span>; <span class="kw">sync</span>
 <span class="kw">shutdown</span> <span class="flag">-Fr</span> now</div>
-        <p class="note">Have an HMC console open and visible during the reboot — first boot off a migrated rootvg is the moment things go sideways and you want to see LED codes immediately, not via the SSH timeout.</p>
+        <p class="note">Have an HMC console open and visible during the reboot. First boot off a migrated rootvg is the moment things go sideways and you want to see LED codes immediately, not via the SSH timeout.</p>
       </div>
     </div>
 
@@ -1039,8 +1039,8 @@ nimadm: Migration completed successfully.</div>
         <p class="note" style="margin-top:0"><strong>The first boot off the migrated 7.2 rootvg may:</strong></p>
         <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--faint); line-height:1.7">
           <li>▸ Take longer than usual while the kernel re-syncs ODM and rebuilds device configuration.</li>
-          <li>▸ Drop to a console <code>TERM</code> prompt before login — enter <code>vt100</code> or <code>xterm</code> and continue. Subsequent boots will not prompt.</li>
-          <li>▸ Generate informational entries in <code>errpt</code> during initial config — review but expect some noise.</li>
+          <li>▸ Drop to a console <code>TERM</code> prompt before login. Enter <code>vt100</code> or <code>xterm</code> and continue. Subsequent boots will not prompt.</li>
+          <li>▸ Generate informational entries in <code>errpt</code> during initial config: review but expect some noise.</li>
         </ul>
         <p class="note note-info"><strong>Don't panic:</strong> Any of the above on the first boot is expected. Repeated occurrences on the second boot are not.</p>
       </div>
@@ -1098,7 +1098,7 @@ nimadm: Migration completed successfully.</div>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--rust)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong> — don't run any of the cleanup steps in Phase 8 yet.</p>
+        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--rust)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong>: don't run any of the cleanup steps in Phase 8 yet.</p>
       </div>
     </div>
 
@@ -1169,7 +1169,7 @@ nimadm: Migration completed successfully.</div>
     <span class="flag">-a</span> spot=spot_aix71tl5sp12 \
     <span class="flag">-a</span> no_client_boot=no \
     lpar01</div>
-        <p class="note note-caution"><strong>This requires a 7.1 SPOT</strong> on the NIM master in addition to the 7.2 one created in step 04 — keep the old 7.1 SPOT around until burn-in is complete.</p>
+        <p class="note note-caution"><strong>This requires a 7.1 SPOT</strong> on the NIM master in addition to the 7.2 one created in step 04. Keep the old 7.1 SPOT around until burn-in is complete.</p>
       </div>
     </div>
 
@@ -1204,7 +1204,7 @@ nimadm: Migration completed successfully.</div>
     <div class="step ph-cleanup">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">29</span>
-        <span class="step-title">Client cleanup — free hdisk0 and archive logs</span>
+        <span class="step-title">Client cleanup: free hdisk0 and archive logs</span>
         <span class="step-tag tag-info">CLEANUP</span>
         <span class="run-on client">lpar01</span>
         <span class="step-chevron">▶</span>
@@ -1319,13 +1319,13 @@ nimadm: Migration completed successfully.</div>
     <div class="step ph-stage">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">A.3</span>
-        <span class="step-title">Worked example — single command sequence</span>
+        <span class="step-title">Worked example: single command sequence</span>
         <span class="step-tag tag-caution">REFERENCE</span>
         <span class="run-on master">dr_nim_01</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note note-caution" style="margin-top:0"><strong>Do not follow this blindly</strong> — values (level numbers, hostnames, hdisk names, dates) <em>will</em> change. This is a sequence reference, not a copy-paste recipe.</p>
+        <p class="note note-caution" style="margin-top:0"><strong>Do not follow this blindly</strong>. Values (level numbers, hostnames, hdisk names, dates) <em>will</em> change. This is a sequence reference, not a copy-paste recipe.</p>
         <div class="cmd" id="a3"><button class="copy-btn" onclick="copy('a3',this)">COPY</button><span class="cmd-section">On NIM master · one-time setup</span>
 <span class="kw">mkdir</span> <span class="flag">-p</span> /export/nim/media/AIX_7.2_TL5_SP10
 <span class="c"># ... transfer ISOs here ...</span>
@@ -1385,23 +1385,23 @@ nimadm: Migration completed successfully.</div>
   <div class="summary-wrap">
     <table class="summary-table">
       <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
-      <tr><td>oslevel -s (master)</td><td>Confirm NIM master at ≥ target level</td><td>Hard gate — 7.1 master can't migrate to 7.2</td></tr>
-      <tr><td>nim -o define -t lpp_source</td><td>Register the AIX 7.2 fileset repository</td><td>Phase 2 step 03 — needs simages=yes</td></tr>
+      <tr><td>oslevel -s (master)</td><td>Confirm NIM master at ≥ target level</td><td>Hard gate: 7.1 master can't migrate to 7.2</td></tr>
+      <tr><td>nim -o define -t lpp_source</td><td>Register the AIX 7.2 fileset repository</td><td>Phase 2 step 03: needs simages=yes</td></tr>
       <tr><td>bffcreate -d ... -t ...</td><td>Layer ISO 2 filesets into the lpp_source</td><td>After ISO 1 has been defined</td></tr>
       <tr><td>inutoc &lt;dir&gt;</td><td>Build .toc for the lpp_source</td><td>Re-run after every directory change</td></tr>
       <tr><td>nim -o check &lt;resource&gt;</td><td>Re-validate an lpp_source or SPOT</td><td>Required after inutoc</td></tr>
-      <tr><td>nim -o define -t spot</td><td>Build the bootable SPOT mini-image</td><td>Phase 2 step 04 — 15-30 min</td></tr>
-      <tr><td>nim -o define -t mksysb -a mk_image=yes</td><td>Pull mksysb from client to master</td><td>Phase 4 step 14 — preferred backup</td></tr>
+      <tr><td>nim -o define -t spot</td><td>Build the bootable SPOT mini-image</td><td>Phase 2 step 04: 15-30 min</td></tr>
+      <tr><td>nim -o define -t mksysb -a mk_image=yes</td><td>Pull mksysb from client to master</td><td>Phase 4 step 14: preferred backup</td></tr>
       <tr><td>nimadm -c &lt;client&gt; -P 1 ...</td><td>Phase-1-only validation dry run</td><td>Cheap insurance before the real run</td></tr>
-      <tr><td>nimadm -c ... -s ... -l ... -j ... -d ... -Y</td><td>Run the full migration</td><td>Phase 5 step 19 — 90-180 min</td></tr>
-      <tr><td>nimadm -B ...</td><td>"BOS only" mode — skip non-BOS filesets</td><td>Faster but skips third-party filesets</td></tr>
+      <tr><td>nimadm -c ... -s ... -l ... -j ... -d ... -Y</td><td>Run the full migration</td><td>Phase 5 step 19: 90-180 min</td></tr>
+      <tr><td>nimadm -B ...</td><td>"BOS only" mode: skip non-BOS filesets</td><td>Faster but skips third-party filesets</td></tr>
       <tr><td>bootlist -m normal -o</td><td>Confirm bootlist after migration</td><td>Should show hdisk1 post-Phase 12</td></tr>
       <tr><td>oslevel -s (client, post-reboot)</td><td>Confirm migration succeeded</td><td>Expect 7200-05-10-XXXX</td></tr>
       <tr><td>lppchk -v</td><td>Verify fileset consistency</td><td>MUST be clean pre and post</td></tr>
-      <tr><td>diff /tmp/genkex_pre.txt &lt;(genkex)</td><td>Confirm kernel extensions reloaded</td><td>Phase 6 step 27 — silent failure mode</td></tr>
-      <tr><td>bootlist -m normal hdisk0</td><td>Roll back to original 7.1 rootvg</td><td>RB.1 — old_rootvg becomes live again</td></tr>
-      <tr><td>nim -o bos_inst -a source=mksysb ...</td><td>Worst-case mksysb restore</td><td>RB.3 — needs 7.1 SPOT preserved</td></tr>
-      <tr><td>alt_rootvg_op -X old_rootvg</td><td>Free hdisk0 after burn-in</td><td>Phase 8 step 29 — only after sign-off</td></tr>
+      <tr><td>diff /tmp/genkex_pre.txt &lt;(genkex)</td><td>Confirm kernel extensions reloaded</td><td>Phase 6 step 27: silent failure mode</td></tr>
+      <tr><td>bootlist -m normal hdisk0</td><td>Roll back to original 7.1 rootvg</td><td>RB.1: old_rootvg becomes live again</td></tr>
+      <tr><td>nim -o bos_inst -a source=mksysb ...</td><td>Worst-case mksysb restore</td><td>RB.3: needs 7.1 SPOT preserved</td></tr>
+      <tr><td>alt_rootvg_op -X old_rootvg</td><td>Free hdisk0 after burn-in</td><td>Phase 8 step 29: only after sign-off</td></tr>
       <tr><td>nim -o remove &lt;object&gt;</td><td>Delete NIM objects post-cleanup</td><td>Phase 8 step 30</td></tr>
       <tr><td>nim -o reset &lt;client&gt;</td><td>Clear stuck NIM state on a client</td><td>Use if a failed nimadm leaves the client wedged</td></tr>
     </table>
@@ -1411,16 +1411,16 @@ nimadm: Migration completed successfully.</div>
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li>The NIM master must be at or above the target client level. A 7.1 master cannot migrate clients to 7.2 — there is no in-flight upgrade path. Upgrade the master first.</li>
-      <li><code>simages = yes</code> on the lpp_source is non-negotiable. Without it, <code>nimadm</code> refuses to use the lpp_source. If absent, the lpp_source is incomplete — re-add ISO 2's filesets via <code>bffcreate</code>, run <code>inutoc</code>, and <code>nim -o check</code>.</li>
-      <li>Always run <code>nimadm -P 1</code> as a dry run before the real migration. Phase 1 is the validation phase — it catches misconfigured master/client/lpp_source without modifying the client.</li>
+      <li>The NIM master must be at or above the target client level. A 7.1 master cannot migrate clients to 7.2. There is no in-flight upgrade path. Upgrade the master first.</li>
+      <li><code>simages = yes</code> on the lpp_source is non-negotiable. Without it, <code>nimadm</code> refuses to use the lpp_source. If absent, the lpp_source is incomplete. Re-add ISO 2's filesets via <code>bffcreate</code>, run <code>inutoc</code>, and <code>nim -o check</code>.</li>
+      <li>Always run <code>nimadm -P 1</code> as a dry run before the real migration. Phase 1 is the validation phase: it catches misconfigured master/client/lpp_source without modifying the client.</li>
       <li>Do not pre-clone with <code>alt_disk_copy</code>. nimadm <em>is</em> the clone operation; layering <code>alt_disk_copy</code> on top just consumes another disk for no benefit.</li>
-      <li>nimadmvg must be a separate VG (not rootvg) on the master, sized ≥ 2× the client's rootvg in free PPs. Skimping causes phase 7 failures partway through fileset migration — which is the longest phase to repeat.</li>
+      <li>nimadmvg must be a separate VG (not rootvg) on the master, sized ≥ 2× the client's rootvg in free PPs. Skimping causes phase 7 failures partway through fileset migration, which is the longest phase to repeat.</li>
       <li>Keep the old 7.1 SPOT around until burn-in is complete. RB.3 (worst-case <code>bos_inst</code> restore) needs a 7.1 SPOT in addition to the 7.2 one you built.</li>
-      <li>Third-party kernel extensions are the most common silent failure mode. Diff <code>genkex</code> pre and post — anything that doesn't reload on 7.2 needs vendor remediation before you sign off.</li>
+      <li>Third-party kernel extensions are the most common silent failure mode. Diff <code>genkex</code> pre and post: anything that doesn't reload on 7.2 needs vendor remediation before you sign off.</li>
       <li>First boot off the migrated 7.2 rootvg can take longer than usual, drop to a TERM prompt, or generate informational <code>errpt</code> entries. Expected on the first boot, not on the second.</li>
-      <li>Treat the change as in-progress until application owners sign off. Do <em>not</em> run the cleanup steps in Phase 8 before that — your rollback (<code>old_rootvg</code> on hdisk0) needs to stay warm.</li>
-      <li>For 7.1 → 7.3 the procedure is identical — use a 7.3 NIM master and target a 7.3 lpp_source. Substitute throughout.</li>
+      <li>Treat the change as in-progress until application owners sign off. Do <em>not</em> run the cleanup steps in Phase 8 before that. Your rollback (<code>old_rootvg</code> on hdisk0) needs to stay warm.</li>
+      <li>For 7.1 → 7.3 the procedure is identical. Use a 7.3 NIM master and target a 7.3 lpp_source. Substitute throughout.</li>
     </ul>
   </div>
 

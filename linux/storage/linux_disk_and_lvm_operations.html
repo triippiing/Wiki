@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Linux Disk &amp; LVM Operations — Extend / Recover Workflows</title>
-<meta name="description" content="LVM workflows on Linux — scanning new disks, extending rootvg, importing and recovering existing LVM disks, and resizing per-filesystem.">
+<title>Linux Disk &amp; LVM Operations: Extend / Recover Workflows</title>
+<meta name="description" content="LVM workflows on Linux: scanning new disks, extending rootvg, importing and recovering existing LVM disks, and resizing per-filesystem.">
 <meta name="reviewed" content="2026-05-08">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -127,7 +127,7 @@
   </nav>
 
   <h1 class="page-title">Linux Disk &amp; LVM Operations</h1>
-  <p class="page-sub">LVM workflows on Linux — scanning new disks, extending rootvg, importing and recovering existing LVM disks, and resizing per-filesystem.</p>
+  <p class="page-sub">LVM workflows on Linux: scanning new disks, extending rootvg, importing and recovering existing LVM disks, and resizing per-filesystem.</p>
 
   <div class="badges">
     <span class="badge badge-accent">STORAGE</span>
@@ -161,7 +161,7 @@
       Filesystem command matrix
     </div>
     <div class="primer-body">
-      <p>Both workflows below need filesystem-aware commands at the resize/repair stage. Pick the row matching the LV's filesystem — confirm with <code>blkid</code> or <code>findmnt</code> if unsure.</p>
+      <p>Both workflows below need filesystem-aware commands at the resize/repair stage. Pick the row matching the LV's filesystem. Confirm with <code>blkid</code> or <code>findmnt</code> if unsure.</p>
       <table class="primer-table">
         <tr>
           <th>Filesystem</th>
@@ -192,7 +192,7 @@
           <td>(see SUSE docs)</td>
         </tr>
       </table>
-      <p><strong>XFS quirk:</strong> <code>xfs_growfs</code> takes a <em>mountpoint</em>, not a device — the FS must be mounted to grow it. <code>resize2fs</code> takes either, and works mounted or unmounted.</p>
+      <p><strong>XFS quirk:</strong> <code>xfs_growfs</code> takes a <em>mountpoint</em>, not a device. The FS must be mounted to grow it. <code>resize2fs</code> takes either, and works mounted or unmounted.</p>
     </div>
   </div>
 
@@ -213,18 +213,18 @@
 <span class="kw">echo</span> <span class="str">"- - -"</span> | <span class="kw">sudo</span> <span class="kw">tee</span> <span class="str">/sys/class/scsi_host/host*/scan</span>
 <span class="kw">lsblk</span>
 
-<span class="cmd-section">Verbose rescan — list /dev/sd* in one pass</span>
+<span class="cmd-section">Verbose rescan: list /dev/sd* in one pass</span>
 <span class="kw">for</span> host <span class="kw">in</span> <span class="str">/sys/class/scsi_host/*</span>; <span class="kw">do</span>
   <span class="kw">echo</span> <span class="str">"- - -"</span> | <span class="kw">sudo</span> <span class="kw">tee</span> $host/scan
   <span class="kw">ls</span> <span class="str">/dev/sd*</span>
 <span class="kw">done</span></div>
-        <p class="note note-info"><strong>The new disk</strong> appears at the bottom of <code>lsblk</code> with no partition or mount entries. Examples below assume <code>/dev/sdf</code> (extend) or <code>/dev/sdb</code> (recovery) — substitute the actual device returned by your rescan before running anything destructive.</p>
+        <p class="note note-info"><strong>The new disk</strong> appears at the bottom of <code>lsblk</code> with no partition or mount entries. Examples below assume <code>/dev/sdf</code> (extend) or <code>/dev/sdb</code> (recovery). Substitute the actual device returned by your rescan before running anything destructive.</p>
       </div>
     </div>
 
   </div>
 
-  <!-- ════ WORKFLOW A — EXTEND ════ -->
+  <!-- ════ WORKFLOW A · EXTEND ════ -->
   <div class="phase-label"><span>Workflow A</span> Extend rootvg with a new disk</div>
   <div class="steps">
 
@@ -248,7 +248,7 @@
 
 <span class="c"># Extend the VG with the new PV</span>
 <span class="kw">vgextend</span> <span class="ph">vg</span> <span class="str">/dev/<span class="ph">sdf</span></span></div>
-        <p class="note"><strong>Note:</strong> the VG name in the example above is <code>vg</code> — your real name will differ (commonly <code>rootvg</code>, <code>system</code>, or distro-specific). Always read the actual name from <code>vgs</code> before running <code>vgextend</code>.</p>
+        <p class="note"><strong>Note:</strong> the VG name in the example above is <code>vg</code>. Your real name will differ (commonly <code>rootvg</code>, <code>system</code>, or distro-specific). Always read the actual name from <code>vgs</code> before running <code>vgextend</code>.</p>
       </div>
     </div>
 
@@ -260,18 +260,18 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="cmd-section">EXT4 — Debian / Ubuntu</span>
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="cmd-section">EXT4 · Debian / Ubuntu</span>
 <span class="kw">lvextend</span> <span class="flag">-l</span> <span class="ph">+100%FREE</span> <span class="str">/dev/mapper/vg-root</span>
 <span class="kw">resize2fs</span> <span class="str">/dev/mapper/vg-root</span>
 
-<span class="cmd-section">XFS — RHEL / Rocky / Alma / OL</span>
+<span class="cmd-section">XFS · RHEL / Rocky / Alma / OL</span>
 <span class="kw">lvextend</span> <span class="flag">-l</span> <span class="ph">+100%FREE</span> <span class="str">/dev/mapper/vg-root</span>
 <span class="kw">xfs_growfs</span> <span class="str">/dev/mapper/vg-root</span>
 
-<span class="cmd-section">reiserfs — SLES</span>
+<span class="cmd-section">reiserfs · SLES</span>
 <span class="kw">lvextend</span> <span class="flag">-l</span> <span class="ph">+100%FREE</span> <span class="str">/dev/mapper/vg-root</span>
 <span class="kw">resize_reiserfs</span> <span class="str">/dev/mapper/vg-root</span></div>
-        <p class="note note-info"><strong><code>+100%FREE</code></strong> consumes everything available in the VG. To grow by a fixed amount, use <code>lvextend -L +20G</code> (absolute growth) instead. Always include the <code>+</code> sign — bare <code>-L 20G</code> sets the absolute size and will <em>shrink</em> a larger LV.</p>
+        <p class="note note-info"><strong><code>+100%FREE</code></strong> consumes everything available in the VG. To grow by a fixed amount, use <code>lvextend -L +20G</code> (absolute growth) instead. Always include the <code>+</code> sign: bare <code>-L 20G</code> sets the absolute size and will <em>shrink</em> a larger LV.</p>
       </div>
     </div>
 
@@ -283,20 +283,20 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="c"># Block-level view — new size should be reflected on the LV</span>
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="c"># Block-level view: new size should be reflected on the LV</span>
 <span class="kw">lsblk</span>
 
-<span class="c"># PV-level view — new disk visible, allocated to the VG</span>
+<span class="c"># PV-level view: new disk visible, allocated to the VG</span>
 <span class="kw">pvs</span>
 
-<span class="c"># Filesystem-level view — used / available figures should reflect the new size</span>
+<span class="c"># Filesystem-level view: used / available figures should reflect the new size</span>
 <span class="kw">df</span> <span class="flag">-h</span></div>
       </div>
     </div>
 
   </div>
 
-  <!-- ════ WORKFLOW B — RECOVERY ════ -->
+  <!-- ════ WORKFLOW B · RECOVERY ════ -->
   <div class="phase-label"><span>Workflow B</span> Attach &amp; recover an existing LVM disk</div>
   <div class="steps">
 
@@ -308,7 +308,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># Use vgimportclone — assigns a new VG name and renames PVs accordingly.</span>
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># Use vgimportclone: assigns a new VG name and renames PVs accordingly.</span>
 <span class="c"># The filter clause stops LVM picking up the host's own PVs during import.</span>
 <span class="kw">vgimportclone</span> <span class="flag">--basevgname</span> <span class="ph">newvg2</span> \
   <span class="flag">--config</span> <span class="str">'devices { filter = [ "a|/dev/<span class="ph">sdb</span>|", "r|.*|" ] }'</span> \
@@ -346,15 +346,15 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="cmd-section">XFS — RHEL / CentOS / Alma / Rocky / OL</span>
+        <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="cmd-section">XFS · RHEL / CentOS / Alma / Rocky / OL</span>
 <span class="kw">xfs_repair</span> <span class="flag">-L</span> <span class="str">/dev/mapper/<span class="ph">newvg2</span>-<span class="ph">recovroot</span></span>
 <span class="kw">xfs_admin</span> <span class="flag">-U</span> generate <span class="str">/dev/mapper/<span class="ph">newvg2</span>-<span class="ph">recovroot</span></span>
 
-<span class="cmd-section">ext4 — Debian / Ubuntu</span>
+<span class="cmd-section">ext4 · Debian / Ubuntu</span>
 <span class="kw">e2fsck</span> <span class="flag">-y</span> <span class="str">/dev/mapper/<span class="ph">newvg2</span>-<span class="ph">recovroot</span></span>
 <span class="kw">tune2fs</span> <span class="flag">-U</span> random <span class="str">/dev/mapper/<span class="ph">newvg2</span>-<span class="ph">recovroot</span></span></div>
         <p class="note note-critical"><strong><code>xfs_repair -L</code> zeroes the log.</strong> Any in-flight transactions on the recovered FS are discarded. Acceptable for a recovery scenario where the source system is gone, but never run on a healthy mounted filesystem.</p>
-        <p class="note note-caution"><strong>UUID regen is not optional.</strong> If the recovered FS shares a UUID with the host's own root, mounts, <code>/etc/fstab</code> entries, and initramfs lookups all become ambiguous — this is the single most common cause of "host boots into the wrong root" after a recovery.</p>
+        <p class="note note-caution"><strong>UUID regen is not optional.</strong> If the recovered FS shares a UUID with the host's own root, mounts, <code>/etc/fstab</code> entries, and initramfs lookups all become ambiguous. This is the single most common cause of "host boots into the wrong root" after a recovery.</p>
       </div>
     </div>
 
@@ -385,13 +385,13 @@
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li><strong>Always re-read disk identity from <code>lsblk</code>.</strong> The <code>/dev/sdX</code> letter assigned to a freshly-attached disk is order-of-discovery — what was <code>sdb</code> on the source system may be <code>sdf</code> on the recovery host.</li>
-      <li><strong><code>+100%FREE</code> vs <code>-L 20G</code>.</strong> The first consumes all VG free space. The second <em>sets</em> absolute size if you forget the leading <code>+</code> — and will shrink an existing LV without warning.</li>
+      <li><strong>Always re-read disk identity from <code>lsblk</code>.</strong> The <code>/dev/sdX</code> letter assigned to a freshly-attached disk is order-of-discovery: what was <code>sdb</code> on the source system may be <code>sdf</code> on the recovery host.</li>
+      <li><strong><code>+100%FREE</code> vs <code>-L 20G</code>.</strong> The first consumes all VG free space. The second <em>sets</em> absolute size if you forget the leading <code>+</code>, and will shrink an existing LV without warning.</li>
       <li><strong>XFS cannot shrink.</strong> Once <code>xfs_growfs</code> has expanded a filesystem there is no supported way to make it smaller. Plan growth deliberately.</li>
       <li><strong><code>vgimportclone</code> is the safe path for recovery.</strong> Activating a foreign VG by hand risks colliding with the host's own VG names and UUIDs. The clone tool exists exactly to handle this.</li>
       <li><strong>UUID regen is mandatory after recovery.</strong> Skip it and the next reboot may pick the recovered FS as root. Run <code>xfs_admin -U generate</code> or <code>tune2fs -U random</code> before mounting.</li>
-      <li><strong><code>xfs_repair -L</code> destroys the log.</strong> Acceptable for recovery, never on a healthy production FS — fix mount issues first, log replay only as last resort.</li>
-      <li><strong>If <code>lsblk</code> doesn't show the new disk</strong> after <code>echo "- - -"</code>, the SCSI host enumeration may need a reboot — but check virt-layer hot-add is enabled first; rebooting a VM you're trying to recover into is a bad order of operations.</li>
+      <li><strong><code>xfs_repair -L</code> destroys the log.</strong> Acceptable for recovery, never on a healthy production FS: fix mount issues first, log replay only as last resort.</li>
+      <li><strong>If <code>lsblk</code> doesn't show the new disk</strong> after <code>echo "- - -"</code>, the SCSI host enumeration may need a reboot, but check virt-layer hot-add is enabled first; rebooting a VM you're trying to recover into is a bad order of operations.</li>
     </ul>
   </div>
 

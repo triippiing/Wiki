@@ -399,8 +399,8 @@
       <div class="env-cell"><div class="env-label">HMC</div><div class="env-val mono">hmc01</div></div>
       <div class="env-cell"><div class="env-label">Managed system</div><div class="env-val mono">Server-9119-MME-SN12345AB</div></div>
       <div class="env-cell"><div class="env-label">Spare disk</div><div class="env-val mono">hdisk1 · ≥ rootvg</div></div>
-      <div class="env-cell"><div class="env-label">Window</div><div class="env-val mono warn">4 — 5 hr</div></div>
-      <div class="env-cell"><div class="env-label">Install duration</div><div class="env-val mono">90 — 180 min · offline</div></div>
+      <div class="env-cell"><div class="env-label">Window</div><div class="env-val mono warn">4 to 5 hr</div></div>
+      <div class="env-cell"><div class="env-label">Install duration</div><div class="env-val mono">90 to 180 min · offline</div></div>
       <div class="env-cell"><div class="env-label">Rollback</div><div class="env-val ok">alt_disk_copy + bootlist swap</div></div>
     </div>
   </div>
@@ -427,26 +427,26 @@
 
   <p class="note note-info" style="margin-bottom:24px"><strong>Worked example:</strong> All commands assume <code>lpar01</code> as the client LPAR with <code>hdisk0</code> as the in-place migration target and <code>hdisk1</code> as the unassigned rollback disk. ISO 1 / ISO 2 from ESS are loaded into the HMC virtual media library on <code>hmc01</code>. Sub in your own values throughout.</p>
 
-  <p class="note note-caution" style="margin-bottom:24px"><strong>When to choose this method over nimadm:</strong> no NIM master available (and not feasible to build one) · LPAR is on an isolated network with no path to a NIM master · single, one-off migration where NIM setup overhead is not justified. <strong>For repeated or fleet migrations, nimadm is strongly preferred</strong> — see RB-PATCH-AIX-002.</p>
+  <p class="note note-caution" style="margin-bottom:24px"><strong>When to choose this method over nimadm:</strong> no NIM master available (and not feasible to build one) · LPAR is on an isolated network with no path to a NIM master · single, one-off migration where NIM setup overhead is not justified. <strong>For repeated or fleet migrations, nimadm is strongly preferred</strong>. See RB-PATCH-AIX-002.</p>
 
-  <p class="note note-critical" style="margin-bottom:32px"><strong>Console operator required for entire window.</strong> The BOS installer needs interactive input at multiple menu screens — do <em>not</em> plan to leave this unattended. The system is offline for 90 — 180 minutes during the install itself.</p>
+  <p class="note note-critical" style="margin-bottom:32px"><strong>Console operator required for entire window.</strong> The BOS installer needs interactive input at multiple menu screens. Do <em>not</em> plan to leave this unattended. The system is offline for 90 to 180 minutes during the install itself.</p>
 
-  <p class="note note-caution" style="margin-bottom:32px"><strong>Out of scope:</strong> new installations / "preservation" installs (different BOS menu selections; data-loss implications) · PowerHA / HACMP-clustered nodes (cluster must be quiesced; migrate one node at a time per IBM's PowerHA migration procedure). For 7.1 → 7.3 the procedure is identical — substitute 7.3 media throughout.</p>
+  <p class="note note-caution" style="margin-bottom:32px"><strong>Out of scope:</strong> new installations / "preservation" installs (different BOS menu selections; data-loss implications) · PowerHA / HACMP-clustered nodes (cluster must be quiesced; migrate one node at a time per IBM's PowerHA migration procedure). For 7.1 → 7.3 the procedure is identical. Substitute 7.3 media throughout.</p>
 
   <!-- ════ PHASE 1 ════ -->
   <div class="phase-label"><span>Phase 1</span> Pre-change planning · T-7 to T-2 days</div>
   <ul class="checklist">
-    <li><strong>Change ticket raised</strong> — CAB approval logged.</li>
+    <li><strong>Change ticket raised</strong>: CAB approval logged.</li>
     <li><strong>Maintenance window agreed</strong> with application owners.</li>
     <li><strong>AIX 7.2 entitlement confirmed</strong> in ESS.</li>
     <li><strong>AIX 7.2 ISOs downloaded</strong> and SHA256 checksums verified.</li>
     <li><strong>ISOs uploaded to HMC virtual media library</strong> (or DVD/USB ready).</li>
     <li><strong>Free disk identified on client</strong> for <code>alt_disk_copy</code> rollback.</li>
-    <li><strong>HMC access tested</strong> — vterm to LPAR confirmed.</li>
-    <li><strong>Backup strategy confirmed</strong> — mksysb to NFS/TSM plus alt_disk_copy.</li>
+    <li><strong>HMC access tested</strong>: vterm to LPAR confirmed.</li>
+    <li><strong>Backup strategy confirmed</strong>: mksysb to NFS/TSM plus alt_disk_copy.</li>
     <li><strong>Third-party software compatibility</strong> verified against AIX 7.2 (see note below).</li>
     <li><strong>Rollback plan reviewed</strong> and signed off.</li>
-    <li><strong>Console operator booked</strong> for the entire window — BOS menus need interactive input.</li>
+    <li><strong>Console operator booked</strong> for the entire window: BOS menus need interactive input.</li>
   </ul>
 
   <p class="note note-caution" style="margin-top:14px"><strong>Third-party compatibility matters more here than for an SP.</strong> Verify against AIX 7.2 TL5:</p>
@@ -456,7 +456,7 @@
       <tr><td>TSM / IBM Spectrum Protect client</td><td>IBM compatibility matrix for AIX 7.2 TL5 SPx supported client versions.</td></tr>
       <tr><td>PowerHA / HACMP</td><td>Hard version dependency. Do not migrate clustered nodes ad-hoc.</td></tr>
       <tr><td>Oracle, DB2, SAP</td><td>Each has its own AIX 7.2 certification matrix.</td></tr>
-      <tr><td>Kernel extensions</td><td><code>genkex</code> shows the loaded list — anything 3rd-party must be re-validated.</td></tr>
+      <tr><td>Kernel extensions</td><td><code>genkex</code> shows the loaded list: anything 3rd-party must be re-validated.</td></tr>
       <tr><td>Java, OpenSSL, OpenSSH</td><td>Ship at newer baselines on 7.2.</td></tr>
       <tr><td>Monitoring / AV agents</td><td>ITM, Nagios, Tanium, etc.</td></tr>
     </tbody>
@@ -477,7 +477,7 @@
     </div>
     <div class="option-card">
       <div class="option-header opt-c">C · Bootable USB stick</div>
-      <div class="option-desc"><strong>POWER8+.</strong> ISO written to ≥ 16 GB USB stick via <code>dd</code>. Fiddly — not all firmware levels handle multi-DVD installs cleanly from USB. Prefer A.</div>
+      <div class="option-desc"><strong>POWER8+.</strong> ISO written to ≥ 16 GB USB stick via <code>dd</code>. Fiddly: not all firmware levels handle multi-DVD installs cleanly from USB. Prefer A.</div>
     </div>
   </div>
 
@@ -548,7 +548,7 @@
           <span class="flag">-c</span> <span class="str">"unloadopt -vtd vtopt0"</span>
 <span class="kw">viosvrcmd</span> <span class="flag">-m</span> Server-9119-MME-SN12345AB <span class="flag">-p</span> vios1 \
           <span class="flag">-c</span> <span class="str">"loadopt -vtd vtopt0 -disk AIX72_TL5_SP11_DVD2"</span></div>
-        <p class="note">Have this command ready to paste before the install starts — at the swap prompt the install is paused and waiting on you.</p>
+        <p class="note">Have this command ready to paste before the install starts. At the swap prompt the install is paused and waiting on you.</p>
       </div>
     </div>
 
@@ -581,7 +581,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">USB stick must be at least 16 GB. AIX 7.2 install ISO is hybrid — bootable as either DVD or USB.</p>
+        <p class="note" style="margin-top:0">USB stick must be at least 16 GB. AIX 7.2 install ISO is hybrid: bootable as either DVD or USB.</p>
 
         <p class="note" style="margin-top:12px"><strong>On a Linux workstation:</strong></p>
         <div class="cmd" id="c04l"><button class="copy-btn" onclick="copy('c04l',this)">COPY</button><span class="cmd-section">Identify the USB device (NOT a disk you care about!)</span>
@@ -602,7 +602,7 @@
    of=/dev/usbms0 \
    bs=1m</div>
         <p class="note note-critical"><strong>Triple-check the target device.</strong> A wrong <code>of=</code> destroys the disk it points at, no questions asked. <code>lsblk</code> / <code>lsdev -Cc disk | grep usb</code> first, every time.</p>
-        <p class="note note-caution"><strong>Caveat:</strong> Then physically plug the USB stick into a USB port on the frame allocated to the target LPAR. Not all firmware levels handle multi-DVD installs cleanly from USB — prefer Option A when available.</p>
+        <p class="note note-caution"><strong>Caveat:</strong> Then physically plug the USB stick into a USB port on the frame allocated to the target LPAR. Not all firmware levels handle multi-DVD installs cleanly from USB. Prefer Option A when available.</p>
       </div>
     </div>
 
@@ -626,7 +626,7 @@
 
   <!-- ════ PHASE 3 ════ -->
   <div class="phase-label"><span>Phase 3</span> Pre-flight checks on the client LPAR · T-0</div>
-  <p class="note note-info" style="margin-bottom:14px"><strong>Capture everything:</strong> Wrap the whole pre-flight in <code>script /tmp/preflight_$(date +%Y%m%d).log</code>. You will <em>not</em> have shell access to the running 7.1 system during the install — anything you forget to capture here is gone.</p>
+  <p class="note note-info" style="margin-bottom:14px"><strong>Capture everything:</strong> Wrap the whole pre-flight in <code>script /tmp/preflight_$(date +%Y%m%d).log</code>. You will <em>not</em> have shell access to the running 7.1 system during the install. Anything you forget to capture here is gone.</p>
   <div class="steps">
 
     <div class="step ph-validate">
@@ -792,7 +792,7 @@
 <span class="kw">cat</span> /etc/resolv.conf
 <span class="kw">cat</span> /etc/netsvc.conf
 <span class="kw">lsattr</span> <span class="flag">-El</span> inet0 &gt; /tmp/inet0_pre.txt</div>
-        <p class="note note-critical"><strong>Print these or store off-LPAR.</strong> You will not have access to the running 7.1 system during the install. If the migrated 7.2 comes up with no network, your only path back is the vterm console — and only with these values in hand.</p>
+        <p class="note note-critical"><strong>Print these or store off-LPAR.</strong> You will not have access to the running 7.1 system during the install. If the migrated 7.2 comes up with no network, your only path back is the vterm console, and only with these values in hand.</p>
       </div>
     </div>
 
@@ -817,25 +817,25 @@
 <span class="cmd-section">Verify the resulting file</span>
 <span class="kw">ls</span> <span class="flag">-l</span> /backup/$(<span class="kw">hostname</span>)_pre72_*.mksysb
 <span class="kw">lsmksysb</span> <span class="flag">-l</span> /backup/$(<span class="kw">hostname</span>)_pre72_*.mksysb | <span class="kw">head</span> <span class="flag">-40</span></div>
-        <p class="note note-info"><strong>Worst-case use:</strong> If both disks become unbootable post-migration, you'll boot the 7.1 install media in maintenance mode and restore this mksysb (RB.3). It's slow (1 — 3 hr) but it works.</p>
+        <p class="note note-info"><strong>Worst-case use:</strong> If both disks become unbootable post-migration, you'll boot the 7.1 install media in maintenance mode and restore this mksysb (RB.3). It's slow (1 to 3 hr) but it works.</p>
       </div>
     </div>
 
     <div class="step ph-backup">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">16</span>
-        <span class="step-title">alt_disk_copy clone — primary rollback</span>
+        <span class="step-title">alt_disk_copy clone: primary rollback</span>
         <span class="step-tag tag-critical">NON-NEGOTIABLE</span>
         <span class="run-on client">lpar01</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note note-critical" style="margin-top:0"><strong>Mandatory for boot-media migration.</strong> Without an alt_disk_copy clone your only rollback is mksysb restore — which itself requires booting from media in maintenance mode and takes 1 — 3 hours. With alt_disk_copy, rollback is a bootlist change and a reboot.</p>
+        <p class="note note-critical" style="margin-top:0"><strong>Mandatory for boot-media migration.</strong> Without an alt_disk_copy clone your only rollback is mksysb restore, which itself requires booting from media in maintenance mode and takes 1 to 3 hours. With alt_disk_copy, rollback is a bootlist change and a reboot.</p>
         <div class="cmd" id="c16"><button class="copy-btn" onclick="copy('c16',this)">COPY</button><span class="cmd-section">Confirm hdisk1 is free</span>
 <span class="kw">lspv</span> | <span class="kw">grep</span> hdisk1
 <span class="c"># Expected: hdisk1  00fXXXXXXXXXXXXX  None</span>
 
-<span class="cmd-section">Clone — 10-30 min depending on rootvg size and disk speed</span>
+<span class="cmd-section">Clone: 10-30 min depending on rootvg size and disk speed</span>
 <span class="kw">alt_disk_copy</span> <span class="flag">-d</span> hdisk1
 
 <span class="cmd-section">Verify</span>
@@ -848,11 +848,11 @@
         <table class="ref-table" style="margin-top:14px">
           <thead><tr><th>Flag</th><th>Purpose</th></tr></thead>
           <tbody>
-            <tr><td>-B</td><td>Do NOT change bootlist — we want to control that explicitly</td></tr>
+            <tr><td>-B</td><td>Do NOT change bootlist: we want to control that explicitly</td></tr>
             <tr><td>-d</td><td>Destination disk</td></tr>
           </tbody>
         </table>
-        <p class="note note-critical"><strong>Confirm bootlist is on hdisk0, NOT hdisk1, before booting install media.</strong> The migration installer will offer hdisk0 as the target — if you accidentally pick hdisk1 (the clone), you'll overwrite your rollback. There is no undo.</p>
+        <p class="note note-critical"><strong>Confirm bootlist is on hdisk0, NOT hdisk1, before booting install media.</strong> The migration installer will offer hdisk0 as the target. If you accidentally pick hdisk1 (the clone), you'll overwrite your rollback. There is no undo.</p>
       </div>
     </div>
 
@@ -967,7 +967,7 @@ SMS 1.7 (c) Copyright IBM Corp.
         <p class="note" style="margin-top:0">Select the install media entry, then:</p>
         <div class="menu"><span class="pick">2. Normal Mode Boot</span>
 <span class="pick">1. Yes (exit SMS)</span></div>
-        <p class="note">The LPAR will load the BOS installer kernel from the media. Expect 60 — 120 seconds of boot output, then the BOS installer's first prompt:</p>
+        <p class="note">The LPAR will load the BOS installer kernel from the media. Expect 60 to 120 seconds of boot output, then the BOS installer's first prompt:</p>
         <div class="menu">******* Please define the System Console. *******
 Type a 1 and press Enter to use this terminal as the
 system console.</div>
@@ -999,7 +999,7 @@ system console.</div>
     <div class="step ph-bos">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">23</span>
-        <span class="step-title">Installation and Maintenance menu — choose 2 (NOT 1)</span>
+        <span class="step-title">Installation and Maintenance menu: choose 2 (NOT 1)</span>
         <span class="step-tag tag-critical">CRITICAL</span>
         <span class="run-on vterm">vterm</span>
         <span class="step-chevron">▶</span>
@@ -1019,7 +1019,7 @@ system console.</div>
     <div class="step ph-bos">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">24</span>
-        <span class="step-title">Installation and Settings menu — choose 1 (System Settings)</span>
+        <span class="step-title">Installation and Settings menu: choose 1 (System Settings)</span>
         <span class="step-tag tag-info">MENU</span>
         <span class="run-on vterm">vterm</span>
         <span class="step-chevron">▶</span>
@@ -1042,7 +1042,7 @@ or type the number of the setting you want to change.
     <div class="step ph-bos">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">25</span>
-        <span class="step-title">Method of Installation — choose 3 (Migration Install)</span>
+        <span class="step-title">Method of Installation: choose 3 (Migration Install)</span>
         <span class="step-tag tag-critical">CRITICAL</span>
         <span class="run-on vterm">vterm</span>
         <span class="step-chevron">▶</span>
@@ -1072,7 +1072,7 @@ or type the number of the setting you want to change.
     <div class="step ph-bos">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">26</span>
-        <span class="step-title">Select target disk — choose hdisk0 (NOT hdisk1)</span>
+        <span class="step-title">Select target disk: choose hdisk0 (NOT hdisk1)</span>
         <span class="step-tag tag-critical">CRITICAL</span>
         <span class="run-on vterm">vterm</span>
         <span class="step-chevron">▶</span>
@@ -1081,7 +1081,7 @@ or type the number of the setting you want to change.
         <div class="menu"><span class="menu-title">Change Disk(s) Where You Want to Install</span>  Name      Location Code      Size(MB)   VG Status        Bootable
 <span class="pick">&gt; 1 hdisk0  ...                XXXXX      rootvg           Yes</span>
 <span class="danger">  2 hdisk1  ...                XXXXX      altinst_rootvg   Yes</span></div>
-        <p class="note note-critical"><strong>hdisk1 is your alt_disk_copy rollback.</strong> If you select hdisk1 here you will destroy your rollback. The disk to select is the one currently labeled <code>rootvg</code> in the VG Status column — that's <code>hdisk0</code>.</p>
+        <p class="note note-critical"><strong>hdisk1 is your alt_disk_copy rollback.</strong> If you select hdisk1 here you will destroy your rollback. The disk to select is the one currently labeled <code>rootvg</code> in the VG Status column. That's <code>hdisk0</code>.</p>
         <p class="note">After selection a chevron <code>&gt;&gt;&gt;</code> appears next to <code>hdisk0</code> indicating it's selected. Press <strong style="color:var(--sage)">0</strong> (zero) and Enter to continue.</p>
       </div>
     </div>
@@ -1100,7 +1100,7 @@ or type the number of the setting you want to change.
         Method of Installation.............<span class="pick">Migration</span>
         Disk Where You Want to Install.....<span class="pick">hdisk0</span></div>
 
-        <p class="note" style="margin-top:14px"><strong>Optional — select 4 (More Options) to review:</strong></p>
+        <p class="note" style="margin-top:14px"><strong>Optional: select 4 (More Options) to review:</strong></p>
         <table class="ref-table">
           <thead><tr><th>Option</th><th>Recommended</th></tr></thead>
           <tbody>
@@ -1134,14 +1134,14 @@ or type the number of the setting you want to change.
   ...
 
 Press Enter to continue.</div>
-        <p class="note note-info"><strong>Last sanity check:</strong> The list of filesystems should match what you saw in <code>df -g</code> at pre-flight. If something looks wrong (a filesystem missing, an extra one listed), abort now (Ctrl-C / power off via HMC) — recovery from a bad start is easier than recovery from a wrong-disk overwrite.</p>
+        <p class="note note-info"><strong>Last sanity check:</strong> The list of filesystems should match what you saw in <code>df -g</code> at pre-flight. If something looks wrong (a filesystem missing, an extra one listed), abort now (Ctrl-C / power off via HMC). Recovery from a bad start is easier than recovery from a wrong-disk overwrite.</p>
       </div>
     </div>
 
     <div class="step ph-install">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">29</span>
-        <span class="step-title">Installation runs · 60 — 120 minutes</span>
+        <span class="step-title">Installation runs · 60 to 120 minutes</span>
         <span class="step-tag tag-critical">RUNNING</span>
         <span class="run-on vterm">vterm</span>
         <span class="step-chevron">▶</span>
@@ -1152,9 +1152,9 @@ Press Enter to continue.</div>
 
    2              0           Restoring base operating system
    ...            ...         Installing additional software</div>
-        <p class="note">Phase takes 60 — 120 minutes depending on rootvg size and IO speed. The vterm is your only window into progress — keep it open and watched.</p>
+        <p class="note">Phase takes 60 to 120 minutes depending on rootvg size and IO speed. The vterm is your only window into progress. Keep it open and watched.</p>
 
-        <p class="note note-caution" style="margin-top:14px"><strong>Mid-install media swap (around 70 — 80%):</strong> If the install spans both DVDs, you'll be prompted:</p>
+        <p class="note note-caution" style="margin-top:14px"><strong>Mid-install media swap (around 70 to 80%):</strong> If the install spans both DVDs, you'll be prompted:</p>
         <div class="menu">Please remove volume 1 and insert volume 2.
 Press Enter to continue.</div>
 
@@ -1205,8 +1205,8 @@ Press Enter to continue.</div>
         <p class="note" style="margin-top:0"><strong>The first boot off the migrated 7.2 rootvg may:</strong></p>
         <ul style="list-style:none; padding-left:14px; font-size:12.5px; color:var(--faint); line-height:1.7">
           <li>▸ Take longer than usual while the kernel re-syncs ODM and rebuilds device configuration.</li>
-          <li>▸ Drop to a console <code>TERM</code> prompt before login — enter <code>vt100</code> or <code>xterm</code> and continue. Subsequent boots will not prompt.</li>
-          <li>▸ Generate informational entries in <code>errpt</code> during initial config — review but expect some noise.</li>
+          <li>▸ Drop to a console <code>TERM</code> prompt before login. Enter <code>vt100</code> or <code>xterm</code> and continue. Subsequent boots will not prompt.</li>
+          <li>▸ Generate informational entries in <code>errpt</code> during initial config. Review but expect some noise.</li>
         </ul>
         <p class="note note-info"><strong>Don't panic:</strong> Any of the above on the first boot is expected. Repeated occurrences on the second boot are not.</p>
       </div>
@@ -1225,7 +1225,7 @@ Press Enter to continue.</div>
         <div class="cmd" id="c32"><button class="copy-btn" onclick="copy('c32',this)">COPY</button><span class="kw">lsdev</span> <span class="flag">-Cc</span> adapter | <span class="kw">grep</span> <span class="flag">-i</span> ent
 <span class="kw">chdev</span> <span class="flag">-l</span> en0 <span class="flag">-a</span> netaddr=<span class="ph">A.B.C.D</span> <span class="flag">-a</span> netmask=<span class="ph">W.X.Y.Z</span> <span class="flag">-a</span> state=up
 <span class="kw">route</span> add 0 <span class="ph">GATEWAY_IP</span></div>
-        <p class="note note-caution"><strong>Then troubleshoot</strong> why the migration didn't preserve the network config — usually a stale ODM entry referencing a 7.1-only attribute, or an interface name change. Don't leave the LPAR running with hand-rolled config indefinitely.</p>
+        <p class="note note-caution"><strong>Then troubleshoot</strong> why the migration didn't preserve the network config: usually a stale ODM entry referencing a 7.1-only attribute, or an interface name change. Don't leave the LPAR running with hand-rolled config indefinitely.</p>
       </div>
     </div>
 
@@ -1285,7 +1285,7 @@ Press Enter to continue.</div>
 <span class="kw">diff</span> /tmp/etc_pre/rc.tcpip    /etc/rc.tcpip
 <span class="kw">diff</span> /tmp/etc_pre/limits      /etc/security/limits
 <span class="kw">diff</span> /tmp/etc_pre/filesystems /etc/filesystems</div>
-        <p class="note note-caution"><strong>Expect changes — but review them.</strong> The migration installer will have added new lines (new services, new inittab entries for 7.2 features). Check for any local customisations that were lost in the merge and re-apply them. Common loss: custom <code>/etc/security/limits</code> stanzas for application users.</p>
+        <p class="note note-caution"><strong>Expect changes, but review them.</strong> The migration installer will have added new lines (new services, new inittab entries for 7.2 features). Check for any local customisations that were lost in the merge and re-apply them. Common loss: custom <code>/etc/security/limits</code> stanzas for application users.</p>
       </div>
     </div>
 
@@ -1298,7 +1298,7 @@ Press Enter to continue.</div>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--rust)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong> — don't run any of the cleanup steps in Phase 9 yet.</p>
+        <p class="note" style="margin-top:0">Hand off to application owners for service validation. Treat the change as <strong style="color:var(--rust)">in-progress</strong> until they sign off. <strong>Keep the rollback warm</strong>: don't run any of the cleanup steps in Phase 9 yet.</p>
       </div>
     </div>
 
@@ -1318,7 +1318,7 @@ Press Enter to continue.</div>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note note-info" style="margin-top:0"><strong>Fast path</strong> — the reason alt_disk_copy was mandatory in step 16.</p>
+        <p class="note note-info" style="margin-top:0"><strong>Fast path</strong>: the reason alt_disk_copy was mandatory in step 16.</p>
         <div class="cmd" id="rb1"><button class="copy-btn" onclick="copy('rb1',this)">COPY</button><span class="cmd-section">Repoint bootlist to the alt_disk_copy clone (pre-migration 7.1)</span>
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal hdisk1
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
@@ -1370,18 +1370,18 @@ Press Enter to continue.</div>
       <div class="step-body">
         <p class="note note-critical" style="margin-top:0"><strong>If both disks are unbootable:</strong></p>
         <ol style="padding-left:20px; font-size:13px; line-height:1.8">
-          <li>Re-attach the AIX <strong>7.1</strong> install media (NOT the 7.2 media — the 7.1 maintenance shell is needed to restore a 7.1 mksysb).</li>
+          <li>Re-attach the AIX <strong>7.1</strong> install media (NOT the 7.2 media, because the 7.1 maintenance shell is needed to restore a 7.1 mksysb).</li>
           <li>Boot the LPAR in SMS mode and boot from 7.1 install media.</li>
           <li>From the BOS Installation menu:</li>
         </ol>
         <div class="menu"><span class="pick">3. Start Maintenance Mode for System Recovery</span>
     <span class="pick">4. Install from a System Backup</span>
-        (select the device holding your mksysb —
+        (select the device holding your mksysb:
          network, tape, or another disk)</div>
         <ol start="4" style="padding-left:20px; font-size:13px; line-height:1.8">
           <li>The mksysb restore wizard walks through disk selection and network setup if the mksysb is on NFS.</li>
         </ol>
-        <p class="note note-caution"><strong>This is slow</strong> (1 — 3 hours of restore plus reboot). It works, but it's why <code>alt_disk_copy</code> is the rollback you actually want to use. Keep your 7.1 install media accessible until burn-in is complete.</p>
+        <p class="note note-caution"><strong>This is slow</strong> (1 to 3 hours of restore plus reboot). It works, but it's why <code>alt_disk_copy</code> is the rollback you actually want to use. Keep your 7.1 install media accessible until burn-in is complete.</p>
       </div>
     </div>
 
@@ -1523,13 +1523,13 @@ Press Enter to continue.</div>
     <div class="step ph-stage">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">A.3</span>
-        <span class="step-title">Worked example — single command sequence</span>
+        <span class="step-title">Worked example: single command sequence</span>
         <span class="step-tag tag-caution">REFERENCE</span>
         <span class="run-on client">lpar01</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note note-caution" style="margin-top:0"><strong>Do not follow this blindly</strong> — values (level numbers, hostnames, hdisk names, dates, managed-system serial) <em>will</em> change. This is a sequence reference, not a copy-paste recipe.</p>
+        <p class="note note-caution" style="margin-top:0"><strong>Do not follow this blindly</strong>: values (level numbers, hostnames, hdisk names, dates, managed-system serial) <em>will</em> change. This is a sequence reference, not a copy-paste recipe.</p>
         <div class="cmd" id="a3"><button class="copy-btn" onclick="copy('a3',this)">COPY</button><span class="cmd-section">On client · pre-flight</span>
 <span class="kw">oslevel</span> <span class="flag">-s</span>
 <span class="kw">lppchk</span> <span class="flag">-v</span>
@@ -1590,23 +1590,23 @@ Press Enter to continue.</div>
       <tr><td>viosvrcmd ... "mkvopt -name ..."</td><td>Upload ISO into VIOS media library</td><td>Phase 2 step 01</td></tr>
       <tr><td>viosvrcmd ... "loadopt -vtd vtopt0 -disk ..."</td><td>Load ISO into LPAR's virtual optical</td><td>Phase 2 step 02</td></tr>
       <tr><td>viosvrcmd ... "unloadopt -vtd vtopt0"</td><td>Eject virtual optical</td><td>Mid-install media swap</td></tr>
-      <tr><td>dd if=&lt;iso&gt; of=/dev/sdc bs=1M</td><td>Write ISO to USB stick</td><td>Option C — triple-check target device</td></tr>
+      <tr><td>dd if=&lt;iso&gt; of=/dev/sdc bs=1M</td><td>Write ISO to USB stick</td><td>Option C: triple-check target device</td></tr>
       <tr><td>sha256sum / csum -h SHA256</td><td>Verify ISO integrity before attaching</td><td>Phase 2 step 05</td></tr>
-      <tr><td>alt_disk_copy -d hdisk1</td><td>Mandatory primary rollback clone</td><td>Phase 4 step 16 — non-negotiable</td></tr>
+      <tr><td>alt_disk_copy -d hdisk1</td><td>Mandatory primary rollback clone</td><td>Phase 4 step 16: non-negotiable</td></tr>
       <tr><td>bootlist -m normal -o</td><td>Confirm bootlist points at hdisk0 pre-boot</td><td>Critical safety check after alt_disk_copy</td></tr>
-      <tr><td>shutdown -F now</td><td>Power off (NOT reboot) the LPAR</td><td>Phase 5 step 17 — -F not -Fr</td></tr>
+      <tr><td>shutdown -F now</td><td>Power off (NOT reboot) the LPAR</td><td>Phase 5 step 17: -F not -Fr</td></tr>
       <tr><td>chsysstate -m ... -b sms</td><td>Activate LPAR in SMS mode via HMC CLI</td><td>Phase 5 step 18</td></tr>
       <tr><td>SMS · 5 → 1 → 7</td><td>List all devices · select install media</td><td>Phase 5 step 20</td></tr>
-      <tr><td>BOS · 2 → 1 → 3</td><td>Change settings → System Settings → Migration</td><td>Phase 6 — not 1 (default overwrite!)</td></tr>
-      <tr><td>BOS · select hdisk0</td><td>Pick the disk currently labelled rootvg</td><td>Phase 6 step 26 — never hdisk1</td></tr>
+      <tr><td>BOS · 2 → 1 → 3</td><td>Change settings → System Settings → Migration</td><td>Phase 6: not 1 (default overwrite!)</td></tr>
+      <tr><td>BOS · select hdisk0</td><td>Pick the disk currently labelled rootvg</td><td>Phase 6 step 26: never hdisk1</td></tr>
       <tr><td>oslevel -s (post-reboot)</td><td>Confirm migration succeeded</td><td>Expect 7200-05-11-2546</td></tr>
       <tr><td>lppchk -v</td><td>Verify fileset consistency</td><td>MUST be clean pre and post</td></tr>
       <tr><td>diff /tmp/etc_pre/* /etc/*</td><td>Catch lost local customisations</td><td>Phase 7 step 34</td></tr>
       <tr><td>diff /tmp/genkex_pre.txt &lt;(genkex)</td><td>Confirm kernel extensions reloaded</td><td>Silent failure mode</td></tr>
-      <tr><td>bootlist -m normal hdisk1</td><td>Roll back to alt_disk_copy clone</td><td>RB.1 — fast path</td></tr>
+      <tr><td>bootlist -m normal hdisk1</td><td>Roll back to alt_disk_copy clone</td><td>RB.1: fast path</td></tr>
       <tr><td>SMS · 5 → 1 → 5 → hdisk1</td><td>Boot from clone if migrated disk dead</td><td>RB.2</td></tr>
-      <tr><td>BOS · 3 → 4 (from 7.1 media)</td><td>Worst-case mksysb restore</td><td>RB.3 — slow but works</td></tr>
-      <tr><td>alt_rootvg_op -X altinst_rootvg</td><td>Free hdisk1 after burn-in</td><td>Phase 9 — only after sign-off</td></tr>
+      <tr><td>BOS · 3 → 4 (from 7.1 media)</td><td>Worst-case mksysb restore</td><td>RB.3: slow but works</td></tr>
+      <tr><td>alt_rootvg_op -X altinst_rootvg</td><td>Free hdisk1 after burn-in</td><td>Phase 9: only after sign-off</td></tr>
     </table>
   </div>
 
@@ -1614,18 +1614,18 @@ Press Enter to continue.</div>
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li>This is the boot-media path — preferred only when nimadm is not available. For repeated or fleet migrations, RB-PATCH-AIX-002 (nimadm) is significantly faster, lower risk, and fully online until the final reboot.</li>
-      <li><code>alt_disk_copy</code> is non-negotiable. Without it, your only rollback is mksysb restore — which itself requires booting 7.1 media in maintenance mode and takes 1 — 3 hours. With <code>alt_disk_copy</code>, rollback is a bootlist swap and a reboot.</li>
-      <li>Confirm bootlist is on <code>hdisk0</code> (not <code>hdisk1</code>) before you boot the install media. The BOS installer offers <code>hdisk0</code> as the migration target — accidentally selecting <code>hdisk1</code> destroys your rollback. There is no undo.</li>
+      <li>This is the boot-media path, which is preferred only when nimadm is not available. For repeated or fleet migrations, RB-PATCH-AIX-002 (nimadm) is significantly faster, lower risk, and fully online until the final reboot.</li>
+      <li><code>alt_disk_copy</code> is non-negotiable. Without it, your only rollback is mksysb restore, which itself requires booting 7.1 media in maintenance mode and takes 1 to 3 hours. With <code>alt_disk_copy</code>, rollback is a bootlist swap and a reboot.</li>
+      <li>Confirm bootlist is on <code>hdisk0</code> (not <code>hdisk1</code>) before you boot the install media. The BOS installer offers <code>hdisk0</code> as the migration target. Accidentally selecting <code>hdisk1</code> destroys your rollback. There is no undo.</li>
       <li>In the BOS installer, never pick "1. Start Install Now with Default Settings". The default Method is "New and Complete Overwrite", which destroys rootvg. Always pick 2 → 1 → 3 to switch Method to Migration.</li>
       <li>Use <code>shutdown -F</code> (not <code>-Fr</code>) before SMS-mode activation. <code>-Fr</code> would auto-reboot off the existing bootlist before you can enter SMS.</li>
-      <li>Verify ISO checksums before attaching media. A corrupted install ISO causes failures partway through that look like hardware faults — at the 60% mark of phase 7 it's the worst time to discover it.</li>
+      <li>Verify ISO checksums before attaching media. A corrupted install ISO causes failures partway through that look like hardware faults. At the 60% mark of phase 7 it's the worst time to discover it.</li>
       <li>Console operator required for the entire window. The BOS installer needs interactive input at multiple menu screens; do not plan to leave this unattended. If the install hangs at the media-swap prompt and nobody's watching, the window is wasted.</li>
-      <li>Capture <code>/etc</code> originals (<code>inittab</code>, <code>inetd.conf</code>, <code>services</code>, <code>rc.tcpip</code>, <code>limits</code>, <code>filesystems</code>) at pre-flight and diff them post-migration. The installer does three-way merges and can drop local customisations silently — <code>limits</code> stanzas for application users are a frequent loss.</li>
-      <li>Capture network config off-LPAR before the install. If 7.2 comes up with no network and you don't have routes / IP / netmask in hand, your only recovery path is the vterm — and it's a long one without those values.</li>
+      <li>Capture <code>/etc</code> originals (<code>inittab</code>, <code>inetd.conf</code>, <code>services</code>, <code>rc.tcpip</code>, <code>limits</code>, <code>filesystems</code>) at pre-flight and diff them post-migration. The installer does three-way merges and can drop local customisations silently, and <code>limits</code> stanzas for application users are a frequent loss.</li>
+      <li>Capture network config off-LPAR before the install. If 7.2 comes up with no network and you don't have routes / IP / netmask in hand, your only recovery path is the vterm, and it's a long one without those values.</li>
       <li>First boot off the migrated 7.2 may take longer, drop to a TERM prompt, or generate informational <code>errpt</code> entries. Expected on the first boot, not on the second.</li>
       <li>Keep the 7.1 install media accessible until burn-in is complete. RB.3 (worst-case mksysb restore) requires 7.1 maintenance shell, not 7.2.</li>
-      <li>Treat the change as in-progress until application owners sign off. Do not run Phase 9 cleanup before that — your <code>altinst_rootvg</code> on <code>hdisk1</code> needs to stay warm.</li>
+      <li>Treat the change as in-progress until application owners sign off. Do not run Phase 9 cleanup before that, since your <code>altinst_rootvg</code> on <code>hdisk1</code> needs to stay warm.</li>
     </ul>
   </div>
 

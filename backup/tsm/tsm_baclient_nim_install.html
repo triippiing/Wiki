@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TSM BA Client Binary NIM Install</title>
-<meta name="description" content="End-to-end procedure for staging IBM Spectrum Protect (TSM) BA client filesets, defining 22 standalone NIM clients on DR_NIM_01, and pushing the install in a single operation to bc01–bc22.">
+<meta name="description" content="End-to-end procedure for staging IBM Spectrum Protect (TSM) BA client filesets, defining 22 standalone NIM clients on DR_NIM_01, and pushing the install in a single operation to bc01-bc22.">
 <meta name="reviewed" content="2026-05-03">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -325,7 +325,7 @@
   </nav>
 
   <h1 class="page-title">TSM BA Client Binary NIM Install</h1>
-  <p class="page-sub">End-to-end procedure for staging IBM Spectrum Protect (TSM) BA client filesets, defining 22 standalone NIM clients on DR_NIM_01, and pushing the install in a single operation to bc01–bc22.</p>
+  <p class="page-sub">End-to-end procedure for staging IBM Spectrum Protect (TSM) BA client filesets, defining 22 standalone NIM clients on DR_NIM_01, and pushing the install in a single operation to bc01-bc22.</p>
 
   <div class="badges">
     <span class="badge badge-accent">BINARY INSTALL</span>
@@ -345,8 +345,8 @@
     <div class="env-grid">
       <div class="env-cell"><div class="env-label">Source</div><div class="env-val mono">DR_NIM_01</div></div>
       <div class="env-cell"><div class="env-label">Source IP</div><div class="env-val mono">192.168.131.1</div></div>
-      <div class="env-cell"><div class="env-label">Targets</div><div class="env-val mono warn">bc01 — bc22</div></div>
-      <div class="env-cell"><div class="env-label">Target subnet</div><div class="env-val mono">.2 — .23 / 24</div></div>
+      <div class="env-cell"><div class="env-label">Targets</div><div class="env-val mono warn">bc01-bc22</div></div>
+      <div class="env-cell"><div class="env-label">Target subnet</div><div class="env-val mono">.2-.23 / 24</div></div>
       <div class="env-cell"><div class="env-label">OS</div><div class="env-val">AIX 7.x</div></div>
       <div class="env-cell"><div class="env-label">Spectrum Protect</div><div class="env-val info">8.1.x</div></div>
       <div class="env-cell"><div class="env-label">Filesets</div><div class="env-val">7 (TSM + GSKit + JBB)</div></div>
@@ -368,8 +368,8 @@
     </div>
     <div class="host-card client">
       <div class="host-role">NIM Clients × 22</div>
-      <div class="host-name">bc01 — bc22</div>
-      <div class="host-ip">192.168.131.2 — 192.168.131.23</div>
+      <div class="host-name">bc01-bc22</div>
+      <div class="host-ip">192.168.131.2-192.168.131.23</div>
       <div class="host-os">AIX · standalone · TSM BA targets</div>
     </div>
   </div>
@@ -377,13 +377,13 @@
   <!-- ════ PHASE 1 ════ -->
   <div class="phase-label"><span>Phase 1</span> Prerequisites</div>
   <ul class="checklist">
-    <li><strong>NIM master operational</strong> — <code>DR_NIM_01</code> built, <code>nimesis</code> and <code>nimd</code> SRC subsystems running.</li>
-    <li><strong>NFS mount accessible</strong> — staging area containing the seven extracted BA client filesets visible from <code>DR_NIM_01</code>.</li>
-    <li><strong>Network reachability</strong> — all 22 clients (<code>192.168.131.2 — .23</code>) reachable from <code>DR_NIM_01</code> over TCP/3901 (nimsh) and ICMP.</li>
-    <li><strong>Hostname resolution</strong> — bidirectional resolution between <code>DR_NIM_01</code> and each <code>bc&lt;NN&gt;</code> via DNS or <code>/etc/hosts</code>.</li>
-    <li><strong>NIM client fileset</strong> — <code>bos.sysmgt.nim.client</code> installed on each target (ships with base AIX media).</li>
-    <li><strong>Disk space on master</strong> — minimum 500 MB free at the lpp_source destination path.</li>
-    <li><strong>Root credentials</strong> — root or RBAC equivalent on <code>DR_NIM_01</code> and each target client.</li>
+    <li><strong>NIM master operational</strong>: <code>DR_NIM_01</code> built, <code>nimesis</code> and <code>nimd</code> SRC subsystems running.</li>
+    <li><strong>NFS mount accessible</strong>: staging area containing the seven extracted BA client filesets visible from <code>DR_NIM_01</code>.</li>
+    <li><strong>Network reachability</strong>: all 22 clients (<code>192.168.131.2-.23</code>) reachable from <code>DR_NIM_01</code> over TCP/3901 (nimsh) and ICMP.</li>
+    <li><strong>Hostname resolution</strong>: bidirectional resolution between <code>DR_NIM_01</code> and each <code>bc&lt;NN&gt;</code> via DNS or <code>/etc/hosts</code>.</li>
+    <li><strong>NIM client fileset</strong>: <code>bos.sysmgt.nim.client</code> installed on each target (ships with base AIX media).</li>
+    <li><strong>Disk space on master</strong>: minimum 500 MB free at the lpp_source destination path.</li>
+    <li><strong>Root credentials</strong>: root or RBAC equivalent on <code>DR_NIM_01</code> and each target client.</li>
   </ul>
   <p class="note note-caution"><strong>Critical:</strong> The NIM client fileset (<code>bos.sysmgt.nim.client</code>) must be present on each <code>bc&lt;NN&gt;</code> before <code>niminit</code> in Phase 5 will succeed. Verify with <code>lslpp -l bos.sysmgt.nim.client</code> on a sample client first.</p>
 
@@ -467,13 +467,13 @@
             <tr><th>Fileset</th><th>Purpose</th></tr>
           </thead>
           <tbody>
-            <tr><td>GSKit8.gskcrypt64.ppc.rte</td><td>IBM Global Security Kit — crypto runtime (TLS dependency)</td></tr>
+            <tr><td>GSKit8.gskcrypt64.ppc.rte</td><td>IBM Global Security Kit: crypto runtime (TLS dependency)</td></tr>
             <tr><td>GSKit8.gskssl64.ppc.rte</td><td>GSKit SSL libraries (TLS dependency)</td></tr>
-            <tr><td>tivoli.tsm.client.api.64bit</td><td>TSM API — required by BA client and any future TDP/RMAN integration</td></tr>
-            <tr><td>tivoli.tsm.client.ba.64bit</td><td>BA client (<code>dsmc</code>, <code>dsmcad</code>, <code>dsmtca</code>) — core fileset</td></tr>
+            <tr><td>tivoli.tsm.client.api.64bit</td><td>TSM API: required by BA client and any future TDP/RMAN integration</td></tr>
+            <tr><td>tivoli.tsm.client.ba.64bit</td><td>BA client (<code>dsmc</code>, <code>dsmcad</code>, <code>dsmtca</code>): core fileset</td></tr>
             <tr><td>tivoli.tsm.client.jbb.64bit</td><td>Journal-Based Backup engine</td></tr>
             <tr><td>tivoli.tsm.client.webgui</td><td>Web GUI (optional but useful for ops handover)</td></tr>
-            <tr><td>tivoli.tsm.filepath_aix</td><td>FilePath kernel extension — required by JBB</td></tr>
+            <tr><td>tivoli.tsm.filepath_aix</td><td>FilePath kernel extension: required by JBB</td></tr>
           </tbody>
         </table>
       </div>
@@ -551,7 +551,7 @@
 
 <span class="cmd-section">Confirm the seven filesets are visible to NIM</span>
 <span class="kw">nim</span> <span class="flag">-o</span> lslpp lpp_tsm_ba_81 | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">"tivoli|GSKit"</span></div>
-        <p class="note note-verify"><strong>✓ Verify:</strong> Output should show <code>Rstate = ready for use</code> and <code>type = lpp_source</code>. <code>simages = no</code> is expected — this is an application lpp_source, not a base OS one.</p>
+        <p class="note note-verify"><strong>✓ Verify:</strong> Output should show <code>Rstate = ready for use</code> and <code>type = lpp_source</code>. <code>simages = no</code> is expected. This is an application lpp_source, not a base OS one.</p>
       </div>
     </div>
   </div>
@@ -562,13 +562,13 @@
     <div class="step ph-clients">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">09</span>
-        <span class="step-title">Define bc01–bc22 as standalone NIM clients</span>
+        <span class="step-title">Define bc01-bc22 as standalone NIM clients</span>
         <span class="step-tag tag-caution">CONFIG</span>
         <span class="run-on master">DR_NIM_01</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c09"><button class="copy-btn" onclick="copy('c09',this)">COPY</button><span class="cmd-section">Single loop — defines all 22 in one pass</span>
+        <div class="cmd" id="c09"><button class="copy-btn" onclick="copy('c09',this)">COPY</button><span class="cmd-section">Single loop: defines all 22 in one pass</span>
 <span class="kw">for</span> i <span class="kw">in</span> $(<span class="kw">seq</span> 1 22); <span class="kw">do</span>
     host=$(<span class="kw">printf</span> <span class="str">"bc%02d"</span> $i)
     ip=$(<span class="kw">printf</span> <span class="str">"192.168.131.%d"</span> $((i+1)))
@@ -613,11 +613,11 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="c"># One-time init per client. Run as root on each bc<NN> —</span>
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="c"># One-time init per client. Run as root on each bc<NN>:</span>
 <span class="c"># substitute the actual hostname for each invocation.</span>
 <span class="kw">niminit</span> <span class="flag">-a</span> name=bc01 <span class="flag">-a</span> master=DR_NIM_01 <span class="flag">-a</span> connect=nimsh
 <span class="kw">lssrc</span> <span class="flag">-s</span> nimsh</div>
-        <p class="note note-info"><strong>nimsh vs shell:</strong> <code>connect=nimsh</code> is preferred — authenticated, doesn't require <code>.rhosts</code>. If the customer estate is locked to legacy <code>rsh</code>, fall back to <code>connect=shell</code> for the initial push and convert afterwards.</p>
+        <p class="note note-info"><strong>nimsh vs shell:</strong> <code>connect=nimsh</code> is preferred: it is authenticated and doesn't require <code>.rhosts</code>. If the customer estate is locked to legacy <code>rsh</code>, fall back to <code>connect=shell</code> for the initial push and convert afterwards.</p>
       </div>
     </div>
 
@@ -631,7 +631,7 @@
       </div>
       <div class="step-body">
         <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="c"># Spot-check first and last clients. nim -o lslpp returns the client's</span>
-<span class="c"># installed fileset list — proves the master can reach the client and vice versa.</span>
+<span class="c"># installed fileset list: proves the master can reach the client and vice versa.</span>
 <span class="kw">nim</span> <span class="flag">-o</span> lslpp bc01
 <span class="kw">nim</span> <span class="flag">-o</span> lslpp bc22</div>
         <p class="note note-verify"><strong>✓ Verify:</strong> Each call returns a populated fileset list rather than <em>"0042-006 cannot establish connection"</em>.</p>
@@ -679,11 +679,11 @@
       <div class="step-body">
         <div class="option-grid">
           <div class="option-card">
-            <div class="option-header opt-a">Option A — Dry run</div>
+            <div class="option-header opt-a">Option A · Dry run</div>
             <div class="option-desc">Preview-only with <code>-apYg</code>. No filesets installed. Use this first, every time.</div>
           </div>
           <div class="option-card">
-            <div class="option-header opt-b">Option B — Live commit</div>
+            <div class="option-header opt-b">Option B · Live commit</div>
             <div class="option-desc">Real install with <code>-acgXY</code> in step 15. Only run after the dry-run is clean.</div>
           </div>
         </div>
@@ -712,7 +712,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c15"><button class="copy-btn" onclick="copy('c15',this)">COPY</button><span class="cmd-section">Live install — same command, with -acgXY</span>
+        <div class="cmd" id="c15"><button class="copy-btn" onclick="copy('c15',this)">COPY</button><span class="cmd-section">Live install: same command, with -acgXY</span>
 <span class="kw">nim</span> <span class="flag">-o</span> cust \
     <span class="flag">-a</span> lpp_source=lpp_tsm_ba_81 \
     <span class="flag">-a</span> filesets=<span class="str">"GSKit8.gskcrypt64.ppc.rte GSKit8.gskssl64.ppc.rte \
@@ -725,7 +725,7 @@
     <span class="flag">-a</span> installp_flags=<span class="str">"-acgXY"</span> \
     grp_tsm_onboard</div>
         <p class="note">Flags: apply, commit, install requisites, expand filesystems if needed, accept licenses.</p>
-        <p class="note note-critical"><strong>License acceptance is mandatory.</strong> Without <code>accept_licenses=yes</code>, the install will exit before the commit phase and leave applied-but-not-committed filesets across the entire estate — tedious to clean up.</p>
+        <p class="note note-critical"><strong>License acceptance is mandatory.</strong> Without <code>accept_licenses=yes</code>, the install will exit before the commit phase and leave applied-but-not-committed filesets across the entire estate, which is tedious to clean up.</p>
       </div>
     </div>
 
@@ -795,12 +795,12 @@
       </div>
       <div class="step-body">
         <div class="cmd" id="c19"><button class="copy-btn" onclick="copy('c19',this)">COPY</button><span class="kw">ssh</span> bc01 <span class="str">"/usr/tivoli/tsm/client/ba/bin64/dsmc"</span></div>
-        <p class="note note-info"><strong>Note:</strong> <code>dsmc</code> will not launch interactively until <code>dsm.sys</code> and <code>dsm.opt</code> are created — that is expected at this stage. The <code>-version</code> flag returns version info without requiring config.</p>
-        <p class="note note-verify"><strong>✓ Verify:</strong> Each client returns a version banner matching the lpp_source level — e.g. <code>Version 8, Release 1, Level x.x</code>.</p>
+        <p class="note note-info"><strong>Note:</strong> <code>dsmc</code> will not launch interactively until <code>dsm.sys</code> and <code>dsm.opt</code> are created. That is expected at this stage. The <code>-version</code> flag returns version info without requiring config.</p>
+        <p class="note note-verify"><strong>✓ Verify:</strong> Each client returns a version banner matching the lpp_source level, e.g. <code>Version 8, Release 1, Level x.x</code>.</p>
       </div>
     </div>
 
-    <p class="note note-verify" style="margin-top:14px"><strong>✓ Phase complete:</strong> Binaries are installed and committed across all 22 LPARs. Configuration deployment (<code>dsm.sys</code> / <code>dsm.opt</code>, <code>REGISTER NODE</code> server-side, <code>dsmcad</code> scheduler) is the next phase — covered separately under RB-TSM-AIX-002.</p>
+    <p class="note note-verify" style="margin-top:14px"><strong>✓ Phase complete:</strong> Binaries are installed and committed across all 22 LPARs. Configuration deployment (<code>dsm.sys</code> / <code>dsm.opt</code>, <code>REGISTER NODE</code> server-side, <code>dsmcad</code> scheduler) is the next phase, covered separately under RB-TSM-AIX-002.</p>
   </div>
 
   <!-- ════ ROLLBACK ════ -->
@@ -816,7 +816,7 @@
       </div>
       <div class="step-body">
         <div class="cmd" id="cRB1"><button class="copy-btn" onclick="copy('cRB1',this)">COPY</button><span class="c"># Use the -r reject flag via NIM.</span>
-<span class="c"># Only works against applied — not committed — filesets.</span>
+<span class="c"># Only works against applied filesets, not committed ones.</span>
 <span class="kw">nim</span> <span class="flag">-o</span> cust \
     <span class="flag">-a</span> installp_flags=<span class="str">"-r"</span> \
     <span class="flag">-a</span> filesets=<span class="str">"tivoli.tsm.client.ba.64bit tivoli.tsm.client.api.64bit \
@@ -916,16 +916,16 @@
       <tr><td>lsnim -l master</td><td>Confirm NIM master state</td><td>Cstate must be "ready for a NIM operation"</td></tr>
       <tr><td>lssrc -s nimesis / nimd</td><td>Confirm NIM daemons running</td><td>Restart with startsrc -s &lt;name&gt; if down</td></tr>
       <tr><td>inutoc /export/lpp_source/tsm_ba_8.1</td><td>Generate lpp_source TOC</td><td>Re-run after every directory change</td></tr>
-      <tr><td>nim -o define -t lpp_source ...</td><td>Register staged dir as NIM resource</td><td>Phase 4 — creates lpp_tsm_ba_81</td></tr>
-      <tr><td>nim -o define -t standalone ...</td><td>Define each bc&lt;NN&gt; as NIM client</td><td>Phase 5 — looped for all 22</td></tr>
+      <tr><td>nim -o define -t lpp_source ...</td><td>Register staged dir as NIM resource</td><td>Phase 4: creates lpp_tsm_ba_81</td></tr>
+      <tr><td>nim -o define -t standalone ...</td><td>Define each bc&lt;NN&gt; as NIM client</td><td>Phase 5: looped for all 22</td></tr>
       <tr><td>niminit -a name=bc&lt;NN&gt; ...</td><td>Initialise NIM client daemon</td><td>Run on each LPAR, one-time</td></tr>
       <tr><td>nim -o define -t mac_group ...</td><td>Build machine group</td><td>Enables single-shot parallel install</td></tr>
-      <tr><td>nim -o cust ... -apYg</td><td>Dry-run install (preview only)</td><td>Phase 7 step 14 — must be clean before live</td></tr>
-      <tr><td>nim -o cust ... -acgXY</td><td>Live install — apply, commit, requisites</td><td>accept_licenses=yes mandatory</td></tr>
+      <tr><td>nim -o cust ... -apYg</td><td>Dry-run install (preview only)</td><td>Phase 7 step 14: must be clean before live</td></tr>
+      <tr><td>nim -o cust ... -acgXY</td><td>Live install: apply, commit, requisites</td><td>accept_licenses=yes mandatory</td></tr>
       <tr><td>lslpp -l 'tivoli.tsm.client*'</td><td>Verify fileset commit state</td><td>Looped across all 22 clients post-install</td></tr>
       <tr><td>dsmc -version</td><td>Sanity-check installed version</td><td>Works without dsm.sys / dsm.opt configured</td></tr>
       <tr><td>nim -o cust -a installp_flags="-r"</td><td>Reject applied (uncommitted) install</td><td>Rollback step RB.1</td></tr>
-      <tr><td>installp -u &lt;fileset&gt;</td><td>Deinstall committed fileset</td><td>Per-client only — no NIM verb exists</td></tr>
+      <tr><td>installp -u &lt;fileset&gt;</td><td>Deinstall committed fileset</td><td>Per-client only: no NIM verb exists</td></tr>
     </table>
   </div>
 
@@ -937,8 +937,8 @@
       <li><code>accept_licenses=yes</code> is non-negotiable on the live install. Omitting it leaves applied-but-not-committed filesets across the estate, which then have to be cleaned up per host.</li>
       <li>The NIM client fileset (<code>bos.sysmgt.nim.client</code>) must already be installed on each <code>bc&lt;NN&gt;</code> before <code>niminit</code>. It ships with base AIX, but custom mksysb images sometimes drop it.</li>
       <li>Re-run <code>inutoc</code> after any change to the lpp_source directory. A stale <code>.toc</code> is the most common cause of <em>0503-005 Cannot find requested fileset</em>.</li>
-      <li>The IP convention is <code>bc&lt;NN&gt;</code> → <code>192.168.131.(NN+1)</code>. Verify both directions of name resolution before defining clients — half-broken DNS shows up later as <code>0042-006 cannot establish connection</code>.</li>
-      <li>Configuration deployment (<code>dsm.sys</code>, <code>dsm.opt</code>, <code>REGISTER NODE</code> server-side, <code>dsmcad</code> scheduler) is intentionally out of scope here — covered under RB-TSM-AIX-002.</li>
+      <li>The IP convention is <code>bc&lt;NN&gt;</code> → <code>192.168.131.(NN+1)</code>. Verify both directions of name resolution before defining clients. Half-broken DNS shows up later as <code>0042-006 cannot establish connection</code>.</li>
+      <li>Configuration deployment (<code>dsm.sys</code>, <code>dsm.opt</code>, <code>REGISTER NODE</code> server-side, <code>dsmcad</code> scheduler) is intentionally out of scope here, covered under RB-TSM-AIX-002.</li>
       <li>Retain <code>lpp_tsm_ba_81</code> and <code>grp_tsm_onboard</code> after the install completes. Both are reusable for future BA client upgrades and patching campaigns.</li>
     </ul>
   </div>
@@ -946,7 +946,7 @@
 </div>
 
 <footer>
-  <span>RB-TSM-AIX-001 · TSM BA Client Binary NIM Install · DR_NIM_01 → bc01–bc22</span>
+  <span>RB-TSM-AIX-001 · TSM BA Client Binary NIM Install · DR_NIM_01 → bc01-bc22</span>
   <span>AIX 7.x · IBM Spectrum Protect 8.1.x</span>
 </footer>
 

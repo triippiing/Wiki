@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────────
-   runbook-stone.css — shared component library, warm stone theme.
+   runbook-stone.css: shared component library, warm stone theme.
    Requires tokens-stone.css to be loaded first.
 
    Contents:
@@ -150,7 +150,7 @@
   color: var(--sage);
 }
 
-.meta-age.ageing {                     /* 6 – 12 months */
+.meta-age.ageing {                     /* 6 to 12 months */
   background: var(--ochre-tint);
   border-color: var(--ochre-bd);
   color: var(--ochre);
@@ -165,7 +165,7 @@
 .meta-val.never { color: var(--rust); }
 
 /* Runs the full width of the grid rather than leaving an orphan cell with
-   dead space beside it — the cell count above it varies per runbook. */
+   dead space beside it: the cell count above it varies per runbook. */
 .meta-reviewed { grid-column: 1 / -1; }
 
 
@@ -176,7 +176,7 @@
    so the migration can stop half-way without breaking anything.
    See docs/META_GRID_MIGRATION.md.                                       */
 
-/* Exactly three cells — ID · Operation · Last reviewed — identical on every
+/* Exactly three cells, ID · Operation · Last reviewed, identical on every
    runbook. Overrides the auto-fit of the old grid. */
 .meta-identity {
   grid-template-columns: repeat(3, 1fr);
@@ -191,7 +191,7 @@
 }
 
 /* Per-runbook facts: host, versions, windows, rollback, spare disk. Real
-   pre-flight content, but secondary to the identity strip — quieter surface,
+   pre-flight content, but secondary to the identity strip: quieter surface,
    no shadow, tighter cells. */
 .env {
   border: 1px solid var(--border);
@@ -334,7 +334,7 @@
 .step.open .step-header { border-bottom-color: var(--border); }
 
 /* ── per-step anchor (added by chrome.js) ──
-   Hidden until the row is hovered — a runbook is read far more often than
+   Hidden until the row is hovered: a runbook is read far more often than
    it is linked, so the affordance shouldn't compete with the step title. */
 .step-link {
   flex-shrink: 0;
@@ -361,7 +361,7 @@
   border-radius: 2px;
 }
 
-/* Arrival highlight — you followed a link to this step, here it is.
+/* Arrival highlight: you followed a link to this step, here it is.
    Must re-declare fadeUp: .step sets opacity:0 and relies on that animation
    to reveal itself, so overriding the shorthand with stepFlash alone would
    leave the linked step invisible. */
@@ -382,7 +382,7 @@
   }
 }
 
-/* ochre number badge — square at "01", grows for "1.1" / "RB.4" */
+/* ochre number badge: square at "01", grows for "1.1" / "RB.4" */
 .step-num {
   flex-shrink: 0;
   display: grid;
@@ -606,8 +606,8 @@
 .note-success strong   { color: var(--sage); }
 
 /* On a tinted callout the default --surface chip blends in, so lift the
-   chip to --paper: near-white in light, a recessed darker cell in dark —
-   legible against the callout tint either way. */
+   chip to --paper: near-white in light, a recessed darker cell in dark.
+   Legible against the callout tint either way. */
 .note-info code,
 .note-caution code,
 .note-critical code,
@@ -652,7 +652,7 @@
 }
 
 .warn-box li::before {
-  content: '—';
+  content: '·';
   position: absolute;
   left: 0;
   color: var(--ochre);

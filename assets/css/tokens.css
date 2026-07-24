@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────────
-   tokens-stone.css — warm stone / ochre design tokens.
+   tokens-stone.css: warm stone / ochre design tokens.
    Load BEFORE runbook-stone.css. Fonts come from the page's own
    <link> to Google Fonts so this file stays offline-safe.
 
@@ -43,7 +43,7 @@
   --code-comment: #8F8879;
   --code-copy:    #C9A44F;
 
-  /* syntax — restrained warm set, all legible on --code-bg */
+  /* syntax: restrained warm set, all legible on --code-bg */
   --code-kw:    #D9B87C;   /* commands / keywords     */
   --code-str:   #A9BE7E;   /* strings                 */
   --code-flag:  #9FB3C8;   /* flags / switches        */
@@ -65,13 +65,13 @@
 
 
 /* ──────────────────────────────────────────────────────────────
-   dark theme — warm "workbench" stone. Extends the code-panel
+   dark theme: warm "workbench" stone. Extends the code-panel
    aesthetic (light ink on near-black warm brown) to the whole page,
    so dark mode reads like the terminal blocks grew to fill it.
 
    Two entry points:
-     · :root[data-theme="dark"]      — the manual toggle (chrome.js)
-     · prefers-color-scheme, unless the reader forced "light" — a no-JS
+     · :root[data-theme="dark"]:     the manual toggle (chrome.js)
+     · prefers-color-scheme, unless the reader forced "light": a no-JS
        fallback so an OS-dark reader still gets dark if scripting fails.
    The token names are identical to :root above; only the values move.
    ────────────────────────────────────────────────────────────── */

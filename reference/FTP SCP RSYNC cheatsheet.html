@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FTP / SCP / rsync Cheat Sheet</title>
-<meta name="description" content="Common file-transfer command patterns across FTP, SCP, and rsync — flags, examples, and gotchas.">
+<meta name="description" content="Common file-transfer command patterns across FTP, SCP, and rsync: flags, examples, and gotchas.">
 <meta name="reviewed" content="2026-05-02">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,7 +32,7 @@
 </head>
 <body>
 <div class="sheet">
-<h1>FTP / SCP / rsync — Transfer Cheat Sheet</h1>
+<h1>FTP / SCP / rsync: Transfer Cheat Sheet</h1>
 
 <div class="tool-block">
   <div class="tool-header hdr-blue">
@@ -46,11 +46,11 @@
     <tr><td>sftp user@host</td><td>Secure FTP over SSH</td></tr>
     <tr><td>sftp -P 2222 user@host</td><td>SFTP on non-default port</td></tr>
     <tr><td>sftp -i ~/.ssh/id_rsa user@host</td><td>SFTP with identity file</td></tr>
-    <tr><td colspan="2"><span class="section-label">Interactive — upload</span></td></tr>
+    <tr><td colspan="2"><span class="section-label">Interactive · upload</span></td></tr>
     <tr><td>put /local/file.tar /remote/</td><td>Upload single file</td></tr>
     <tr><td>mput *.tar.gz</td><td>Upload multiple files (glob)</td></tr>
     <tr><td>put -r /local/dir /remote/dir</td><td>Upload directory (sftp only)</td></tr>
-    <tr><td colspan="2"><span class="section-label">Interactive — download</span></td></tr>
+    <tr><td colspan="2"><span class="section-label">Interactive · download</span></td></tr>
     <tr><td>get /remote/file.tar /local/</td><td>Download single file</td></tr>
     <tr><td>mget *.log</td><td>Download multiple files (glob)</td></tr>
     <tr><td>get -r /remote/dir /local/dir</td><td>Download directory (sftp only)</td></tr>
@@ -66,7 +66,7 @@ bye
 EOF</td><td>Here-doc batch transfer in shell script</td></tr>
     <tr><td>sftp -b /tmp/batch.txt user@host</td><td>Execute commands from batch file</td></tr>
   </table>
-  <div class="note">Note: Plain FTP sends credentials in cleartext — use SFTP or SCP in production. Disable anonymous FTP on backup servers.</div>
+  <div class="note">Note: Plain FTP sends credentials in cleartext. Use SFTP or SCP in production. Disable anonymous FTP on backup servers.</div>
 </div>
 
 <div class="tool-block">
@@ -90,8 +90,8 @@ EOF</td><td>Here-doc batch transfer in shell script</td></tr>
     <tr><td>scp user@src:/data/file.tar user@dst:/data/</td><td>Copy between two remote hosts</td></tr>
     <tr><td colspan="2"><span class="section-label">Useful combos</span></td></tr>
     <tr><td>scp -rp /local/dir user@host:/dst/</td><td>Preserve timestamps &amp; permissions</td></tr>
-    <tr><td>scp -q file.tar user@host:/bkp/</td><td>Quiet mode — suppress progress</td></tr>
-    <tr><td>scp -v file.tar user@host:/bkp/</td><td>Verbose — useful for debugging</td></tr>
+    <tr><td>scp -q file.tar user@host:/bkp/</td><td>Quiet mode: suppress progress</td></tr>
+    <tr><td>scp -v file.tar user@host:/bkp/</td><td>Verbose: useful for debugging</td></tr>
   </table>
   <div class="note">Note: SCP lacks resume capability. For large transfers or unreliable links use rsync over SSH instead. On newer OpenSSH (&gt;= 9.0) scp uses the SFTP protocol internally.</div>
 </div>
@@ -108,14 +108,14 @@ EOF</td><td>Here-doc batch transfer in shell script</td></tr>
     <tr><td>-z  (--compress)</td><td>Compress data in transit</td></tr>
     <tr><td>-v  (--verbose)</td><td>Show files being transferred</td></tr>
     <tr><td>-P</td><td>--partial + --progress (resume + show progress)</td></tr>
-    <tr><td>-n  (--dry-run)</td><td>Simulate — no changes written</td></tr>
+    <tr><td>-n  (--dry-run)</td><td>Simulate: no changes written</td></tr>
     <tr><td>--delete</td><td>Delete files on dst not present on src</td></tr>
     <tr><td>--checksum</td><td>Compare by checksum, not mtime/size</td></tr>
     <tr><td>--bwlimit=5000</td><td>Limit bandwidth (KBytes/s)</td></tr>
     <tr><td colspan="2"><span class="section-label">Local → Remote (SSH)</span></td></tr>
     <tr><td>rsync -avz /src/ user@host:/dst/</td><td>Sync directory to remote (trailing / = contents only)</td></tr>
     <tr><td>rsync -avzP /src/ user@host:/dst/</td><td>With progress &amp; resume support</td></tr>
-    <tr><td>rsync -avz --delete /src/ user@host:/dst/</td><td>Mirror — removes files deleted on src</td></tr>
+    <tr><td>rsync -avz --delete /src/ user@host:/dst/</td><td>Mirror: removes files deleted on src</td></tr>
     <tr><td>rsync -avz -e "ssh -p 2222" /src/ user@host:/dst/</td><td>Non-default SSH port</td></tr>
     <tr><td>rsync -avz -e "ssh -i /root/.ssh/id_rsa" /src/ user@host:/dst/</td><td>Custom identity file</td></tr>
     <tr><td colspan="2"><span class="section-label">Remote → Local</span></td></tr>

@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────────
-   sidebar.css — 212px category rail, warm stone theme.
+   sidebar.css: 212px category rail, warm stone theme.
    Requires tokens.css. Markup is built at runtime by chrome.js
    from window.WIKI_NAV (assets/js/nav-data.js), so runbooks adopt
    the rail with zero edits to their own markup.
@@ -24,13 +24,13 @@
   padding: 64px 0 34px;
   z-index: 40;
   /* Reserve the scrollbar gutter on BOTH edges so an overflowing rail keeps
-     its content centred — otherwise the scrollbar shaves width off the right
+     its content centred. Otherwise the scrollbar shaves width off the right
      only, shifting the centred filter left of the (scrollbar-agnostic) pill. */
   scrollbar-gutter: stable both-edges;
   transition: transform .26s ease, background .25s ease, border-color .25s ease;
 }
 
-/* Slim scrollbar — the rail is furniture, not a focal point. */
+/* Slim scrollbar: the rail is furniture, not a focal point. */
 .rail::-webkit-scrollbar { width: 7px; }
 .rail::-webkit-scrollbar-thumb {
   background: var(--border);
@@ -68,7 +68,7 @@
   border-color: var(--ochre);
 }
 
-/* Hidden by the filter — display:none rather than a class on the link so
+/* Hidden by the filter: display:none rather than a class on the link so
    an emptied category collapses with it. */
 .rail-link.hide,
 .rail-group.hide { display: none; }
@@ -116,7 +116,7 @@
   border-left-color: var(--ochre-bd);
 }
 
-/* Current page: lifted onto --paper so it reads as "you are here" —
+/* Current page: lifted onto --paper so it reads as "you are here":
    the same surface the content column sits on. */
 .rail-link[aria-current='page'] {
   background: var(--paper);
@@ -196,7 +196,7 @@
 /* ── control pill (home · sidebar · theme) ────────────────────
    One opaque pill pinned top-left, where the "Knowledge Base" wordmark used
    to sit. Built by chrome.js. It replaces both that wordmark and the old
-   narrow-screen hamburger — the sidebar button collapses the column on
+   narrow-screen hamburger: the sidebar button collapses the column on
    desktop and opens the drawer on narrow screens. */
 .wiki-controls {
   position: fixed;
@@ -259,7 +259,7 @@
   stroke-linejoin: round;
 }
 
-/* moon in light, sun in dark — swap keyed on the resolved theme, which
+/* moon in light, sun in dark: swap keyed on the resolved theme, which
    chrome.js always writes explicitly so this stays a simple attribute test. */
 .wiki-btn .i-sun { display: none; }
 :root[data-theme="dark"] .wiki-btn .i-moon { display: none; }

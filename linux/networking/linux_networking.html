@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Linux Networking — Interfaces, Routes, NetworkManager, firewalld</title>
+<title>Linux Networking: Interfaces, Routes, NetworkManager, firewalld</title>
 <meta name="description" content="Reference for everyday Linux network admin on RHEL 8/9 (and derivatives) using NetworkManager + firewalld. Covers identifying NICs, assigning addresses, creating connections, persistent routes, DNS, and host-firewall rules.">
 <meta name="reviewed" content="2026-05-09">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -135,10 +135,10 @@
 <div class="wrap">
 
   <nav class="crumb">
-    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#linux">Linux</a><span class="sep">/</span><a href="../../index.html#linux">Networking</a><span class="sep">/</span>Linux Networking — Interfaces, Routes, NetworkManager, firewalld
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#linux">Linux</a><span class="sep">/</span><a href="../../index.html#linux">Networking</a><span class="sep">/</span>Linux Networking: Interfaces, Routes, NetworkManager, firewalld
   </nav>
 
-  <h1 class="page-title">Linux Networking — Interfaces, Routes, NetworkManager, firewalld</h1>
+  <h1 class="page-title">Linux Networking: Interfaces, Routes, NetworkManager, firewalld</h1>
   <p class="page-sub">Reference for everyday Linux network admin on RHEL 8/9 (and derivatives) using NetworkManager + firewalld. Covers identifying NICs, assigning addresses, creating connections, persistent routes, DNS, and host-firewall rules.</p>
 
   <div class="badges">
@@ -166,7 +166,7 @@
     </div>
   </div>
 
-  <p class="note note-info" style="margin-top:0; margin-bottom:24px;">Reference for everyday Linux network administration on RHEL 8/9 (and derivatives) using <strong>NetworkManager</strong> + <strong>firewalld</strong>. Covers identifying NICs, assigning addresses, creating new connections, persistent routes, DNS, and host-firewall rules. On RHEL 9 the legacy <code>network-scripts</code> package is gone — do <em>not</em> hand-edit <code>ifcfg-*</code> files while NetworkManager is running; everything below treats NetworkManager as the source of truth.</p>
+  <p class="note note-info" style="margin-top:0; margin-bottom:24px;">Reference for everyday Linux network administration on RHEL 8/9 (and derivatives) using <strong>NetworkManager</strong> + <strong>firewalld</strong>. Covers identifying NICs, assigning addresses, creating new connections, persistent routes, DNS, and host-firewall rules. On RHEL 9 the legacy <code>network-scripts</code> package is gone. Do <em>not</em> hand-edit <code>ifcfg-*</code> files while NetworkManager is running; everything below treats NetworkManager as the source of truth.</p>
 
   <!-- ════ PHASE 1 ════ -->
   <div class="phase-label"><span>Identify</span> What you have</div>
@@ -196,7 +196,7 @@
 <span class="c"># Driver / firmware</span>
 <span class="kw">ethtool</span> <span class="flag">-i</span> <span class="str">eth0</span>
 <span class="kw">ethtool</span> <span class="str">eth0</span>          <span class="c"># link speed / duplex</span></div>
-        <p class="note">Naming on RHEL 8/9 follows the predictable scheme — <code>ens192</code>, <code>eno1</code>, <code>enp0s3</code> — substitute your actual interface name everywhere below. <code>nmcli device status</code> and <code>nmcli connection show</code> are the two commands you'll keep open in another pane while making changes.</p>
+        <p class="note">Naming on RHEL 8/9 follows the predictable scheme (<code>ens192</code>, <code>eno1</code>, <code>enp0s3</code>). Substitute your actual interface name everywhere below. <code>nmcli device status</code> and <code>nmcli connection show</code> are the two commands you'll keep open in another pane while making changes.</p>
       </div>
     </div>
   </div>
@@ -212,7 +212,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note note-info" style="margin-top:0;">NetworkManager separates two concepts: a <strong>device</strong> is the physical or virtual NIC (<code>eth0</code>, <code>ens192</code>, <code>bond0</code>); a <strong>connection</strong> is a saved profile that, when "up", configures a device. A device can have many saved connections — only one is active at a time. Profiles live in <code>/etc/NetworkManager/system-connections/*.nmconnection</code>.</p>
+        <p class="note note-info" style="margin-top:0;">NetworkManager separates two concepts: a <strong>device</strong> is the physical or virtual NIC (<code>eth0</code>, <code>ens192</code>, <code>bond0</code>); a <strong>connection</strong> is a saved profile that, when "up", configures a device. A device can have many saved connections. Only one is active at a time. Profiles live in <code>/etc/NetworkManager/system-connections/*.nmconnection</code>.</p>
         <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="kw">systemctl</span> <span class="flag">status</span> <span class="str">NetworkManager</span>
 <span class="kw">nmcli</span> <span class="flag">general status</span>
 
@@ -222,8 +222,8 @@
 
 <span class="c"># Profiles on disk</span>
 <span class="kw">ls</span> <span class="flag">-l</span> /etc/NetworkManager/system-connections/</div>
-        <p class="note">Three ways to edit a connection: (1) <code>nmcli</code> — scriptable, idempotent, what you use 90% of the time; (2) <code>nmtui</code> — curses TUI, good for one-off changes on a console; (3) edit the <code>.nmconnection</code> file directly, then <code>nmcli connection reload</code>.</p>
-        <p class="note note-caution"><strong>Do not mix NetworkManager with manual <code>ifcfg-*</code> edits on RHEL 9.</strong> The legacy <code>network-scripts</code> package is gone in RHEL 9 — there is no fall-back parser. Treat the <code>.nmconnection</code> profile as the only on-disk truth.</p>
+        <p class="note">Three ways to edit a connection: (1) <code>nmcli</code>: scriptable, idempotent, what you use 90% of the time; (2) <code>nmtui</code>: curses TUI, good for one-off changes on a console; (3) edit the <code>.nmconnection</code> file directly, then <code>nmcli connection reload</code>.</p>
+        <p class="note note-caution"><strong>Do not mix NetworkManager with manual <code>ifcfg-*</code> edits on RHEL 9.</strong> The legacy <code>network-scripts</code> package is gone in RHEL 9. There is no fall-back parser. Treat the <code>.nmconnection</code> profile as the only on-disk truth.</p>
       </div>
     </div>
   </div>
@@ -239,7 +239,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># Simplest case — new NIC plugged in, want it on DHCP</span>
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># Simplest case: new NIC plugged in, want it on DHCP</span>
 <span class="kw">nmcli</span> <span class="flag">connection add</span> \
     type <span class="str">ethernet</span> \
     con-name <span class="str">eth1</span> \
@@ -282,8 +282,8 @@
     autoconnect <span class="str">yes</span>
 
 <span class="kw">nmcli</span> <span class="flag">connection up</span> <span class="str">ens224</span></div>
-        <p class="note"><code>ipv4.addresses</code> accepts a comma-separated list to assign multiple IPs to one interface — useful for service migrations and floating addresses.</p>
-        <p class="note note-caution"><strong>Only one connection per default-route table should set <code>ipv4.gateway</code></strong> — usually the management NIC. Two connections each declaring a default gateway will produce two <code>default via</code> routes and unstable egress (see <em>Common failures</em>).</p>
+        <p class="note"><code>ipv4.addresses</code> accepts a comma-separated list to assign multiple IPs to one interface, which is useful for service migrations and floating addresses.</p>
+        <p class="note note-caution"><strong>Only one connection per default-route table should set <code>ipv4.gateway</code></strong>, usually the management NIC. Two connections each declaring a default gateway will produce two <code>default via</code> routes and unstable egress (see <em>Common failures</em>).</p>
         <p class="note">Set <code>ipv6.method disabled</code> if your shop is IPv4-only; otherwise leave defaults so SLAAC / DHCPv6 still work.</p>
       </div>
     </div>
@@ -316,7 +316,7 @@
 
 <span class="c"># Apply changes (re-up the connection)</span>
 <span class="kw">nmcli</span> <span class="flag">connection down</span> <span class="str">ens192</span> &amp;&amp; <span class="kw">nmcli</span> <span class="flag">connection up</span> <span class="str">ens192</span></div>
-        <p class="note">Changes are written to <code>/etc/NetworkManager/system-connections/&lt;name&gt;.nmconnection</code> immediately — the <code>up</code>/<code>down</code> cycle is what makes the kernel reflect them. Use the <code>+</code> / <code>-</code> prefix to append or remove individual entries from list-typed properties (addresses, routes, DNS).</p>
+        <p class="note">Changes are written to <code>/etc/NetworkManager/system-connections/&lt;name&gt;.nmconnection</code> immediately. The <code>up</code>/<code>down</code> cycle is what makes the kernel reflect them. Use the <code>+</code> / <code>-</code> prefix to append or remove individual entries from list-typed properties (addresses, routes, DNS).</p>
       </div>
     </div>
   </div>
@@ -334,7 +334,7 @@
       <div class="step-body">
         <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="kw">nmtui</span></div>
         <p class="note"><strong>Edit a connection</strong> → pick connection → tab to fields → fill IPv4 / IPv6 / Routes → OK. <strong>Activate a connection</strong> → toggles up/down. <strong>Set system hostname</strong> → updates <code>/etc/hostname</code> and notifies <code>systemd-hostnamed</code>.</p>
-        <p class="note">nmtui writes the same <code>.nmconnection</code> files as nmcli — safe to alternate between the two. Useful when you're at a serial console and don't want to type out a full <code>nmcli</code> incantation.</p>
+        <p class="note">nmtui writes the same <code>.nmconnection</code> files as nmcli, so it is safe to alternate between the two. Useful when you're at a serial console and don't want to type out a full <code>nmcli</code> incantation.</p>
       </div>
     </div>
   </div>
@@ -359,14 +359,14 @@
 <span class="c"># Verify</span>
 <span class="kw">ip</span> <span class="flag">route</span>
 <span class="kw">ip</span> <span class="flag">route show</span> <span class="str">192.168.50.0/24</span></div>
-        <p class="note">A single <code>+ipv4.routes</code> entry is the cleanest way to attach a persistent next-hop to one connection. The route is bound to the connection profile — when the connection comes up, the kernel installs the route; when it goes down, the route disappears. This is exactly the persistence you want.</p>
+        <p class="note">A single <code>+ipv4.routes</code> entry is the cleanest way to attach a persistent next-hop to one connection. The route is bound to the connection profile: when the connection comes up, the kernel installs the route; when it goes down, the route disappears. This is exactly the persistence you want.</p>
       </div>
     </div>
 
     <div class="step ph-routes">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">08</span>
-        <span class="step-title">Multiple routes, metric, table, delete — and what's on disk</span>
+        <span class="step-title">Multiple routes, metric, table, delete, and what's on disk</span>
         <span class="step-tag tag-info">REFERENCE</span>
         <span class="step-chevron">▶</span>
       </div>
@@ -382,13 +382,13 @@
 <span class="c"># Delete a single route</span>
 <span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> -ipv4.routes <span class="str">"192.168.50.0/24 10.0.0.254"</span>
 
-<span class="cmd-section">On disk — /etc/NetworkManager/system-connections/ens192.nmconnection</span>
+<span class="cmd-section">On disk · /etc/NetworkManager/system-connections/ens192.nmconnection</span>
 <span class="c">[ipv4]</span>
 <span class="c">method=manual</span>
 <span class="c">addresses1=10.0.0.50/24,10.0.0.1</span>
 <span class="c">routes1=192.168.50.0/24,10.0.0.254</span>
 <span class="c">dns=10.0.0.5;</span></div>
-        <p class="note note-caution"><strong>Bare <code>ipv4.routes</code> replaces the list</strong> — use <code>+ipv4.routes</code> to append and <code>-ipv4.routes</code> to remove a single entry. Forgetting the <code>+</code> when you meant to append will silently drop every other static route on the connection.</p>
+        <p class="note note-caution"><strong>Bare <code>ipv4.routes</code> replaces the list</strong>. Use <code>+ipv4.routes</code> to append and <code>-ipv4.routes</code> to remove a single entry. Forgetting the <code>+</code> when you meant to append will silently drop every other static route on the connection.</p>
       </div>
     </div>
   </div>
@@ -408,7 +408,7 @@
 <span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.dns <span class="str">"10.0.0.5 10.0.0.6"</span>
 <span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.dns-search <span class="str">"corp.example.com lab.example.com"</span>
 
-<span class="c"># Override DNS from this connection only — ignore DHCP-supplied DNS</span>
+<span class="c"># Override DNS from this connection only: ignore DHCP-supplied DNS</span>
 <span class="kw">nmcli</span> <span class="flag">connection modify</span> <span class="str">ens192</span> ipv4.ignore-auto-dns <span class="str">yes</span>
 
 <span class="c"># Re-up to apply</span>
@@ -419,7 +419,7 @@
 <span class="kw">cat</span> /etc/resolv.conf
 <span class="kw">getent</span> <span class="flag">hosts</span> <span class="str">mail.corp.example.com</span>
 <span class="kw">dig</span> <span class="flag">+short</span> <span class="str">corp.example.com</span></div>
-        <p class="note note-caution"><strong>Do not edit <code>/etc/resolv.conf</code> by hand while NetworkManager is running.</strong> On RHEL it's typically a managed file (or a symlink to a stub maintained by <code>systemd-resolved</code>) — manual edits are clobbered the next time a connection comes up. Set DNS via <code>nmcli</code> on the connection profile instead.</p>
+        <p class="note note-caution"><strong>Do not edit <code>/etc/resolv.conf</code> by hand while NetworkManager is running.</strong> On RHEL it's typically a managed file (or a symlink to a stub maintained by <code>systemd-resolved</code>). Manual edits are clobbered the next time a connection comes up. Set DNS via <code>nmcli</code> on the connection profile instead.</p>
       </div>
     </div>
   </div>
@@ -457,7 +457,7 @@
 <span class="kw">cat</span> /proc/net/bonding/bond0
 <span class="kw">ip</span> <span class="flag">-br link</span></div>
         <p class="note">Common modes: <code>active-backup</code>, <code>802.3ad</code> (LACP), <code>balance-tlb</code>, <code>balance-alb</code>. Match what the switch supports.</p>
-        <p class="note note-caution"><strong>Switch-side configuration must match the bond mode.</strong> Running the bond as <code>802.3ad</code> while the switch port is configured for static aggregation (or vice versa) gives you a bond that "comes up" on the host but never passes traffic — confirm with <code>cat /proc/net/bonding/bond0</code> and look for "Currently Active Slave" / LACP partner state.</p>
+        <p class="note note-caution"><strong>Switch-side configuration must match the bond mode.</strong> Running the bond as <code>802.3ad</code> while the switch port is configured for static aggregation (or vice versa) gives you a bond that "comes up" on the host but never passes traffic. Confirm with <code>cat /proc/net/bonding/bond0</code> and look for "Currently Active Slave" / LACP partner state.</p>
       </div>
     </div>
   </div>
@@ -525,7 +525,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="c"># Open a port — write to config, then reload to make active</span>
+        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="c"># Open a port: write to config, then reload to make active</span>
 <span class="kw">firewall-cmd</span> <span class="flag">--permanent --zone=</span><span class="str">public</span> <span class="flag">--add-port=</span><span class="str">8080/tcp</span>
 <span class="kw">firewall-cmd</span> <span class="flag">--reload</span>
 
@@ -539,7 +539,7 @@
 
 <span class="c"># What does that service expand to?</span>
 <span class="kw">firewall-cmd</span> <span class="flag">--info-service=</span><span class="str">https</span></div>
-        <p class="note note-caution"><strong>Forgetting <code>--permanent</code> + <code>--reload</code> is the #1 firewalld footgun.</strong> Without <code>--permanent</code> the change is runtime only and disappears on reload or reboot. With <code>--permanent</code> alone the change is on disk but not yet active — you still need <code>--reload</code> for the live ruleset to pick it up. Pair them every time, or use <code>firewall-cmd --runtime-to-permanent</code> after testing live.</p>
+        <p class="note note-caution"><strong>Forgetting <code>--permanent</code> + <code>--reload</code> is the #1 firewalld footgun.</strong> Without <code>--permanent</code> the change is runtime only and disappears on reload or reboot. With <code>--permanent</code> alone the change is on disk but not yet active. You still need <code>--reload</code> for the live ruleset to pick it up. Pair them every time, or use <code>firewall-cmd --runtime-to-permanent</code> after testing live.</p>
       </div>
     </div>
   </div>
@@ -569,7 +569,7 @@
 <span class="kw">firewall-cmd</span> <span class="flag">--permanent --zone=</span><span class="str">internal</span> <span class="flag">--change-interface=</span><span class="str">ens224</span>
 <span class="kw">firewall-cmd</span> <span class="flag">--reload</span>
 <span class="kw">firewall-cmd</span> <span class="flag">--get-active-zones</span></div>
-        <p class="note">Rich rules give you the full nftables-flavoured grammar — source/destination address, port + protocol, action, optional logging — without needing to touch nftables directly. Keep them readable; multi-line quoted form is supported and recommended.</p>
+        <p class="note">Rich rules give you the full nftables-flavoured grammar (source/destination address, port + protocol, action, optional logging) without needing to touch nftables directly. Keep them readable; multi-line quoted form is supported and recommended.</p>
         <p class="note">An interface lives in exactly one zone at a time. <code>--change-interface</code> is the right verb when you want a NIC to be evaluated against a different rule set (e.g. trusted management LAN moves to <code>internal</code>; DMZ-facing NIC stays on <code>public</code>).</p>
       </div>
     </div>
@@ -599,7 +599,7 @@
 <span class="c"># If you've been adding rules WITHOUT --permanent and want to keep them</span>
 <span class="kw">firewall-cmd</span> <span class="flag">--runtime-to-permanent</span></div>
         <p class="note note-critical"><strong>Removing a service can lock you out of an in-flight session.</strong> Always confirm you have an alternate route in (console, OOB, secondary NIC in a different zone) before <code>--remove-service=ssh</code> or <code>--remove-port=22/tcp</code> on the management interface.</p>
-        <p class="note"><code>--runtime-to-permanent</code> snapshots the live ruleset to disk — handy when iterating without <code>--permanent</code>, then committing once you're happy.</p>
+        <p class="note"><code>--runtime-to-permanent</code> snapshots the live ruleset to disk, which is handy when iterating without <code>--permanent</code>, then committing once you're happy.</p>
       </div>
     </div>
   </div>
@@ -669,7 +669,7 @@
           <tr>
             <td style="width:auto; color:var(--ink); white-space:normal">Two default routes, traffic flapping</td>
             <td style="color:var(--ink-2)"><code>ip route</code> shows two <code>default via</code></td>
-            <td style="color:var(--faint)">Two connections set <code>ipv4.gateway</code> — clear one</td>
+            <td style="color:var(--faint)">Two connections set <code>ipv4.gateway</code>: clear one</td>
           </tr>
           <tr>
             <td style="width:auto; color:var(--ink); white-space:normal">Static route disappears on reboot</td>
@@ -727,14 +727,14 @@
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li>NetworkManager is the source of truth on RHEL 8/9 — manage connections via <code>nmcli</code> / <code>nmtui</code>, not legacy <code>ifcfg-*</code> scripts (the <code>network-scripts</code> package is gone in RHEL 9).</li>
-      <li>Only <strong>one</strong> connection per default-route table should set <code>ipv4.gateway</code> — two default routes produce flapping egress.</li>
-      <li>Persistent static routes belong in the connection profile (<code>+ipv4.routes</code>), <em>not</em> in <code>/etc/sysconfig/network-scripts</code> and <em>not</em> via one-shot <code>ip route add</code> — those don't survive a reboot.</li>
+      <li>NetworkManager is the source of truth on RHEL 8/9. Manage connections via <code>nmcli</code> / <code>nmtui</code>, not legacy <code>ifcfg-*</code> scripts (the <code>network-scripts</code> package is gone in RHEL 9).</li>
+      <li>Only <strong>one</strong> connection per default-route table should set <code>ipv4.gateway</code>. Two default routes produce flapping egress.</li>
+      <li>Persistent static routes belong in the connection profile (<code>+ipv4.routes</code>), <em>not</em> in <code>/etc/sysconfig/network-scripts</code> and <em>not</em> via one-shot <code>ip route add</code>. Those don't survive a reboot.</li>
       <li>firewalld changes need <code>--permanent</code> <em>and</em> <code>--reload</code> to be both saved and active. Use one without the other and you'll be debugging a phantom rule.</li>
-      <li><code>firewall-cmd --runtime-to-permanent</code> saves the current live ruleset to disk — useful after iterating with runtime-only changes.</li>
+      <li><code>firewall-cmd --runtime-to-permanent</code> saves the current live ruleset to disk, which is useful after iterating with runtime-only changes.</li>
       <li>Set <code>ipv4.ignore-auto-dns yes</code> on a static connection to prevent DHCP-supplied DNS from overriding your configured resolvers.</li>
-      <li>Don't hand-edit <code>/etc/resolv.conf</code> while NetworkManager is running — it's a managed file and your changes will be clobbered.</li>
-      <li>Switch-side LACP / aggregation mode must match the bond mode exactly. A "bond up, no traffic" symptom is almost always switch-side mismatch — confirm via <code>cat /proc/net/bonding/bond0</code>.</li>
+      <li>Don't hand-edit <code>/etc/resolv.conf</code> while NetworkManager is running. It's a managed file and your changes will be clobbered.</li>
+      <li>Switch-side LACP / aggregation mode must match the bond mode exactly. A "bond up, no traffic" symptom is almost always switch-side mismatch. Confirm via <code>cat /proc/net/bonding/bond0</code>.</li>
     </ul>
   </div>
 

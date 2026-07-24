@@ -224,7 +224,7 @@
       <div class="env-cell"><div class="env-label">Scope</div><div class="env-val">Single LPAR · non-clustered</div></div>
       <div class="env-cell"><div class="env-label">Rollback</div><div class="env-val ok">alt_disk_copy clone</div></div>
       <div class="env-cell"><div class="env-label">Window (SP)</div><div class="env-val mono">~90 min</div></div>
-      <div class="env-cell"><div class="env-label">Window (TL)</div><div class="env-val mono warn">2 — 3 hr</div></div>
+      <div class="env-cell"><div class="env-label">Window (TL)</div><div class="env-val mono warn">2 to 3 hr</div></div>
       <div class="env-cell"><div class="env-label">Privileges</div><div class="env-val">root / sudo-to-root</div></div>
       <div class="env-cell"><div class="env-label">Spare disk</div><div class="env-val mono">≥ rootvg size</div></div>
     </div>
@@ -245,26 +245,26 @@
     <div class="level-card to">
       <div class="level-role">Target level</div>
       <div class="level-name">7100-05-12-2320</div>
-      <div class="level-tag">AIX 7.1 TL5 SP12 — final 7.1 SP</div>
+      <div class="level-tag">AIX 7.1 TL5 SP12 · final 7.1 SP</div>
       <div class="level-extra">bundle: 7100-05-12-2320-FP.tar</div>
     </div>
   </div>
 
-  <p class="note note-info" style="margin-bottom:24px"><strong>Worked example:</strong> All commands below assume <code>hdisk0</code> = live rootvg, <code>hdisk1</code> = unassigned spare for <code>alt_disk_copy</code>, staging dir <code>/var/update_staging/7100-05-12</code>. Sub in your own values — package names will differ per release.</p>
+  <p class="note note-info" style="margin-bottom:24px"><strong>Worked example:</strong> All commands below assume <code>hdisk0</code> = live rootvg, <code>hdisk1</code> = unassigned spare for <code>alt_disk_copy</code>, staging dir <code>/var/update_staging/7100-05-12</code>. Sub in your own values. Package names will differ per release.</p>
 
-  <p class="note note-caution" style="margin-bottom:32px"><strong>Out of scope:</strong> NIM-driven mass updates · PowerHA/HACMP-managed nodes · major-version migrations (7.1 → 7.2 / 7.2 → 7.3) — those are <em>migration installations</em>, see the companion <code>nimadm</code> and boot-media migration runbooks.</p>
+  <p class="note note-caution" style="margin-bottom:32px"><strong>Out of scope:</strong> NIM-driven mass updates · PowerHA/HACMP-managed nodes · major-version migrations (7.1 → 7.2 / 7.2 → 7.3). Those are <em>migration installations</em>, see the companion <code>nimadm</code> and boot-media migration runbooks.</p>
 
   <!-- ════ PHASE 1 ════ -->
   <div class="phase-label"><span>Phase 1</span> Pre-change planning · T-7 to T-2 days</div>
   <ul class="checklist">
-    <li><strong>Change ticket raised</strong> — CAB approval logged.</li>
+    <li><strong>Change ticket raised</strong>: CAB approval logged.</li>
     <li><strong>Maintenance window agreed</strong> with the customer.</li>
-    <li><strong>Backup strategy confirmed</strong> — mksysb destination plus TSM file-level coverage of mksysb output and any datavgs.</li>
-    <li><strong>Free disk identified</strong> for <code>alt_disk_copy</code> — equal to or greater than rootvg size.</li>
+    <li><strong>Backup strategy confirmed</strong>: mksysb destination plus TSM file-level coverage of mksysb output and any datavgs.</li>
+    <li><strong>Free disk identified</strong> for <code>alt_disk_copy</code>: equal to or greater than rootvg size.</li>
     <li><strong>Third-party software compatibility</strong> verified against the target TL/SP (Oracle, TSM/TDPO, monitoring agents, etc.).</li>
     <li><strong>Update bundle downloaded</strong> from Fix Central / ESS and SHA256 checksum verified.</li>
   </ul>
-  <p class="note note-caution"><strong>Window sizing:</strong> ~90 min for an SP, 2 — 3 hr for a TL. Network or SAN-attached storage operations (mksysb to NFS, alt_disk_copy onto a SAN LUN) can extend this materially — pad accordingly.</p>
+  <p class="note note-caution"><strong>Window sizing:</strong> ~90 min for an SP, 2 to 3 hr for a TL. Network or SAN-attached storage operations (mksysb to NFS, alt_disk_copy onto a SAN LUN) can extend this materially. Pad accordingly.</p>
 
   <!-- ════ PHASE 2 ════ -->
   <div class="phase-label"><span>Phase 2</span> Pre-flight checks · T-0, before window start</div>
@@ -285,7 +285,7 @@
 <span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> ML         <span class="c"># all prior MLs/TLs cleanly applied?</span>
 <span class="kw">uname</span> <span class="flag">-a</span>
 <span class="kw">prtconf</span> | <span class="kw">head</span> <span class="flag">-30</span>           <span class="c"># CPU/memory/serial for change record</span></div>
-        <p class="note">Pin the source level into the change record. <code>instfix -i | grep ML</code> must show every prior ML as <em>complete</em> — anything missing means a half-applied prior update that needs cleaning up first.</p>
+        <p class="note">Pin the source level into the change record. <code>instfix -i | grep ML</code> must show every prior ML as <em>complete</em>. Anything missing means a half-applied prior update that needs cleaning up first.</p>
       </div>
     </div>
 
@@ -300,7 +300,7 @@
       <div class="step-body">
         <div class="cmd" id="c02"><button class="copy-btn" onclick="copy('c02',this)">COPY</button><span class="kw">lppchk</span> <span class="flag">-v</span>                    <span class="c"># MUST return clean (no output)</span>
 <span class="kw">lppchk</span> <span class="flag">-c</span>                    <span class="c"># checksum verify (slower, optional)</span></div>
-        <p class="note note-critical"><strong>Stop condition:</strong> If <code>lppchk -v</code> reports broken or missing prerequisites, do not proceed. The most common cause is a previous half-applied update — clean it up with <code>installp -C</code> before patching.</p>
+        <p class="note note-critical"><strong>Stop condition:</strong> If <code>lppchk -v</code> reports broken or missing prerequisites, do not proceed. The most common cause is a previous half-applied update. Clean it up with <code>installp -C</code> before patching.</p>
       </div>
     </div>
 
@@ -326,7 +326,7 @@
             <tr><td>/opt</td><td>500 MB</td><td>Optional product trees</td></tr>
           </tbody>
         </table>
-        <p class="note note-caution"><strong>For a TL update, double these.</strong> It is imperative that <code>/usr</code> has enough headroom — running it dry mid-install leaves filesets in a broken state. <code>/usr</code> is restartable via <code>chfs -a size=+1G /usr</code> and <code>install_all_updates</code> can be re-run, but only if you catch it.</p>
+        <p class="note note-caution"><strong>For a TL update, double these.</strong> It is imperative that <code>/usr</code> has enough headroom. Running it dry mid-install leaves filesets in a broken state. <code>/usr</code> is restartable via <code>chfs -a size=+1G /usr</code> and <code>install_all_updates</code> can be re-run, but only if you catch it.</p>
       </div>
     </div>
 
@@ -343,7 +343,7 @@
 <span class="kw">lsvg</span> <span class="flag">-p</span> rootvg               <span class="c"># all PVs active?</span>
 <span class="kw">lsvg</span> <span class="flag">-l</span> rootvg               <span class="c"># any open/syncd issues?</span>
 <span class="kw">lspv</span>                         <span class="c"># confirm spare disk (hdisk1) is free</span></div>
-        <p class="note note-verify"><strong>✓ Verify:</strong> <code>hdisk1</code> shows <code>None</code> in the VG column of <code>lspv</code>. Every LV in <code>lsvg -l rootvg</code> should be <code>open/syncd</code> — anything in <code>stale</code> state needs <code>syncvg</code> before you clone.</p>
+        <p class="note note-verify"><strong>✓ Verify:</strong> <code>hdisk1</code> shows <code>None</code> in the VG column of <code>lspv</code>. Every LV in <code>lsvg -l rootvg</code> should be <code>open/syncd</code>. Anything in <code>stale</code> state needs <code>syncvg</code> before you clone.</p>
       </div>
     </div>
 
@@ -362,7 +362,7 @@
 
 <span class="kw">errpt</span> | <span class="kw">head</span> <span class="flag">-30</span>             <span class="c"># any hardware errors? fix first</span>
 <span class="kw">errpt</span> <span class="flag">-a</span> | <span class="kw">head</span> <span class="flag">-100</span> &gt; /tmp/errpt_pre.txt</div>
-        <p class="note note-caution"><strong>Latent hardware errors:</strong> A failing path or disk that isn't bothering anyone in steady state will absolutely bite you on the post-patch reboot. Resolve hardware errors before continuing — or you'll be guessing whether the patch caused them.</p>
+        <p class="note note-caution"><strong>Latent hardware errors:</strong> A failing path or disk that isn't bothering anyone in steady state will absolutely bite you on the post-patch reboot. Resolve hardware errors before continuing, or you'll be guessing whether the patch caused them.</p>
       </div>
     </div>
 
@@ -378,7 +378,7 @@
         <div class="cmd" id="c06"><button class="copy-btn" onclick="copy('c06',this)">COPY</button><span class="kw">lssrc</span> <span class="flag">-a</span> &gt; /tmp/lssrc_pre.txt
 <span class="kw">netstat</span> <span class="flag">-rn</span> &gt; /tmp/routing_pre.txt
 <span class="kw">df</span> <span class="flag">-g</span> &gt; /tmp/df_pre.txt</div>
-        <p class="note">Known-good baseline to diff against post-patch. Any subsystem that was active before but inoperative after — or any route that disappeared — gets flagged immediately rather than weeks later.</p>
+        <p class="note">Known-good baseline to diff against post-patch. Any subsystem that was active before but inoperative after, or any route that disappeared, gets flagged immediately rather than weeks later.</p>
       </div>
     </div>
 
@@ -412,12 +412,12 @@
             <tr><th>Flag</th><th>Purpose</th></tr>
           </thead>
           <tbody>
-            <tr><td>-i</td><td>Regenerate <code>/image.data</code> — captures current LV layout</td></tr>
+            <tr><td>-i</td><td>Regenerate <code>/image.data</code>: captures current LV layout</td></tr>
             <tr><td>-X</td><td>Auto-extend <code>/tmp</code> if needed during backup</td></tr>
             <tr><td>-p</td><td>Disable software packing</td></tr>
           </tbody>
         </table>
-        <p class="note">NFS-mounted destination preferred; local disk acceptable as a stopgap. Either way, confirm the file is readable and <code>lsmksysb -l</code> can enumerate it before continuing — a corrupt mksysb is worse than no mksysb.</p>
+        <p class="note">NFS-mounted destination preferred; local disk acceptable as a stopgap. Either way, confirm the file is readable and <code>lsmksysb -l</code> can enumerate it before continuing. A corrupt mksysb is worse than no mksysb.</p>
       </div>
     </div>
 
@@ -435,7 +435,7 @@
 <span class="kw">lspv</span> | <span class="kw">grep</span> hdisk1
 <span class="c"># Expected: hdisk1  00f6...        None</span>
 
-<span class="cmd-section">Clone (10 — 30 min depending on rootvg size and disk speed)</span>
+<span class="cmd-section">Clone (10 to 30 min depending on rootvg size and disk speed)</span>
 <span class="kw">alt_disk_copy</span> <span class="flag">-d</span> hdisk1
 
 <span class="cmd-section">Verify</span>
@@ -447,7 +447,7 @@
 <span class="c"># Confirm hdisk0 (live rootvg). If alt_disk_copy moved it, reset:</span>
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal hdisk0</div>
 
-        <p class="note note-caution" style="margin-top:14px"><strong>Two strategies — pick one:</strong></p>
+        <p class="note note-caution" style="margin-top:14px"><strong>Two strategies, pick one:</strong></p>
         <div class="option-grid">
           <div class="option-card">
             <div class="option-header opt-a">A · patch live · this runbook</div>
@@ -479,7 +479,7 @@
       <div class="step-body">
         <div class="cmd" id="c09"><button class="copy-btn" onclick="copy('c09',this)">COPY</button><span class="kw">mkdir</span> <span class="flag">-p</span> /var/update_staging/7100-05-12
 <span class="kw">cd</span> /var/update_staging/7100-05-12</div>
-        <p class="note">Keep staging under <code>/var</code> — that's where the update logs land too, so the whole change record stays in one place.</p>
+        <p class="note">Keep staging under <code>/var</code>. That's where the update logs land too, so the whole change record stays in one place.</p>
       </div>
     </div>
 
@@ -511,7 +511,7 @@
       </div>
       <div class="step-body">
         <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="kw">csum</span> <span class="flag">-h</span> SHA256 7100-05-12-2320-FP.tar</div>
-        <p class="note note-verify"><strong>✓ Verify:</strong> Output checksum matches the value listed on Fix Central / ESS for this bundle. A mismatched bundle gets you mysterious <code>0503-005</code> errors mid-install — catch it here, not three hours into the window.</p>
+        <p class="note note-verify"><strong>✓ Verify:</strong> Output checksum matches the value listed on Fix Central / ESS for this bundle. A mismatched bundle gets you mysterious <code>0503-005</code> errors mid-install. Catch it here, not three hours into the window.</p>
       </div>
     </div>
 
@@ -532,11 +532,11 @@
 <span class="c">#   bos.rte.7.1.5.41.bff</span>
 <span class="c">#   bos.rte.boot.7.1.5.41.bff</span>
 <span class="c">#   devices.common.IBM.fc.rte.7.1.5.40.bff</span>
-<span class="c">#   ... (typically 100 — 300 filesets in a full SP)</span>
+<span class="c">#   ... (typically 100 to 300 filesets in a full SP)</span>
 
 <span class="kw">inutoc</span> .
 <span class="kw">ls</span> <span class="flag">-l</span> .toc</div>
-        <p class="note note-critical"><strong>Critical:</strong> <code>inutoc</code> builds the table-of-contents file that <code>installp</code> reads. Without a current <code>.toc</code>, installp reports <em>"No filesets on the media"</em> and fails. Re-run <code>inutoc</code> after any change — adding, removing, or replacing files in the staging directory.</p>
+        <p class="note note-critical"><strong>Critical:</strong> <code>inutoc</code> builds the table-of-contents file that <code>installp</code> reads. Without a current <code>.toc</code>, installp reports <em>"No filesets on the media"</em> and fails. Re-run <code>inutoc</code> after any change: adding, removing, or replacing files in the staging directory.</p>
       </div>
     </div>
 
@@ -609,7 +609,7 @@
           <tbody>
             <tr><td>-d</td><td>Source directory (must contain <code>.toc</code>)</td></tr>
             <tr><td>-Y</td><td>Accept software licenses non-interactively</td></tr>
-            <tr><td>-c</td><td>Commit (versus apply-only) — see below</td></tr>
+            <tr><td>-c</td><td>Commit (versus apply-only): see below</td></tr>
           </tbody>
         </table>
 
@@ -624,7 +624,7 @@
             <div class="option-desc">Old version discarded. Smaller footprint. Rollback is via <code>alt_disk_copy</code> / <code>mksysb</code> only. <strong>Recommended for SPs</strong> where you have <code>alt_disk_copy</code> in place anyway.</div>
           </div>
         </div>
-        <p class="note">Expected runtime: 20 — 60 min for an SP, 60 — 120 min for a TL.</p>
+        <p class="note">Expected runtime: 20 to 60 min for an SP, 60 to 120 min for a TL.</p>
       </div>
     </div>
 
@@ -644,7 +644,7 @@
           </thead>
           <tbody>
             <tr><td>SUCCESS</td><td>Fileset installed cleanly</td></tr>
-            <tr><td>ALREADY</td><td>Target version already present (skipped — fine)</td></tr>
+            <tr><td>ALREADY</td><td>Target version already present (skipped, which is fine)</td></tr>
             <tr><td>FAILED · BROKEN · CANCELLED</td><td><strong style="color:var(--rust)">Do not reboot.</strong> Investigate first.</td></tr>
           </tbody>
         </table>
@@ -669,7 +669,7 @@
       <div class="step-body">
         <div class="cmd" id="c17"><button class="copy-btn" onclick="copy('c17',this)">COPY</button><span class="kw">sync</span>; <span class="kw">sync</span>; <span class="kw">sync</span>    <span class="c"># flush pending disk writes</span>
 <span class="kw">shutdown</span> <span class="flag">-Fr</span> now</div>
-        <p class="note">Have HMC console up and visible during the reboot — if the LPAR hangs at an LED code, you want to see it immediately rather than wait for the SSH timeout.</p>
+        <p class="note">Have HMC console up and visible during the reboot. If the LPAR hangs at an LED code, you want to see it immediately rather than wait for the SSH timeout.</p>
       </div>
     </div>
 
@@ -696,16 +696,16 @@
 <span class="c"># MUST return clean</span>
 
 <span class="kw">errpt</span> | <span class="kw">head</span> <span class="flag">-30</span>
-<span class="c"># Compare against /tmp/errpt_pre.txt — any new error classes?</span>
+<span class="c"># Compare against /tmp/errpt_pre.txt: any new error classes?</span>
 
 <span class="kw">df</span> <span class="flag">-g</span>
-<span class="c"># Compare against /tmp/df_pre.txt — /usr will have grown</span>
+<span class="c"># Compare against /tmp/df_pre.txt: /usr will have grown</span>
 
 <span class="kw">lssrc</span> <span class="flag">-a</span> | <span class="kw">grep</span> <span class="flag">-i</span> inoperative
 <span class="c"># Any subsystems that should be active but aren't?</span>
 
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span>
-<span class="c"># Should still show hdisk0 — verify and re-set with 'bootlist -m normal hdisk0' if not</span></div>
+<span class="c"># Should still show hdisk0: verify and re-set with 'bootlist -m normal hdisk0' if not</span></div>
         <p class="note note-verify"><strong>✓ Acceptance criteria:</strong> <code>oslevel -s</code> at target · <code>lppchk -v</code> clean · no new <code>errpt</code> classes · no inoperative subsystems · bootlist still on <code>hdisk0</code>. Anything else triggers Phase 7.</p>
       </div>
     </div>
@@ -793,7 +793,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note note-caution" style="margin-top:0"><strong>Only after burn-in.</strong> If patching has completed successfully and nobody has raised an issue, you're good to clear down the alt_disk_copy clone — but not before.</p>
+        <p class="note note-caution" style="margin-top:0"><strong>Only after burn-in.</strong> If patching has completed successfully and nobody has raised an issue, you're good to clear down the alt_disk_copy clone, but not before.</p>
         <div class="cmd" id="c19"><button class="copy-btn" onclick="copy('c19',this)">COPY</button><span class="cmd-section">Free hdisk1 by removing the clone definition</span>
 <span class="kw">alt_rootvg_op</span> <span class="flag">-X</span> altinst_rootvg
 
@@ -851,7 +851,7 @@
     devices.common.IBM.fc.rte.7.1.5.40.bff
     devices.common.IBM.scsi.rte.7.1.5.41.bff
     devices.fcp.disk.rte.7.1.5.40.bff
-    <span class="c">... (typically 150 — 300 filesets total)</span></div>
+    <span class="c">... (typically 150 to 300 filesets total)</span></div>
 
         <p class="note note-info" style="margin-top:14px"><strong>Naming convention:</strong></p>
         <div class="cmd" id="a1n"><button class="copy-btn" onclick="copy('a1n',this)">COPY</button>&lt;package&gt;.&lt;subpackage&gt;.&lt;V&gt;.&lt;R&gt;.&lt;M&gt;.&lt;F&gt;.bff
@@ -859,7 +859,7 @@
     R = Release (1)
     M = Modification / TL (5)
     F = Fix / SP build (41)</div>
-        <p class="note">Not all filesets in a bundle ship at the same V.R.M.F — some sub-components update infrequently, which is why mixed <code>.40</code> and <code>.41</code> levels appear in the same SP. Expected, not a problem.</p>
+        <p class="note">Not all filesets in a bundle ship at the same V.R.M.F. Some sub-components update infrequently, which is why mixed <code>.40</code> and <code>.41</code> levels appear in the same SP. Expected, not a problem.</p>
       </div>
     </div>
 
@@ -878,7 +878,7 @@
           </thead>
           <tbody>
             <tr><td>installp: 0503-005 ... could not access toc</td><td>Run <code>inutoc .</code> in the staging dir.</td></tr>
-            <tr><td>0504-203 No filesets on the media</td><td>Same root cause — missing or stale <code>.toc</code>.</td></tr>
+            <tr><td>0504-203 No filesets on the media</td><td>Same root cause: missing or stale <code>.toc</code>.</td></tr>
             <tr><td>0503-409 ... requisite is missing</td><td>A prereq fileset isn't in the bundle. Check <code>oslevel -s -l</code> and download the missing fileset, or use a fuller bundle.</td></tr>
             <tr><td>0503-464 ... cannot install over a newer version</td><td>Fileset on disk is newer than what's in the bundle. Skip with <code>installp -ag</code> (apply, ignore requisites) only if you understand <em>why</em>.</td></tr>
             <tr><td>lppchk -v reports BROKEN filesets post-patch</td><td>Run <code>installp -C</code> to clean uncommitted state, then re-run the update for affected filesets only.</td></tr>
@@ -892,13 +892,13 @@
     <div class="step ph-stage">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">A.3</span>
-        <span class="step-title">Worked example — single command sequence</span>
+        <span class="step-title">Worked example: single command sequence</span>
         <span class="step-tag tag-caution">REFERENCE</span>
         <span class="run-on target">TARGET LPAR</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note note-caution" style="margin-top:0"><strong>Do not follow this blindly</strong> — the worked-example values (level numbers, hdisk names, bundle filename) <em>will</em> change for your actual change. This is a sequence reference, not a copy-paste recipe.</p>
+        <p class="note note-caution" style="margin-top:0"><strong>Do not follow this blindly</strong>: the worked-example values (level numbers, hdisk names, bundle filename) <em>will</em> change for your actual change. This is a sequence reference, not a copy-paste recipe.</p>
         <div class="cmd" id="a3"><button class="copy-btn" onclick="copy('a3',this)">COPY</button><span class="cmd-section">Pre-flight</span>
 <span class="kw">oslevel</span> <span class="flag">-s</span>; <span class="kw">lppchk</span> <span class="flag">-v</span>; <span class="kw">df</span> <span class="flag">-g</span> /usr; <span class="kw">lspv</span>
 <span class="kw">bootlist</span> <span class="flag">-m</span> normal <span class="flag">-o</span> &gt; /tmp/bootlist_pre.txt
@@ -949,18 +949,18 @@
       <tr><td>lslpp -L</td><td>Full fileset inventory</td><td>State + level per fileset</td></tr>
       <tr><td>lslpp -h &lt;fileset&gt;</td><td>Install history for a fileset</td><td>apply/commit/reject log</td></tr>
       <tr><td>lppchk -v</td><td>Verify fileset consistency</td><td>MUST be clean pre and post</td></tr>
-      <tr><td>mksysb -ipX &lt;file&gt;</td><td>Bootable rootvg backup</td><td>Phase 3 — to NFS preferred</td></tr>
-      <tr><td>alt_disk_copy -d &lt;disk&gt;</td><td>Clone rootvg to spare disk</td><td>Phase 3 — primary rollback</td></tr>
+      <tr><td>mksysb -ipX &lt;file&gt;</td><td>Bootable rootvg backup</td><td>Phase 3: to NFS preferred</td></tr>
+      <tr><td>alt_disk_copy -d &lt;disk&gt;</td><td>Clone rootvg to spare disk</td><td>Phase 3: primary rollback</td></tr>
       <tr><td>alt_rootvg_op -W -d &lt;disk&gt;</td><td>Wake an alt_rootvg for offline access</td><td>Pattern B alternative</td></tr>
       <tr><td>alt_rootvg_op -S</td><td>Sleep an alt_rootvg</td><td>After offline patching</td></tr>
       <tr><td>alt_rootvg_op -X &lt;vg&gt;</td><td>Remove an alt_rootvg definition</td><td>Cleanup or rollback discard</td></tr>
       <tr><td>inutoc &lt;dir&gt;</td><td>Build .toc for an installp directory</td><td>Re-run after every dir change</td></tr>
-      <tr><td>install_all_updates -d &lt;dir&gt; -p</td><td>Preview update</td><td>Phase 4 — must be clean</td></tr>
-      <tr><td>install_all_updates -d &lt;dir&gt; -Yc</td><td>Apply and commit</td><td>Phase 5 — the real run</td></tr>
+      <tr><td>install_all_updates -d &lt;dir&gt; -p</td><td>Preview update</td><td>Phase 4: must be clean</td></tr>
+      <tr><td>install_all_updates -d &lt;dir&gt; -Yc</td><td>Apply and commit</td><td>Phase 5: the real run</td></tr>
       <tr><td>installp -C</td><td>Clean up failed/half-applied state</td><td>Use before re-running</td></tr>
       <tr><td>installp -s</td><td>List filesets in APPLIED (uncommitted) state</td><td>Apply-mode rollback target</td></tr>
       <tr><td>installp -c &lt;fileset&gt;</td><td>Commit a specific applied fileset</td><td>Promote apply → commit</td></tr>
-      <tr><td>installp -r &lt;fileset&gt;</td><td>Reject (roll back) an applied fileset</td><td>Apply-mode only — no reboot</td></tr>
+      <tr><td>installp -r &lt;fileset&gt;</td><td>Reject (roll back) an applied fileset</td><td>Apply-mode only, no reboot</td></tr>
       <tr><td>bootlist -m normal -o</td><td>Show normal-mode bootlist</td><td>Pre/post snapshot</td></tr>
       <tr><td>bootlist -m normal &lt;disk&gt;</td><td>Set normal-mode bootlist</td><td>Rollback flip in RB.1</td></tr>
       <tr><td>bosboot -ad /dev/&lt;disk&gt;</td><td>Rebuild boot image on disk</td><td>If boot-image corruption suspected</td></tr>
@@ -971,15 +971,15 @@
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li>Always run the dry-run (<code>install_all_updates -p</code>) before the live apply. The preview exercises requisite resolution against the staged bundle — uncaught issues here become hard failures during the live run.</li>
+      <li>Always run the dry-run (<code>install_all_updates -p</code>) before the live apply. The preview exercises requisite resolution against the staged bundle. Uncaught issues here become hard failures during the live run.</li>
       <li>Re-run <code>inutoc</code> after any change to the staging directory. A stale <code>.toc</code> is the most common cause of <em>0503-005 / 0504-203</em> errors during <code>install_all_updates</code>.</li>
-      <li><code>lppchk -v</code> must be clean both before and after. A non-clean baseline means a previous half-applied update is still hanging around — fix it with <code>installp -C</code> first, or you are patching on top of a known-broken state.</li>
-      <li>Two strategic patterns to choose between: patch the live disk and keep the clone cold for rollback (pattern A — this runbook), or wake the clone with <code>alt_rootvg_op -W</code>, patch it offline, and reboot onto the patched clone (pattern B). For application LPARs where keeping the running system pristine matters, pattern B is worth the extra steps.</li>
-      <li>After <code>alt_disk_copy</code> completes, verify the bootlist still points at the live disk (<code>hdisk0</code>) before patching. If alt_disk_copy moved it to the clone, reset with <code>bootlist -m normal hdisk0</code> — patching is a no-op if you reboot onto the unpatched clone afterwards.</li>
-      <li>Commit (<code>-c</code>) versus apply: commit halves the disk footprint but removes per-fileset rollback. With <code>alt_disk_copy</code> in place anyway, commit is the right default for SPs — your rollback is the clone, not <code>installp -r</code>.</li>
+      <li><code>lppchk -v</code> must be clean both before and after. A non-clean baseline means a previous half-applied update is still hanging around. Fix it with <code>installp -C</code> first, or you are patching on top of a known-broken state.</li>
+      <li>Two strategic patterns to choose between: patch the live disk and keep the clone cold for rollback (pattern A, this runbook), or wake the clone with <code>alt_rootvg_op -W</code>, patch it offline, and reboot onto the patched clone (pattern B). For application LPARs where keeping the running system pristine matters, pattern B is worth the extra steps.</li>
+      <li>After <code>alt_disk_copy</code> completes, verify the bootlist still points at the live disk (<code>hdisk0</code>) before patching. If alt_disk_copy moved it to the clone, reset with <code>bootlist -m normal hdisk0</code>. Patching is a no-op if you reboot onto the unpatched clone afterwards.</li>
+      <li>Commit (<code>-c</code>) versus apply: commit halves the disk footprint but removes per-fileset rollback. With <code>alt_disk_copy</code> in place anyway, commit is the right default for SPs. Your rollback is the clone, not <code>installp -r</code>.</li>
       <li>Hardware errors in <code>errpt</code> before patching <em>will</em> bite on the post-patch reboot. Resolve them at pre-flight, not at midnight.</li>
       <li>Never reboot on top of <code>FAILED</code> / <code>BROKEN</code> filesets in the install summary. A reboot on broken filesets converts a recoverable mistake into a rollback exercise.</li>
-      <li>Major-version migrations (7.1 → 7.2 / 7.2 → 7.3) are <em>not</em> updates — they are migration installations. Use the companion <code>nimadm</code> or boot-media migration runbooks instead.</li>
+      <li>Major-version migrations (7.1 → 7.2 / 7.2 → 7.3) are <em>not</em> updates. They are migration installations. Use the companion <code>nimadm</code> or boot-media migration runbooks instead.</li>
     </ul>
   </div>
 

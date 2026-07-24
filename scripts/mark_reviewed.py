@@ -7,8 +7,8 @@
     python3 scripts/mark_reviewed.py --stale          # list what needs a look
 
 Only run this when you have actually checked the procedure is still correct.
-The date is worthless — worse than worthless, it is misleading — if it is
-bumped for cosmetic edits. See CONTRIBUTING.md.
+The date is worthless if it is bumped for cosmetic edits. Worse than
+worthless, it is misleading. See CONTRIBUTING.md.
 
 Pure stdlib.
 """
@@ -53,7 +53,7 @@ def stamp(path: Path, when: date) -> tuple[bool, str]:
         # Anchor after <meta name="description">, else after <title>.
         anchor = DESC_TAG.search(text) or TITLE_TAG.search(text)
         if not anchor:
-            return False, "no <title> or <meta description> to anchor to — skipped"
+            return False, "no <title> or <meta description> to anchor to: skipped"
         text = text.replace(anchor.group(1), anchor.group(1) + tag, 1)
 
     path.write_text(text, encoding="utf-8")
@@ -75,7 +75,7 @@ def list_stale() -> int:
     print(f"{'AGE':>10}  {'REVIEWED':<12} RUNBOOK")
     for _, rel, title, reviewed, age in rows:
         if reviewed is None:
-            mark, when, ago = "!!", "—", "unreviewed"
+            mark, when, ago = "!!", "n/a", "unreviewed"
         else:
             mark = "!!" if age >= STALE_MONTHS else ("· " if age >= 6 else "  ")
             when, ago = reviewed.isoformat(), f"{age} months"

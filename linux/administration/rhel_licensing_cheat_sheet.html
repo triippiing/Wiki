@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RHEL Licensing — subscription-manager Reference</title>
+<title>RHEL Licensing: subscription-manager Reference</title>
 <meta name="description" content="Subscription-manager command reference for registering RHEL systems, attaching subscriptions, enabling repos, and diagnosing licensing failure states.">
 <meta name="reviewed" content="2026-05-09">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -224,13 +224,13 @@
       The licensing chain
     </div>
     <div class="primer-body">
-      <p>RHEL licensing is a <strong>chain</strong> — each link must be in place for the next to function. If <code>dnf</code> doesn't return repos at the end, licensing is effectively broken regardless of what intermediate status fields say.</p>
+      <p>RHEL licensing is a <strong>chain</strong>: each link must be in place for the next to function. If <code>dnf</code> doesn't return repos at the end, licensing is effectively broken regardless of what intermediate status fields say.</p>
       <div class="flow-diagram"><span class="stage">Register</span><span class="arrow">→</span><span class="stage">Attach</span><span class="arrow">→</span><span class="stage">Enable repos</span><span class="arrow">→</span><span class="endgoal">Patchable</span></div>
-      <p>Read it left-to-right when troubleshooting. Find the first link that fails — that's the one to fix. Everything downstream will recover once it's repaired.</p>
+      <p>Read it left-to-right when troubleshooting. Find the first link that fails. That's the one to fix. Everything downstream will recover once it's repaired.</p>
     </div>
   </div>
 
-  <!-- ════ PHASE 1 — REGISTER & ATTACH ════ -->
+  <!-- ════ PHASE 1 · REGISTER & ATTACH ════ -->
   <div class="phase-label"><span>Phase 1</span> Register, attach, enable repos</div>
   <div class="steps">
 
@@ -242,10 +242,10 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="cmd-section">Username / password — interactive only</span>
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="cmd-section">Username / password · interactive only</span>
 <span class="kw">subscription-manager</span> register <span class="flag">--username</span>=<span class="ph">&lt;user&gt;</span> <span class="flag">--password</span>=<span class="ph">&lt;pass&gt;</span>
 
-<span class="cmd-section">Activation key — enterprise standard</span>
+<span class="cmd-section">Activation key · enterprise standard</span>
 <span class="kw">subscription-manager</span> register <span class="flag">--org</span>=<span class="ph">&lt;org_id&gt;</span> <span class="flag">--activationkey</span>=<span class="ph">&lt;key&gt;</span></div>
         <p class="note note-info"><strong>Use activation keys</strong> for any automated build pipeline. They scope cleanly to a subscription pool, don't expose user credentials in process lists or logs, and survive password rotations. User/pass registration is fine for ad-hoc work but not for golden-image bake-outs or kickstart files.</p>
       </div>
@@ -276,7 +276,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># BaseOS + AppStream — the minimum for a patchable RHEL 8/9 system</span>
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># BaseOS + AppStream: the minimum for a patchable RHEL 8/9 system</span>
 <span class="kw">subscription-manager</span> repos \
   <span class="flag">--enable</span>=rhel-8-for-x86_64-baseos-rpms \
   <span class="flag">--enable</span>=rhel-8-for-x86_64-appstream-rpms
@@ -288,7 +288,7 @@
 
   </div>
 
-  <!-- ════ PHASE 2 — AUDIT ════ -->
+  <!-- ════ PHASE 2 · AUDIT ════ -->
   <div class="phase-label"><span>Phase 2</span> Quick audit</div>
   <div class="steps">
 
@@ -300,13 +300,13 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="c"># Run all five — each answers a different question about the chain</span>
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="c"># Run all five: each answers a different question about the chain</span>
 <span class="kw">subscription-manager</span> identity            <span class="c"># Is it registered?</span>
 <span class="kw">subscription-manager</span> status              <span class="c"># Is it Current / Invalid / Unknown?</span>
 <span class="kw">subscription-manager</span> list <span class="flag">--consumed</span>      <span class="c"># What's actually attached?</span>
 <span class="kw">subscription-manager</span> repos <span class="flag">--list-enabled</span>  <span class="c"># Are the right repos turned on?</span>
 <span class="kw">dnf</span> repolist                                <span class="c"># Does dnf actually see them?</span></div>
-        <p class="note note-info"><strong>Run all five, in this order.</strong> Each line is a checkpoint along the chain. The first one that fails is your starting point for repair — don't bother fixing later steps until the earlier ones come back clean.</p>
+        <p class="note note-info"><strong>Run all five, in this order.</strong> Each line is a checkpoint along the chain. The first one that fails is your starting point for repair. Don't bother fixing later steps until the earlier ones come back clean.</p>
       </div>
     </div>
 
@@ -342,7 +342,7 @@
           <tr>
             <td>repos --list-enabled</td>
             <td class="ok">BaseOS &amp; AppStream listed</td>
-            <td class="bad">Empty — nothing entitled</td>
+            <td class="bad">Empty: nothing entitled</td>
           </tr>
           <tr>
             <td>dnf repolist</td>
@@ -350,13 +350,13 @@
             <td class="bad">Empty / network error / 403</td>
           </tr>
         </table>
-        <p class="note note-caution"><strong>The <code>dnf repolist</code> check is the ground truth.</strong> Everything above it can be green and this can still fail (proxy, DNS, certificate path, network ACL). If <code>dnf</code> doesn't return repos, the system is unpatchable — regardless of what subscription-manager says.</p>
+        <p class="note note-caution"><strong>The <code>dnf repolist</code> check is the ground truth.</strong> Everything above it can be green and this can still fail (proxy, DNS, certificate path, network ACL). If <code>dnf</code> doesn't return repos, the system is unpatchable, regardless of what subscription-manager says.</p>
       </div>
     </div>
 
   </div>
 
-  <!-- ════ PHASE 3 — FIX ════ -->
+  <!-- ════ PHASE 3 · FIX ════ -->
   <div class="phase-label"><span>Phase 3</span> Common fixes</div>
   <div class="steps">
 
@@ -379,7 +379,7 @@
 
 <span class="cmd-section">Repos missing from list</span>
 <span class="kw">subscription-manager</span> repos <span class="flag">--enable</span>=<span class="ph">&lt;repo&gt;</span></div>
-        <p class="note"><strong>After any fix</strong>, re-run the audit (Step 04). Don't skip the verification — a green status doesn't always mean <code>dnf</code> is happy, and the goal is patchability, not green dashboards.</p>
+        <p class="note"><strong>After any fix</strong>, re-run the audit (Step 04). Don't skip the verification: a green status doesn't always mean <code>dnf</code> is happy, and the goal is patchability, not green dashboards.</p>
       </div>
     </div>
 
@@ -433,7 +433,7 @@
 
   </div>
 
-  <!-- ════ PHASE 4 — HEALTH CHECK ════ -->
+  <!-- ════ PHASE 4 · HEALTH CHECK ════ -->
   <div class="phase-label"><span>Phase 4</span> Health check &amp; pass criteria</div>
   <div class="steps">
 
@@ -445,14 +445,14 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="c"># Combines status + dnf check — useful for kickstart post-scripts and CI gates</span>
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="c"># Combines status + dnf check: useful for kickstart post-scripts and CI gates</span>
 <span class="kw">if</span> <span class="kw">subscription-manager</span> status 2&gt;<span class="str">/dev/null</span> <span class="flag">|</span> <span class="kw">grep</span> <span class="flag">-q</span> <span class="str">"Current"</span> <span class="flag">&amp;&amp;</span> \
    <span class="kw">dnf</span> repolist 2&gt;<span class="str">/dev/null</span> <span class="flag">|</span> <span class="kw">grep</span> <span class="flag">-q</span> <span class="str">"repo id"</span>; <span class="kw">then</span>
     <span class="kw">echo</span> <span class="ok">"LICENSE: OK"</span>
 <span class="kw">else</span>
     <span class="kw">echo</span> <span class="bad">"LICENSE: FAIL"</span>
 <span class="kw">fi</span></div>
-        <p class="note note-ok"><strong>Use this in build pipelines.</strong> Both checks must pass — status alone is not enough. The <code>grep "repo id"</code> half catches network/proxy issues that <code>subscription-manager</code> can't see.</p>
+        <p class="note note-ok"><strong>Use this in build pipelines.</strong> Both checks must pass. Status alone is not enough. The <code>grep "repo id"</code> half catches network/proxy issues that <code>subscription-manager</code> can't see.</p>
       </div>
     </div>
 
@@ -465,11 +465,11 @@
       </div>
       <div class="step-body">
         <ul class="checklist">
-          <li>Registered — <code>subscription-manager identity</code> returns a UUID</li>
-          <li>Status — <code>status</code> reports <code>Current</code></li>
-          <li>Subscription attached — <code>list --consumed</code> shows an active pool with a future <code>Expires</code> date</li>
-          <li>BaseOS &amp; AppStream enabled — <code>repos --list-enabled</code></li>
-          <li>Repos resolvable — <code>dnf repolist</code> returns one or more repos</li>
+          <li>Registered: <code>subscription-manager identity</code> returns a UUID</li>
+          <li>Status: <code>status</code> reports <code>Current</code></li>
+          <li>Subscription attached: <code>list --consumed</code> shows an active pool with a future <code>Expires</code> date</li>
+          <li>BaseOS &amp; AppStream enabled: <code>repos --list-enabled</code></li>
+          <li>Repos resolvable: <code>dnf repolist</code> returns one or more repos</li>
         </ul>
         <p class="note note-info"><strong>All five must be true</strong> for the system to be considered patchable. Anything less and you're rolling the dice on the next <code>dnf update</code>.</p>
       </div>
@@ -483,11 +483,11 @@
     <ul>
       <li><strong>Activation keys, not user/pass, in automation.</strong> Credentials in kickstart files or CI logs are an audit failure waiting to happen. Activation keys scope cleanly and rotate independently.</li>
       <li><strong><code>dnf repolist</code> is the ground truth.</strong> Subscription-manager can be green while the system is still unpatchable due to proxy, DNS, or cert path issues. Always finish the audit at the dnf layer.</li>
-      <li><strong>System clock matters.</strong> Subscription certificates are signed and time-bounded — a clock skew of more than a few minutes will cause SSL errors that look like network failures. Check <code>date</code> and NTP first when seeing certificate errors.</li>
+      <li><strong>System clock matters.</strong> Subscription certificates are signed and time-bounded: a clock skew of more than a few minutes will cause SSL errors that look like network failures. Check <code>date</code> and NTP first when seeing certificate errors.</li>
       <li><strong>Repo names include the major version.</strong> <code>rhel-8-for-x86_64-baseos-rpms</code> ≠ <code>rhel-9-for-x86_64-baseos-rpms</code>. After in-place upgrades, repos must be re-enabled for the new major version.</li>
-      <li><strong><code>refresh</code> is cheap, run it after any subscription change.</strong> Updating pool membership in the Red Hat portal does not automatically update what's cached on the host — <code>refresh</code> pulls the new entitlements.</li>
+      <li><strong><code>refresh</code> is cheap, run it after any subscription change.</strong> Updating pool membership in the Red Hat portal does not automatically update what's cached on the host: <code>refresh</code> pulls the new entitlements.</li>
       <li><strong>Don't unregister to "fix" things.</strong> Unregistering returns the entitlement to the pool but immediately disables repos and breaks patching. Try <code>refresh</code>, <code>attach --auto</code>, or repo re-enable first.</li>
-      <li><strong>Proxies need <code>/etc/rhsm/rhsm.conf</code>.</strong> The <code>http_proxy</code> environment variable is not enough for subscription-manager — it reads its own config. Edit <code>[server] proxy_hostname / proxy_port</code> and restart <code>rhsmcertd</code>.</li>
+      <li><strong>Proxies need <code>/etc/rhsm/rhsm.conf</code>.</strong> The <code>http_proxy</code> environment variable is not enough for subscription-manager. It reads its own config. Edit <code>[server] proxy_hostname / proxy_port</code> and restart <code>rhsmcertd</code>.</li>
     </ul>
   </div>
 

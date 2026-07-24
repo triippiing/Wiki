@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SSH Key Auth — trips-testlab → drhmc01</title>
-<meta name="description" content="Setting up passwordless SSH from an AIX LPAR to the HMC for scripted operations — keygen, key distribution, and verification.">
+<title>SSH Key Auth: trips-testlab → drhmc01</title>
+<meta name="description" content="Setting up passwordless SSH from an AIX LPAR to the HMC for scripted operations: keygen, key distribution, and verification.">
 <meta name="reviewed" content="2026-05-04">
 <meta name="keywords" content="ssh ssh-keygen mkauthkeys hmc hscroot passwordless aix authorized_keys">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,7 @@
 <script src="../../assets/js/nav-data.js" defer></script>
 <script src="../../assets/js/chrome.js" defer></script>
 <style>
-  /* ── topology diagram (bespoke — communicates the two-host setup) ── */
+  /* ── topology diagram (bespoke: communicates the two-host setup) ── */
   .topology {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -93,7 +93,7 @@
     .arrow { transform: rotate(90deg); }
   }
 
-  /* ── run-on tag (bespoke — semantic to this two-host runbook) ── */
+  /* ── run-on tag (bespoke: semantic to this two-host runbook) ── */
   .tag-collector { background: var(--ochre-tint); color: var(--ochre);  border: 1px solid var(--ochre-bd); }
   .tag-hmc       { background: var(--rust-tint); color: var(--rust); border: 1px solid var(--rust-bd); }
 
@@ -106,7 +106,7 @@
   .step.ph-trouble { border-left-color: var(--muted); }
   .step.ph-rollback{ border-left-color: var(--rust); }
 
-  /* ── troubleshooting table (bespoke — three-column diagnostic table) ── */
+  /* ── troubleshooting table (bespoke: three-column diagnostic table) ── */
   .ts-table {
     width: 100%;
     border-collapse: collapse;
@@ -152,11 +152,11 @@
 <div class="wrap">
 
   <nav class="crumb">
-    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">Networking</a><span class="sep">/</span>SSH Key Auth — trips-testlab → drhmc01
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">Networking</a><span class="sep">/</span>SSH Key Auth: trips-testlab → drhmc01
   </nav>
 
-  <h1 class="page-title">SSH Key Auth — trips-testlab → drhmc01</h1>
-  <p class="page-sub">Setting up passwordless SSH from an AIX LPAR to the HMC for scripted operations — keygen, key distribution, and verification.</p>
+  <h1 class="page-title">SSH Key Auth: trips-testlab → drhmc01</h1>
+  <p class="page-sub">Setting up passwordless SSH from an AIX LPAR to the HMC for scripted operations: keygen, key distribution, and verification.</p>
 
   <div class="badges">
     <span class="badge badge-accent">RUNBOOK</span>
@@ -182,7 +182,7 @@
     </div>
   </div>
 
-  <p class="note note-info" style="margin-top:0; margin-bottom:32px;">Runbook for establishing passwordless SSH from a management host (<code>trips-testlab</code>) to an IBM HMC (<code>drhmc01</code>) for unattended monitoring and automation. The HMC's restricted shell means <code>ssh-copy-id</code> won't work — use <code>mkauthkeys</code> instead.</p>
+  <p class="note note-info" style="margin-top:0; margin-bottom:32px;">Runbook for establishing passwordless SSH from a management host (<code>trips-testlab</code>) to an IBM HMC (<code>drhmc01</code>) for unattended monitoring and automation. The HMC's restricted shell means <code>ssh-copy-id</code> won't work. Use <code>mkauthkeys</code> instead.</p>
 
   <!-- Topology (bespoke) -->
   <div class="topology">
@@ -224,7 +224,7 @@
         <p class="note">Verify the following before commencing:</p>
         <ul style="list-style:none; margin-top:12px; display:flex; flex-direction:column; gap:8px;">
           <li>· <strong>Network reachability</strong> on TCP/22 from <code>192.168.131.135</code> to <code>192.168.131.150</code>.</li>
-          <li>· <strong>hscroot password</strong> available — required once for the initial key upload.</li>
+          <li>· <strong>hscroot password</strong> available: required once for the initial key upload.</li>
           <li>· <strong>Root access</strong> on trips-testlab (or whichever local user will run the automation).</li>
           <li>· <strong>An SCP/PuTTY session</strong> to the HMC for paste operations.</li>
         </ul>
@@ -258,13 +258,13 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note">A dedicated key isolated from any pre-existing keys. Empty passphrase is required for unattended cron execution — security is enforced by filesystem permissions.</p>
+        <p class="note">A dedicated key isolated from any pre-existing keys. Empty passphrase is required for unattended cron execution: security is enforced by filesystem permissions.</p>
         <div class="cmd" id="c12"><button class="copy-btn" onclick="copy('c12',this)">COPY</button><span class="kw">ssh-keygen</span> <span class="flag">-t</span> <span class="str">rsa</span> <span class="flag">-b</span> <span class="str">4096</span> \
     <span class="flag">-C</span> <span class="str">"hmc_monitor@trips-testlab"</span> \
     <span class="flag">-f</span> ~/.ssh/hmc_monitor_rsa \
     <span class="flag">-N</span> <span class="str">""</span></div>
         <p class="note note-caution"><strong>Passphrase:</strong> when prompted, leave empty by pressing Enter twice. A passphrase will block unattended execution under cron.</p>
-        <p class="note note-success"><strong>Verify:</strong> <code>ls -l ~/.ssh/hmc_monitor_rsa*</code> — should show two files: private key (mode <code>600</code>) and public key <code>.pub</code> (mode <code>644</code>).</p>
+        <p class="note note-success"><strong>Verify:</strong> <code>ls -l ~/.ssh/hmc_monitor_rsa*</code>. Should show two files: private key (mode <code>600</code>) and public key <code>.pub</code> (mode <code>644</code>).</p>
       </div>
     </div>
   </div>
@@ -294,7 +294,7 @@ Host drhmc01
 EOF
 
 <span class="kw">chmod</span> <span class="str">600</span> ~/.ssh/config</div>
-        <p class="note note-info"><strong>Why <code>IdentitiesOnly yes</code>:</strong> without it, SSH offers every key in the agent before falling back to the configured key. HMCs lock out <code>hscroot</code> after several failed attempts — we want only the designated key to be presented.</p>
+        <p class="note note-info"><strong>Why <code>IdentitiesOnly yes</code>:</strong> without it, SSH offers every key in the agent before falling back to the configured key. HMCs lock out <code>hscroot</code> after several failed attempts. We want only the designated key to be presented.</p>
       </div>
     </div>
   </div>
@@ -310,9 +310,9 @@ EOF
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note">Print the public key so it can be copied. Select the entire output as a single line — no line breaks when transferred.</p>
+        <p class="note">Print the public key so it can be copied. Select the entire output as a single line: no line breaks when transferred.</p>
         <div class="cmd" id="c31"><button class="copy-btn" onclick="copy('c31',this)">COPY</button><span class="kw">cat</span> ~/.ssh/hmc_monitor_rsa.pub</div>
-        <p class="note">Expected output format — a single very long line:</p>
+        <p class="note">Expected output format, a single very long line:</p>
         <div class="cmd" id="c31b"><button class="copy-btn" onclick="copy('c31b',this)">COPY</button><span class="c">ssh-rsa AAAAB3NzaC1yc2EAAA...(very long string)... hmc_monitor@trips-testlab</span></div>
       </div>
     </div>
@@ -342,7 +342,7 @@ EOF
         <p class="note">From the HMC prompt, paste the full public key as the argument to <code>mkauthkeys -a</code>. Wrap in double quotes so the comma and trailing comment are preserved.</p>
         <div class="cmd" id="c33"><button class="copy-btn" onclick="copy('c33',this)">COPY</button><span class="kw">mkauthkeys</span> <span class="flag">-a</span> <span class="str">"ssh-rsa AAAAB3Nza...full_key... hmc_monitor@trips-testlab"</span></div>
         <p class="note">Replace the example string above with the actual key copied in 3.1.</p>
-        <p class="note note-success"><strong>Verify:</strong> <code>mkauthkeys --ls</code> — your key should appear in the list. Inspect the trailing comment (<code>hmc_monitor@trips-testlab</code>) to confirm the correct key was added.</p>
+        <p class="note note-success"><strong>Verify:</strong> <code>mkauthkeys --ls</code>. Your key should appear in the list. Inspect the trailing comment (<code>hmc_monitor@trips-testlab</code>) to confirm the correct key was added.</p>
       </div>
     </div>
 
@@ -423,7 +423,7 @@ EOF
             </tr>
             <tr>
               <td><code>mkauthkeys: command not found</code></td>
-              <td>Not on the HMC restricted shell — shell escape or wrong host</td>
+              <td>Not on the HMC restricted shell: shell escape or wrong host</td>
               <td>Confirm prompt shows <code>hscroot@drhmc01</code>; reconnect if necessary</td>
             </tr>
           </tbody>
@@ -467,9 +467,9 @@ EOF
   <div class="warn-box">
     <div class="warn-title">▸ Watchouts</div>
     <ul>
-      <li>Empty passphrase is a deliberate choice for unattended cron — do not add one after the fact without also fixing the caller.</li>
-      <li><code>ssh-copy-id</code> silently fails against HMCs — always use <code>mkauthkeys</code>.</li>
-      <li>If <code>hscroot</code> gets locked out from failed key attempts, the console (physical or remote KVM) is the only recovery path — bring up the account there first.</li>
+      <li>Empty passphrase is a deliberate choice for unattended cron: do not add one after the fact without also fixing the caller.</li>
+      <li><code>ssh-copy-id</code> silently fails against HMCs: always use <code>mkauthkeys</code>.</li>
+      <li>If <code>hscroot</code> gets locked out from failed key attempts, the console (physical or remote KVM) is the only recovery path: bring up the account there first.</li>
       <li>Rotate the keypair when the target host is retired, on a schedule, or after any suspected compromise of trips-testlab.</li>
     </ul>
   </div>

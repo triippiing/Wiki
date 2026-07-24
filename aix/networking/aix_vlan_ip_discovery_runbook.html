@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIX — VLAN IP Discovery Runbook</title>
-<meta name="description" content="Identifying VLAN tags, trunk interfaces, and IP configuration on AIX — entstat, netstat, and ifconfig walkthroughs.">
+<title>AIX: VLAN IP Discovery Runbook</title>
+<meta name="description" content="Identifying VLAN tags, trunk interfaces, and IP configuration on AIX: entstat, netstat, and ifconfig walkthroughs.">
 <meta name="reviewed" content="2026-05-02">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -97,11 +97,11 @@
 <div class="wrap">
 
   <nav class="crumb">
-    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">Networking</a><span class="sep">/</span>AIX — VLAN IP Discovery Runbook
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#aix">AIX</a><span class="sep">/</span><a href="../../index.html#aix">Networking</a><span class="sep">/</span>AIX: VLAN IP Discovery Runbook
   </nav>
 
-  <h1 class="page-title">AIX — VLAN IP Discovery Runbook</h1>
-  <p class="page-sub">Identifying VLAN tags, trunk interfaces, and IP configuration on AIX — entstat, netstat, and ifconfig walkthroughs.</p>
+  <h1 class="page-title">AIX: VLAN IP Discovery Runbook</h1>
+  <p class="page-sub">Identifying VLAN tags, trunk interfaces, and IP configuration on AIX: entstat, netstat, and ifconfig walkthroughs.</p>
 
   <div class="badges">
     <span class="badge badge-accent">DISCOVERY</span>
@@ -153,16 +153,16 @@ i=1
           <table>
             <tr><td>i=1</td><td>Initialise loop counter at the first usable host octet.</td></tr>
             <tr><td>while [ $i -le 254 ]</td><td>Iterate until the broadcast address is reached. <code>254</code> stops short of <code>.255</code> (the broadcast for a /24).</td></tr>
-            <tr><td>( ping ... ) &amp;</td><td>Subshell launched in the background — the loop does not wait for ping to finish before launching the next one. This parallelises the sweep.</td></tr>
-            <tr><td>ping -c 1 -w 1</td><td>AIX ping syntax — send <strong>1</strong> packet, wait <strong>1</strong> second for a reply. <code>-w</code> on AIX is timeout in seconds (not deadline like on Linux).</td></tr>
-            <tr><td>>/dev/null 2>&amp;1</td><td>Discard both stdout and stderr — we don't care about ping output, only the ARP side-effect.</td></tr>
-            <tr><td>i=$((i+1))</td><td>POSIX arithmetic increment — pure ksh, no external <code>expr</code> needed.</td></tr>
+            <tr><td>( ping ... ) &amp;</td><td>Subshell launched in the background: the loop does not wait for ping to finish before launching the next one. This parallelises the sweep.</td></tr>
+            <tr><td>ping -c 1 -w 1</td><td>AIX ping syntax: send <strong>1</strong> packet, wait <strong>1</strong> second for a reply. <code>-w</code> on AIX is timeout in seconds (not deadline like on Linux).</td></tr>
+            <tr><td>>/dev/null 2>&amp;1</td><td>Discard both stdout and stderr: we don't care about ping output, only the ARP side-effect.</td></tr>
+            <tr><td>i=$((i+1))</td><td>POSIX arithmetic increment: pure ksh, no external <code>expr</code> needed.</td></tr>
             <tr><td>wait</td><td>Block until every backgrounded subshell finishes. Without this, the next command would race ahead of unfinished pings.</td></tr>
             <tr><td>sleep 2</td><td>Allow the ARP cache to settle. Background pings can complete a few ms before their ARP entry is fully populated.</td></tr>
           </table>
         </div>
 
-        <p class="note note-info"><strong>Why parallel:</strong> a serial sweep with a 1s timeout would take 4+ minutes for a /24. Backgrounding all 254 pings at once finishes in ~5 seconds and produces 254 job-control lines like <code>[1] 14352834</code> as PIDs are registered, then <code>Done</code> / <code>Done(1)</code> as each completes. <code>Done(1)</code> = ping got no reply, <code>Done</code> = reply received — but you don't need to read these; the ARP table is what matters.</p>
+        <p class="note note-info"><strong>Why parallel:</strong> a serial sweep with a 1s timeout would take 4+ minutes for a /24. Backgrounding all 254 pings at once finishes in ~5 seconds and produces 254 job-control lines like <code>[1] 14352834</code> as PIDs are registered, then <code>Done</code> / <code>Done(1)</code> as each completes. <code>Done(1)</code> = ping got no reply, <code>Done</code> = reply received. You don't need to read these; the ARP table is what matters.</p>
       </div>
     </div>
   </div>
@@ -187,35 +187,35 @@ i=1
 <span class="kw">done</span></div>
 
         <div class="breakdown">
-          <div class="breakdown-header">Command Breakdown — Pipeline Stage 1: Extract from ARP</div>
+          <div class="breakdown-header">Command Breakdown · Pipeline Stage 1: Extract from ARP</div>
           <table>
-            <tr><td>arp -an</td><td><code>-a</code> dumps the full ARP cache; <code>-n</code> suppresses reverse DNS at this stage (faster — we resolve manually later for control over output format).</td></tr>
+            <tr><td>arp -an</td><td><code>-a</code> dumps the full ARP cache; <code>-n</code> suppresses reverse DNS at this stage (faster, since we resolve manually later for control over output format).</td></tr>
             <tr><td>awk '/\(.*\)/ &amp;&amp; !/incomplete/'</td><td>Match only lines containing a parenthesised IP and exclude any <code>incomplete</code> entries (unanswered ARP probes that left a stub in the cache).</td></tr>
-            <tr><td>{ip=$2; gsub(/[()]/,"",ip); print ip, $4}</td><td>Field 2 is <code>(IP)</code> — strip the parentheses with <code>gsub</code>, then print the cleaned IP and field 4 (the MAC). Outputs <code>ip mac</code> per line for the next stage.</td></tr>
+            <tr><td>{ip=$2; gsub(/[()]/,"",ip); print ip, $4}</td><td>Field 2 is <code>(IP)</code>. Strip the parentheses with <code>gsub</code>, then print the cleaned IP and field 4 (the MAC). Outputs <code>ip mac</code> per line for the next stage.</td></tr>
           </table>
         </div>
 
         <div class="breakdown">
-          <div class="breakdown-header">Command Breakdown — Pipeline Stage 2: Sort Numerically</div>
+          <div class="breakdown-header">Command Breakdown · Pipeline Stage 2: Sort Numerically</div>
           <table>
-            <tr><td>sort -t.</td><td>Use <strong>.</strong> as the field separator — splits each IP into 4 fields by octet.</td></tr>
+            <tr><td>sort -t.</td><td>Use <strong>.</strong> as the field separator, which splits each IP into 4 fields by octet.</td></tr>
             <tr><td>+3n -4</td><td><strong>AIX-native sort syntax.</strong> Sort starting at field offset <code>+3</code> (the 4th octet) up to but not including field <code>-4</code>, numerically (<code>n</code>). AIX <code>sort</code> does NOT accept GNU <code>-k4 -n</code> style.</td></tr>
           </table>
         </div>
 
         <div class="breakdown">
-          <div class="breakdown-header">Command Breakdown — Pipeline Stage 3: Resolve &amp; Print</div>
+          <div class="breakdown-header">Command Breakdown · Pipeline Stage 3: Resolve &amp; Print</div>
           <table>
-            <tr><td>while read ip mac; do</td><td>Read each sorted line into two variables — <code>ip</code> and <code>mac</code> — split on whitespace.</td></tr>
+            <tr><td>while read ip mac; do</td><td>Read each sorted line into two variables, <code>ip</code> and <code>mac</code>, split on whitespace.</td></tr>
             <tr><td>name=$(host $ip ...)</td><td>Run a reverse DNS lookup. Output of <code>host</code> on AIX is typically <code>X.Y.Z.W.in-addr.arpa domain name pointer host.fqdn.</code></td></tr>
-            <tr><td>awk '/domain name pointer|name =/ {print $NF}'</td><td>Match either AIX-style (<code>domain name pointer</code>) or BIND-style (<code>name =</code>) output and extract the last field — the FQDN.</td></tr>
+            <tr><td>awk '/domain name pointer|name =/ {print $NF}'</td><td>Match either AIX-style (<code>domain name pointer</code>) or BIND-style (<code>name =</code>) output and extract the last field, the FQDN.</td></tr>
             <tr><td>sed 's/\.$//'</td><td>Strip the trailing dot DNS appends to FQDNs.</td></tr>
-            <tr><td>[ -z "$name" ] &amp;&amp; name="&lt;no PTR&gt;"</td><td>If no PTR record exists, the lookup returns nothing — substitute a placeholder so the column stays aligned.</td></tr>
+            <tr><td>[ -z "$name" ] &amp;&amp; name="&lt;no PTR&gt;"</td><td>If no PTR record exists, the lookup returns nothing. Substitute a placeholder so the column stays aligned.</td></tr>
             <tr><td>printf "%-18s %-32s %s\n"</td><td>Print three left-justified columns: IP (18 chars), hostname (32 chars), MAC. Produces a clean, aligned table.</td></tr>
           </table>
         </div>
 
-        <p class="note note-caution"><strong>AIX gotchas:</strong> the GNU <code>sort -t. -k4 -n</code> form will fail with a usage error on AIX — always use the <code>+pos -pos</code> notation. Likewise, <code>host</code> may not be in stock AIX; if absent, swap it for <code>nslookup $ip 2>/dev/null | awk '/name =/ {print $NF}' | sed 's/\.$//'</code>.</p>
+        <p class="note note-caution"><strong>AIX gotchas:</strong> the GNU <code>sort -t. -k4 -n</code> form will fail with a usage error on AIX. Always use the <code>+pos -pos</code> notation. Likewise, <code>host</code> may not be in stock AIX; if absent, swap it for <code>nslookup $ip 2>/dev/null | awk '/name =/ {print $NF}' | sed 's/\.$//'</code>.</p>
       </div>
     </div>
   </div>
@@ -226,7 +226,7 @@ i=1
     <div class="step ph-output open">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">03</span>
-        <span class="step-title">Reference output — VLAN 131 sweep result</span>
+        <span class="step-title">Reference output: VLAN 131 sweep result</span>
         <span class="step-tag tag-info">SAMPLE</span>
         <span class="step-chevron">▶</span>
       </div>
@@ -252,7 +252,7 @@ i=1
 <span class="ip">192.168.131.249</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">0:e:11:15:68:37</span>
 <span class="ip">192.168.131.254</span>    <span class="ptr">&lt;no PTR&gt;</span>                         <span class="mac">0:1c:7f:8b:dc:a5</span></div>
 
-        <p class="note note-info"><strong>Reading the MAC OUI prefixes:</strong> when DNS is missing, the first three octets of the MAC (OUI) often identify the device vendor — useful for triage:
+        <p class="note note-info"><strong>Reading the MAC OUI prefixes:</strong> when DNS is missing, the first three octets of the MAC (OUI) often identify the device vendor, which is useful for triage:
         <br>• <code>fa:16:3e</code> → OpenStack / KVM virtual NIC
         <br>• <code>00:50:56</code> → VMware vSwitch
         <br>• <code>b8:ca:3a</code> → Dell
@@ -260,7 +260,7 @@ i=1
         <br>• <code>84:a9:38</code> → IBM
         <br>• <code>e0:91:f5</code> → Dell EMC
         <br>• <code>7c:d3:0a</code> → IEEE-allocated, varies
-        <br>Note duplicate MACs at <code>.101</code>/<code>.150</code> and the consecutive <code>.233</code>/<code>.237</code> pair — likely the same device with two interfaces, or a VRRP/HSRP virtual address. Worth confirming with the network team before claiming either as "free".</p>
+        <br>Note duplicate MACs at <code>.101</code>/<code>.150</code> and the consecutive <code>.233</code>/<code>.237</code> pair, which is likely the same device with two interfaces, or a VRRP/HSRP virtual address. Worth confirming with the network team before claiming either as "free".</p>
       </div>
     </div>
   </div>
@@ -269,10 +269,10 @@ i=1
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li>Discovery scope is the local L2 segment only — ARP does not cross routers. If the VLAN spans subnets, this method only sees hosts on the same broadcast domain as the AIX box.</li>
+      <li>Discovery scope is the local L2 segment only: ARP does not cross routers. If the VLAN spans subnets, this method only sees hosts on the same broadcast domain as the AIX box.</li>
       <li>Hosts that block ICMP <strong>and</strong> haven't been talked to recently won't appear. Firewalled appliances and powered-off DHCP-leased addresses are invisible to this method.</li>
-      <li>Use AIX <code>sort +pos -pos</code> notation, NOT GNU <code>-k</code> — the GNU form errors out on AIX with a usage banner.</li>
-      <li>Use AIX <code>ping -c N -w SECS</code> — the <code>-w</code> flag is per-packet timeout on AIX, not deadline as on Linux.</li>
+      <li>Use AIX <code>sort +pos -pos</code> notation, NOT GNU <code>-k</code>. The GNU form errors out on AIX with a usage banner.</li>
+      <li>Use AIX <code>ping -c N -w SECS</code>. The <code>-w</code> flag is per-packet timeout on AIX, not deadline as on Linux.</li>
       <li>If <code>host</code> is not installed, substitute <code>nslookup</code> in the lookup subshell.</li>
       <li>This is a point-in-time snapshot of <strong>responsiveness</strong>, not an authoritative list of <strong>reservations</strong>. Always cross-check the IPAM / network team before claiming an address as free.</li>
       <li>Re-run during business hours and out-of-hours if you're trying to capture intermittent or scheduled hosts.</li>

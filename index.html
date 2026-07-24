@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Knowledge Base — AIX / Linux / Backup Runbooks</title>
+<title>Knowledge Base: AIX / Linux / Backup Runbooks</title>
 <meta name="description" content="A curated collection of AIX, Linux, and backup operations runbooks built from production experience.">
 <!-- Resolve theme before first paint so a repeat visit (boot skipped) doesn't
      flash light. Shares the "wiki-theme" key with the runbook pages. -->
@@ -32,7 +32,7 @@
     --header-h:   56px;
   }
 
-  /* dark theme — same warm "workbench" stone as the runbook pages
+  /* dark theme: same warm "workbench" stone as the runbook pages
      (assets/css/tokens.css). Set by the head script / the toggle, with a
      prefers-color-scheme fallback for the no-JS case. */
   :root[data-theme="dark"] {
@@ -84,7 +84,7 @@
   :root[data-theme="dark"] header { background: rgba(30, 26, 22, .82); }
   :root[data-theme="dark"] .card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, .55); }
 
-  /* theme toggle — lives directly in <header> (not .header-meta, which hides
+  /* theme toggle: lives directly in <header> (not .header-meta, which hides
      on mobile) so it stays reachable at every width, like the "#_" affordance. */
   .theme-btn {
     width: 32px; height: 32px;
@@ -270,7 +270,7 @@
     color: var(--faint);
   }
 
-  /* category accent dots — restrained warm set, no glow */
+  /* category accent dots: restrained warm set, no glow */
   .section-head .accent {
     width: 6px; height: 6px;
     border-radius: 2px;
@@ -360,7 +360,7 @@
     color: var(--faint);
   }
 
-  /* Review date, on every card. Quiet by default — it only earns colour
+  /* Review date, on every card. Quiet by default, it only earns colour
      once the runbook is old enough that someone should look at it. Rust is
      the same "stop and check" signal the runbooks themselves use. */
   .card-rev {
@@ -445,7 +445,7 @@
 <section class="hero">
   <div class="hero-eyebrow">Operational Runbooks · Cheatsheets · Reference</div>
   <h2>AIX, Linux, and backup procedures<br>built from <strong>real-world ops work</strong>.</h2>
-  <p>A curated knowledge base of step-by-step runbooks for IBM Power/AIX administration, Linux operations, TSM/Spectrum Protect backup workflows, and infrastructure hardening — written from production experience.</p>
+  <p>A curated knowledge base of step-by-step runbooks for IBM Power/AIX administration, Linux operations, TSM/Spectrum Protect backup workflows, and infrastructure hardening, written from production experience.</p>
 </section>
 
 <div class="search-wrap">
@@ -483,40 +483,40 @@
         <p>Single-LPAR AIX 7.1 to 7.2 version migration via nimadm (NIM Alternate Disk Migration), executed from a NIM master against a clone of the client&#x27;s rootvg. The running 7.1 system is left untouched until reboot; cutover is a single reboot.</p>
         <div class="card-foot"><span class="card-rev">04 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-aix" href="aix/lvm/aix_lvm_basics.html" data-search="aix lvm basics — vg / lv / filesystem provisioning runbook aix · lvm  aix_lvm_basics">
+      <a class="card card-aix" href="aix/lvm/aix_lvm_basics.html" data-search="aix lvm basics: vg / lv / filesystem provisioning runbook aix · lvm  aix_lvm_basics">
         <div class="card-tag">aix · lvm</div>
-        <h4>AIX LVM Basics — VG / LV / Filesystem Provisioning Runbook</h4>
-        <p>VG, LV, and JFS2 filesystem provisioning fundamentals on AIX — creating volume groups, building logical volumes, and mounting filesystems.</p>
+        <h4>AIX LVM Basics: VG / LV / Filesystem Provisioning Runbook</h4>
+        <p>VG, LV, and JFS2 filesystem provisioning fundamentals on AIX: creating volume groups, building logical volumes, and mounting filesystems.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
       <a class="card card-aix" href="aix/administration/aix_performance_triage.html" data-search="aix performance triage aix · administration  aix_performance_triage">
         <div class="card-tag">aix · administration</div>
         <h4>AIX Performance Triage</h4>
-        <p>Structured first-pass triage when an AIX system is reported slow — classify the bottleneck (CPU, memory, disk, network, lock) within five minutes using topas, vmstat, iostat, nmon, svmon, tprof, filemon, lockstat.</p>
+        <p>Structured first-pass triage when an AIX system is reported slow: classify the bottleneck (CPU, memory, disk, network, lock) within five minutes using topas, vmstat, iostat, nmon, svmon, tprof, filemon, lockstat.</p>
         <div class="card-foot"><span class="card-rev">09 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-aix" href="aix/lvm/AIX%20rootvg%20disk%20replacement.html" data-search="aix rootvg — mirror disk replacement runbook aix · lvm  aix rootvg disk replacement">
+      <a class="card card-aix" href="aix/lvm/AIX%20rootvg%20disk%20replacement.html" data-search="aix rootvg: mirror disk replacement runbook aix · lvm  aix rootvg disk replacement">
         <div class="card-tag">aix · lvm</div>
-        <h4>AIX rootvg — Mirror Disk Replacement Runbook</h4>
-        <p>Replacing a failing rootvg mirror disk in place — unmirror, replace, mirror, and rebuild bootlist without downtime.</p>
+        <h4>AIX rootvg: Mirror Disk Replacement Runbook</h4>
+        <p>Replacing a failing rootvg mirror disk in place: unmirror, replace, mirror, and rebuild bootlist without downtime.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
       <a class="card card-aix" href="aix/administration/user_administration.html" data-search="aix user administration aix · administration  user_administration">
         <div class="card-tag">aix · administration</div>
         <h4>AIX User Administration</h4>
-        <p>Reference for everyday user and group administration on AIX — creating and removing users, building and managing groups, and modifying group membership with mkuser, rmuser, mkgroup, chuser, and rmgroup.</p>
+        <p>Reference for everyday user and group administration on AIX: creating and removing users, building and managing groups, and modifying group membership with mkuser, rmuser, mkgroup, chuser, and rmgroup.</p>
         <div class="card-foot"><span class="card-rev">09 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-aix" href="aix/networking/aix_vlan_ip_discovery_runbook.html" data-search="aix — vlan ip discovery runbook aix · networking  aix_vlan_ip_discovery_runbook">
+      <a class="card card-aix" href="aix/networking/aix_vlan_ip_discovery_runbook.html" data-search="aix: vlan ip discovery runbook aix · networking  aix_vlan_ip_discovery_runbook">
         <div class="card-tag">aix · networking</div>
-        <h4>AIX — VLAN IP Discovery Runbook</h4>
-        <p>Identifying VLAN tags, trunk interfaces, and IP configuration on AIX — entstat, netstat, and ifconfig walkthroughs.</p>
+        <h4>AIX: VLAN IP Discovery Runbook</h4>
+        <p>Identifying VLAN tags, trunk interfaces, and IP configuration on AIX: entstat, netstat, and ifconfig walkthroughs.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-aix" href="aix/networking/sshkey_aix_to_hmc_runbook.html" data-search="ssh key auth — trips-testlab → drhmc01 aix · networking ssh ssh-keygen mkauthkeys hmc hscroot passwordless aix authorized_keys sshkey_aix_to_hmc_runbook">
+      <a class="card card-aix" href="aix/networking/sshkey_aix_to_hmc_runbook.html" data-search="ssh key auth: trips-testlab → drhmc01 aix · networking ssh ssh-keygen mkauthkeys hmc hscroot passwordless aix authorized_keys sshkey_aix_to_hmc_runbook">
         <div class="card-tag">aix · networking</div>
-        <h4>SSH Key Auth — trips-testlab → drhmc01</h4>
-        <p>Setting up passwordless SSH from an AIX LPAR to the HMC for scripted operations — keygen, key distribution, and verification.</p>
+        <h4>SSH Key Auth: trips-testlab → drhmc01</h4>
+        <p>Setting up passwordless SSH from an AIX LPAR to the HMC for scripted operations: keygen, key distribution, and verification.</p>
         <div class="card-foot"><span class="card-rev">04 May 2026</span><span class="arrow">→</span></div>
       </a>
     </div>
@@ -529,40 +529,40 @@
       <span class="count">06 runbooks</span>
     </div>
     <div class="grid">
-      <a class="card card-linux" href="linux/storage/linux_disk_and_lvm_operations.html" data-search="linux disk &amp; lvm operations — extend / recover workflows linux · storage  linux_disk_and_lvm_operations">
+      <a class="card card-linux" href="linux/storage/linux_disk_and_lvm_operations.html" data-search="linux disk &amp; lvm operations: extend / recover workflows linux · storage  linux_disk_and_lvm_operations">
         <div class="card-tag">linux · storage</div>
-        <h4>Linux Disk &amp; LVM Operations — Extend / Recover Workflows</h4>
-        <p>LVM workflows on Linux — scanning new disks, extending rootvg, importing and recovering existing LVM disks, and resizing per-filesystem.</p>
+        <h4>Linux Disk &amp; LVM Operations: Extend / Recover Workflows</h4>
+        <p>LVM workflows on Linux: scanning new disks, extending rootvg, importing and recovering existing LVM disks, and resizing per-filesystem.</p>
         <div class="card-foot"><span class="card-rev">08 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-linux" href="linux/administration/linux_log_housekeeping.html" data-search="linux log housekeeping — free space &amp; configure logrotate linux · administration  linux_log_housekeeping">
+      <a class="card card-linux" href="linux/administration/linux_log_housekeeping.html" data-search="linux log housekeeping: free space &amp; configure logrotate linux · administration  linux_log_housekeeping">
         <div class="card-tag">linux · administration</div>
-        <h4>Linux Log Housekeeping — Free Space &amp; Configure Logrotate</h4>
+        <h4>Linux Log Housekeeping: Free Space &amp; Configure Logrotate</h4>
         <p>Reactive disk-space recovery on Linux servers (truncate, compress, clear caches) and long-term logrotate policy to prevent recurrence.</p>
         <div class="card-foot"><span class="card-rev">09 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-linux" href="linux/networking/linux_networking.html" data-search="linux networking — interfaces, routes, networkmanager, firewalld linux · networking  linux_networking">
+      <a class="card card-linux" href="linux/networking/linux_networking.html" data-search="linux networking: interfaces, routes, networkmanager, firewalld linux · networking  linux_networking">
         <div class="card-tag">linux · networking</div>
-        <h4>Linux Networking — Interfaces, Routes, NetworkManager, firewalld</h4>
+        <h4>Linux Networking: Interfaces, Routes, NetworkManager, firewalld</h4>
         <p>Reference for everyday Linux network admin on RHEL 8/9 (and derivatives) using NetworkManager + firewalld. Covers identifying NICs, assigning addresses, creating connections, persistent routes, DNS, and host-firewall rules.</p>
         <div class="card-foot"><span class="card-rev">09 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-linux" href="linux/administration/logrotate_config.html" data-search="logrotate — hmc backup logs runbook linux · administration  logrotate_config">
+      <a class="card card-linux" href="linux/administration/logrotate_config.html" data-search="logrotate: hmc backup logs runbook linux · administration  logrotate_config">
         <div class="card-tag">linux · administration</div>
-        <h4>Logrotate — HMC Backup Logs Runbook</h4>
-        <p>Building maintainable logrotate policies for HMC backup logs — rotation cadence, compression, retention, and post-rotate hooks.</p>
+        <h4>Logrotate: HMC Backup Logs Runbook</h4>
+        <p>Building maintainable logrotate policies for HMC backup logs: rotation cadence, compression, retention, and post-rotate hooks.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-linux" href="linux/administration/rhel_licensing_cheat_sheet.html" data-search="rhel licensing — subscription-manager reference linux · administration  rhel_licensing_cheat_sheet">
+      <a class="card card-linux" href="linux/administration/rhel_licensing_cheat_sheet.html" data-search="rhel licensing: subscription-manager reference linux · administration  rhel_licensing_cheat_sheet">
         <div class="card-tag">linux · administration</div>
-        <h4>RHEL Licensing — subscription-manager Reference</h4>
+        <h4>RHEL Licensing: subscription-manager Reference</h4>
         <p>Subscription-manager command reference for registering RHEL systems, attaching subscriptions, enabling repos, and diagnosing licensing failure states.</p>
         <div class="card-foot"><span class="card-rev">09 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-linux" href="linux/storage/Veeam%20linux%20fs%20creation%20.html" data-search="veeam linux repo — disk provisioning runbook linux · storage  veeam linux fs creation ">
+      <a class="card card-linux" href="linux/storage/Veeam%20linux%20fs%20creation%20.html" data-search="veeam linux repo: disk provisioning runbook linux · storage  veeam linux fs creation ">
         <div class="card-tag">linux · storage</div>
-        <h4>Veeam Linux Repo — Disk Provisioning Runbook</h4>
-        <p>Provisioning a Linux filesystem for use as a Veeam backup repository — partition, format, mount, and permission setup.</p>
+        <h4>Veeam Linux Repo: Disk Provisioning Runbook</h4>
+        <p>Provisioning a Linux filesystem for use as a Veeam backup repository: partition, format, mount, and permission setup.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
     </div>
@@ -575,28 +575,28 @@
       <span class="count">04 runbooks</span>
     </div>
     <div class="grid">
-      <a class="card card-backup" href="backup/aix/aix_mksysb.html" data-search="aix mksysb — local, nim, and tape backup · aix  aix_mksysb">
+      <a class="card card-backup" href="backup/aix/aix_mksysb.html" data-search="aix mksysb: local, nim, and tape backup · aix  aix_mksysb">
         <div class="card-tag">backup · aix</div>
-        <h4>AIX mksysb — Local, NIM, and Tape</h4>
-        <p>Reference for capturing a bootable rootvg image (mksysb) on AIX as a local file, a NIM mksysb resource via nimsh, or a bootable tape — including pre-flight, verification, restore paths, and common failures.</p>
+        <h4>AIX mksysb: Local, NIM, and Tape</h4>
+        <p>Reference for capturing a bootable rootvg image (mksysb) on AIX as a local file, a NIM mksysb resource via nimsh, or a bootable tape, including pre-flight, verification, restore paths, and common failures.</p>
         <div class="card-foot"><span class="card-rev">09 May 2026</span><span class="arrow">→</span></div>
       </a>
       <a class="card card-backup" href="backup/tsm/tsm_baclient_nim_install.html" data-search="tsm ba client binary nim install backup · tsm  tsm_baclient_nim_install">
         <div class="card-tag">backup · tsm</div>
         <h4>TSM BA Client Binary NIM Install</h4>
-        <p>End-to-end procedure for staging IBM Spectrum Protect (TSM) BA client filesets, defining 22 standalone NIM clients on DR_NIM_01, and pushing the install in a single operation to bc01–bc22.</p>
+        <p>End-to-end procedure for staging IBM Spectrum Protect (TSM) BA client filesets, defining 22 standalone NIM clients on DR_NIM_01, and pushing the install in a single operation to bc01-bc22.</p>
         <div class="card-foot"><span class="card-rev">03 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-backup" href="backup/tsm/TSM%20customer%20onboarding.html" data-search="tsm customer onboarding template — bluechip backup · tsm  tsm customer onboarding">
+      <a class="card card-backup" href="backup/tsm/TSM%20customer%20onboarding.html" data-search="tsm customer onboarding template: bluechip backup · tsm  tsm customer onboarding">
         <div class="card-tag">backup · tsm</div>
-        <h4>TSM Customer Onboarding Template — Bluechip</h4>
-        <p>End-to-end onboarding template for new TSM clients — node registration, MAXNUMMP tuning, dsm.sys layout, and dsmcad scheduler setup.</p>
+        <h4>TSM Customer Onboarding Template: Bluechip</h4>
+        <p>End-to-end onboarding template for new TSM clients: node registration, MAXNUMMP tuning, dsm.sys layout, and dsmcad scheduler setup.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
-      <a class="card card-backup" href="backup/tsm/TSM%20server%20and%20stgpool%20setup.html" data-search="tsm storage architecture — ssd + cos tiered pools backup · tsm  tsm server and stgpool setup">
+      <a class="card card-backup" href="backup/tsm/TSM%20server%20and%20stgpool%20setup.html" data-search="tsm storage architecture: ssd + cos tiered pools backup · tsm  tsm server and stgpool setup">
         <div class="card-tag">backup · tsm</div>
-        <h4>TSM Storage Architecture — SSD + COS Tiered Pools</h4>
-        <p>TSM/Spectrum Protect storage pool design — SSD-backed primary pools tiered to cloud object storage (COS) for cost-efficient retention.</p>
+        <h4>TSM Storage Architecture: SSD + COS Tiered Pools</h4>
+        <p>TSM/Spectrum Protect storage pool design: SSD-backed primary pools tiered to cloud object storage (COS) for cost-efficient retention.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
     </div>
@@ -609,10 +609,10 @@
       <span class="count">01 runbook</span>
     </div>
     <div class="grid">
-      <a class="card card-cohesity" href="cohesity/backups/cohesity_register_vcenter_source.html" data-search="register a vsphere (vcenter) source — cohesity cluster cohesity · backups  cohesity_register_vcenter_source">
+      <a class="card card-cohesity" href="cohesity/backups/cohesity_register_vcenter_source.html" data-search="register a vsphere (vcenter) source: cohesity cluster cohesity · backups  cohesity_register_vcenter_source">
         <div class="card-tag">cohesity · backups</div>
-        <h4>Register a vSphere (vCenter) Source — Cohesity Cluster</h4>
-        <p>Operational runbook for registering a new VMware vCenter as a protection source on an on-prem Cohesity cluster — prerequisites, the exact registration option set, post-registration verification, and de-registration rollback.</p>
+        <h4>Register a vSphere (vCenter) Source: Cohesity Cluster</h4>
+        <p>Operational runbook for registering a new VMware vCenter as a protection source on an on-prem Cohesity cluster: prerequisites, the exact registration option set, post-registration verification, and de-registration rollback.</p>
         <div class="card-foot"><span class="card-rev">14 May 2026</span><span class="arrow">→</span></div>
       </a>
     </div>
@@ -628,13 +628,13 @@
       <a class="card card-ref" href="reference/FTP%20SCP%20RSYNC%20cheatsheet.html" data-search="ftp / scp / rsync cheat sheet reference  ftp scp rsync cheatsheet">
         <div class="card-tag">reference</div>
         <h4>FTP / SCP / rsync Cheat Sheet</h4>
-        <p>Common file-transfer command patterns across FTP, SCP, and rsync — flags, examples, and gotchas.</p>
+        <p>Common file-transfer command patterns across FTP, SCP, and rsync: flags, examples, and gotchas.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
       <a class="card card-ref" href="reference/tsm_restore_cheatsheet.html" data-search="tsm restore cheat sheet reference  tsm_restore_cheatsheet">
         <div class="card-tag">reference</div>
         <h4>TSM Restore Cheat Sheet</h4>
-        <p>Quick reference for TSM/Spectrum Protect restore operations — query, restore, point-in-time, and image-level commands.</p>
+        <p>Quick reference for TSM/Spectrum Protect restore operations: query, restore, point-in-time, and image-level commands.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
     </div>
@@ -650,7 +650,7 @@
       <a class="card card-vtl" href="vtl/VTL%20tomcat%20patching%20and%20hardening.html" data-search="tomcat hardening runbook vtl  vtl tomcat patching and hardening">
         <div class="card-tag">vtl</div>
         <h4>Tomcat Hardening Runbook</h4>
-        <p>Patching and hardening the Apache Tomcat instance behind a virtual tape library — CVE remediation, config hardening, and rollback.</p>
+        <p>Patching and hardening the Apache Tomcat instance behind a virtual tape library: CVE remediation, config hardening, and rollback.</p>
         <div class="card-foot"><span class="card-rev">02 May 2026</span><span class="arrow">→</span></div>
       </a>
     </div>
@@ -696,7 +696,7 @@
 </footer>
 
 <script>
-  /* theme toggle — flips data-theme and remembers it under the shared
+  /* theme toggle: flips data-theme and remembers it under the shared
      "wiki-theme" key, so the choice carries to and from the runbook pages. */
   document.getElementById('theme-toggle').addEventListener('click', () => {
     const next = document.documentElement.getAttribute('data-theme') === 'dark'

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIX mksysb — Local, NIM, and Tape</title>
-<meta name="description" content="Reference for capturing a bootable rootvg image (mksysb) on AIX as a local file, a NIM mksysb resource via nimsh, or a bootable tape — including pre-flight, verification, restore paths, and common failures.">
+<title>AIX mksysb: Local, NIM, and Tape</title>
+<meta name="description" content="Reference for capturing a bootable rootvg image (mksysb) on AIX as a local file, a NIM mksysb resource via nimsh, or a bootable tape, including pre-flight, verification, restore paths, and common failures.">
 <meta name="reviewed" content="2026-05-09">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -108,7 +108,7 @@
 
   .summary-table tr:last-child td { border-bottom: none; }
 
-  /* phase accent colours — additions for mksysb runbook */
+  /* phase accent colours: additions for mksysb runbook */
   .step.ph-ref     { border-left-color: var(--ochre); }
   .step.ph-create  { border-left-color: var(--sage); }
   .step.ph-nim     { border-left-color: var(--muted); }
@@ -121,11 +121,11 @@
 <div class="wrap">
 
   <nav class="crumb">
-    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#backup">Backup</a><span class="sep">/</span><a href="../../index.html#backup">AIX</a><span class="sep">/</span>AIX mksysb — Local, NIM, and Tape
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#backup">Backup</a><span class="sep">/</span><a href="../../index.html#backup">AIX</a><span class="sep">/</span>AIX mksysb: Local, NIM, and Tape
   </nav>
 
-  <h1 class="page-title">AIX mksysb — Local, NIM, and Tape</h1>
-  <p class="page-sub">Reference for capturing a bootable rootvg image (mksysb) on AIX as a local file, a NIM mksysb resource via nimsh, or a bootable tape — including pre-flight, verification, restore paths, and common failures.</p>
+  <h1 class="page-title">AIX mksysb: Local, NIM, and Tape</h1>
+  <p class="page-sub">Reference for capturing a bootable rootvg image (mksysb) on AIX as a local file, a NIM mksysb resource via nimsh, or a bootable tape, including pre-flight, verification, restore paths, and common failures.</p>
 
   <div class="badges">
     <span class="badge badge-accent">REFERENCE</span>
@@ -152,9 +152,9 @@
     </div>
   </div>
 
-  <p class="note note-info" style="margin-top:0; margin-bottom:24px;"><code>mksysb</code> captures a bootable image of <strong>rootvg only</strong> — non-rootvg volume groups must be handled separately with <code>savevg</code>. The resulting image is bootable and can be consumed by NIM <code>bos_inst</code>, an alternate-disk install, or a tape boot from SMS. Three delivery methods are covered below: a local file under <code>/backup</code>, a remote push to a NIM master over <code>nimsh</code>, and a bootable tape on <code>/dev/rmt1</code>.</p>
+  <p class="note note-info" style="margin-top:0; margin-bottom:24px;"><code>mksysb</code> captures a bootable image of <strong>rootvg only</strong>. Non-rootvg volume groups must be handled separately with <code>savevg</code>. The resulting image is bootable and can be consumed by NIM <code>bos_inst</code>, an alternate-disk install, or a tape boot from SMS. Three delivery methods are covered below: a local file under <code>/backup</code>, a remote push to a NIM master over <code>nimsh</code>, and a bootable tape on <code>/dev/rmt1</code>.</p>
 
-  <!-- ════ PHASE 1 — REFERENCE / PRE-FLIGHT ════ -->
+  <!-- ════ PHASE 1 · REFERENCE / PRE-FLIGHT ════ -->
   <div class="phase-label"><span>Reference</span> Pre-flight checks</div>
   <div class="steps">
     <div class="step ph-ref open">
@@ -168,13 +168,13 @@
         <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># Confirm rootvg is the only VG being captured</span>
 <span class="kw">lsvg</span> <span class="flag">-l</span> <span class="ph">rootvg</span>
 
-<span class="c"># Estimate image size — mksysb image is roughly used PPs * PP size</span>
+<span class="c"># Estimate image size: mksysb image is roughly used PPs * PP size</span>
 <span class="kw">lsvg</span> <span class="ph">rootvg</span> | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">"USED PPs|PP SIZE"</span>
 
-<span class="c"># Filesystem check — / and /usr should be clean and mounted</span>
+<span class="c"># Filesystem check: / and /usr should be clean and mounted</span>
 <span class="kw">df</span> <span class="flag">-g</span> / /usr /var /tmp /home
 
-<span class="c"># OS level — record before snapshot</span>
+<span class="c"># OS level: record before snapshot</span>
 <span class="kw">oslevel</span> <span class="flag">-s</span>
 <span class="kw">instfix</span> <span class="flag">-i</span> | <span class="kw">grep</span> <span class="str">ML</span>
 <span class="kw">lppchk</span> <span class="flag">-v</span>
@@ -184,12 +184,12 @@
 
 <span class="c"># Confirm bosboot will succeed (mksysb runs bosboot internally)</span>
 <span class="kw">bosboot</span> <span class="flag">-a</span> <span class="flag">-d</span> /dev/ipldevice</div>
-        <p class="note note-caution"><strong>If <code>lppchk -v</code> returns anything, fix it before running <code>mksysb</code>.</strong> A snapshot of a broken filesets state will restore broken — the image is faithful to the running system, defects included.</p>
+        <p class="note note-caution"><strong>If <code>lppchk -v</code> returns anything, fix it before running <code>mksysb</code>.</strong> A snapshot of a broken filesets state will restore broken. The image is faithful to the running system, defects included.</p>
       </div>
     </div>
   </div>
 
-  <!-- ════ PHASE 2 — METHOD 1: LOCAL FILE ════ -->
+  <!-- ════ PHASE 2 · METHOD 1: LOCAL FILE ════ -->
   <div class="phase-label"><span>Method 1</span> mksysb to local /backup file</div>
   <div class="steps">
     <div class="step ph-create open">
@@ -220,19 +220,19 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># -i      generate /image.data fresh (recommended — captures current LV layout)</span>
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c"># -i      generate /image.data fresh (recommended, captures current LV layout)</span>
 <span class="c"># -X      auto-extend filesystem as needed during mksysb</span>
 <span class="c"># -p      do NOT pack files (faster, slight space cost)</span>
 <span class="c"># -e      exclude files listed in /etc/exclude.rootvg</span>
 <span class="kw">mksysb</span> <span class="flag">-i</span> <span class="flag">-X</span> <span class="flag">-p</span> /backup/<span class="ph">$(hostname)_$(date +%Y%m%d)</span>.mksysb</div>
-        <p class="note">Typical runtime: 15–45 min depending on rootvg size and disk speed. The command runs <code>bosboot</code> internally, so the resulting file is bootable — the same image works for tape, NIM, and <code>alt_disk_mksysb</code>.</p>
+        <p class="note">Typical runtime: 15 to 45 min depending on rootvg size and disk speed. The command runs <code>bosboot</code> internally, so the resulting file is bootable. The same image works for tape, NIM, and <code>alt_disk_mksysb</code>.</p>
       </div>
     </div>
 
     <div class="step ph-create">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">04</span>
-        <span class="step-title">1c · Verify the image — TOC, volume info, spot-check</span>
+        <span class="step-title">1c · Verify the image: TOC, volume info, spot-check</span>
         <span class="step-tag tag-info">REFERENCE</span>
         <span class="step-chevron">▶</span>
       </div>
@@ -246,23 +246,23 @@
 <span class="c"># Spot-check a known file (read-only, does not extract)</span>
 <span class="kw">restore</span> <span class="flag">-Tvqf</span> /backup/<span class="ph">$(hostname)_$(date +%Y%m%d)</span>.mksysb ./etc/passwd</div>
         <p class="note">A valid image will show <code>image.data</code>, <code>bosinst.data</code>, and a tar-format file tree. Empty / truncated TOCs almost always trace back to a filesystem unmount mid-run or an out-of-space condition.</p>
-        <p class="note">Optional — exclude noisy filesystems via <code>/etc/exclude.rootvg</code> (one regex per line, anchored as <code>^./tmp/</code>, <code>^./var/adm/ras/</code>, <code>^./var/spool/lpd/</code>) and add <code>-e</code> to the <code>mksysb</code> command. The exclude file is consulted only when <code>-e</code> is passed.</p>
+        <p class="note">Optional: exclude noisy filesystems via <code>/etc/exclude.rootvg</code> (one regex per line, anchored as <code>^./tmp/</code>, <code>^./var/adm/ras/</code>, <code>^./var/spool/lpd/</code>) and add <code>-e</code> to the <code>mksysb</code> command. The exclude file is consulted only when <code>-e</code> is passed.</p>
       </div>
     </div>
   </div>
 
-  <!-- ════ PHASE 3 — METHOD 2: NIM ════ -->
+  <!-- ════ PHASE 3 · METHOD 2: NIM ════ -->
   <div class="phase-label"><span>Method 2</span> mksysb to NIM master via nimsh</div>
   <div class="steps">
     <div class="step ph-nim open">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">05</span>
-        <span class="step-title">2a · Prerequisites — master, client, nimsh listener</span>
+        <span class="step-title">2a · Prerequisites: master, client, nimsh listener</span>
         <span class="step-tag tag-info">PREP</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># On the NIM master — confirm master is configured</span>
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="c"># On the NIM master: confirm master is configured</span>
 <span class="kw">lsnim</span> <span class="flag">-l</span> master
 
 <span class="c"># Confirm the client is defined as a NIM standalone object</span>
@@ -271,10 +271,10 @@
 <span class="c"># Filesystem with enough space for the image, e.g. /export/mksysb</span>
 <span class="kw">df</span> <span class="flag">-g</span> /export/mksysb
 
-<span class="c"># On the client — nimsh must be enabled and running</span>
+<span class="c"># On the client: nimsh must be enabled and running</span>
 <span class="kw">lssrc</span> <span class="flag">-s</span> nimsh
 
-<span class="c"># If absent — convert client to nimsh communications and start it</span>
+<span class="c"># If absent: convert client to nimsh communications and start it</span>
 <span class="kw">nimclient</span> <span class="flag">-C</span>
 <span class="kw">startsrc</span> <span class="flag">-s</span> nimsh
 
@@ -283,7 +283,7 @@
 
 <span class="c"># Validate reachability from the master to the client over nimsh</span>
 <span class="kw">nim</span> <span class="flag">-o</span> lslpp <span class="ph">&lt;client_name&gt;</span> | <span class="kw">head</span></div>
-        <p class="note"><code>nimsh</code> replaces the legacy <code>rsh</code>/<code>rcmd</code> mechanism — it operates over TCP 3901/3902 and does not require <code>.rhosts</code>. If the firewall between master and client blocks those ports, the <code>nim -o define</code> below will time out with <code>0042-001</code>.</p>
+        <p class="note"><code>nimsh</code> replaces the legacy <code>rsh</code>/<code>rcmd</code> mechanism. It operates over TCP 3901/3902 and does not require <code>.rhosts</code>. If the firewall between master and client blocks those ports, the <code>nim -o define</code> below will time out with <code>0042-001</code>.</p>
       </div>
     </div>
 
@@ -295,7 +295,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="c"># Run on the NIM master — the master invokes mksysb on the client over nimsh</span>
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="c"># Run on the NIM master: the master invokes mksysb on the client over nimsh</span>
 <span class="c"># and streams the image into the named resource path</span>
 RES=mksysb_<span class="ph">&lt;client_name&gt;</span>_$(<span class="kw">date</span> +%Y%m%d)
 LOC=/export/mksysb/${RES}
@@ -310,20 +310,20 @@ LOC=/export/mksysb/${RES}
     <span class="flag">-a</span> mk_image=<span class="str">yes</span> \
     <span class="flag">-a</span> mksysb_flags=<span class="str">"-i -X -p"</span> \
     ${RES}</div>
-        <p class="note note-caution"><strong>This remotely runs <code>mksysb</code> on the client.</strong> Key attributes: <code>source=&lt;client_name&gt;</code> selects the client whose rootvg is captured; <code>mk_image=yes</code> tells NIM to actually run <code>mksysb</code> now (without it, <code>define</code> just registers an <em>existing</em> file as a resource); <code>mksysb_flags</code> is passed verbatim to the remote invocation. Confirm the client is quiesced before issuing — long-running databases or in-flight maintenance windows do not appreciate a 30-minute I/O burst.</p>
+        <p class="note note-caution"><strong>This remotely runs <code>mksysb</code> on the client.</strong> Key attributes: <code>source=&lt;client_name&gt;</code> selects the client whose rootvg is captured; <code>mk_image=yes</code> tells NIM to actually run <code>mksysb</code> now (without it, <code>define</code> just registers an <em>existing</em> file as a resource); <code>mksysb_flags</code> is passed verbatim to the remote invocation. Confirm the client is quiesced before issuing. Long-running databases and in-flight maintenance windows do not appreciate a 30-minute I/O burst.</p>
       </div>
     </div>
 
     <div class="step ph-nim">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">07</span>
-        <span class="step-title">2c · Alternate — client-initiated define</span>
+        <span class="step-title">2c · Alternate: client-initiated define</span>
         <span class="step-tag tag-caution">REMOTE EXEC</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
         <div class="cmd" id="c7"><button class="copy-btn" onclick="copy('c7',this)">COPY</button><span class="c"># Run on the client if you cannot get to the master directly</span>
-<span class="c"># Same end result — the operation runs on the master via nimsh callback</span>
+<span class="c"># Same end result: the operation runs on the master via nimsh callback</span>
 <span class="kw">nimclient</span> <span class="flag">-o</span> define \
     <span class="flag">-t</span> mksysb \
     <span class="flag">-a</span> server=<span class="str">master</span> \
@@ -332,7 +332,7 @@ LOC=/export/mksysb/${RES}
     <span class="flag">-a</span> mk_image=<span class="str">yes</span> \
     <span class="flag">-a</span> mksysb_flags=<span class="str">"-i -X -p"</span> \
     mksysb_<span class="ph">$(hostname)_$(date +%Y%m%d)</span></div>
-        <p class="note">Useful when the master's CLI is gated behind a different bastion than the client. The resulting NIM resource is identical to the master-driven path — same name, same location, same attributes.</p>
+        <p class="note">Useful when the master's CLI is gated behind a different bastion than the client. The resulting NIM resource is identical to the master-driven path: same name, same location, same attributes.</p>
       </div>
     </div>
 
@@ -352,7 +352,7 @@ LOC=/export/mksysb/${RES}
 
 <span class="c"># Spot-check the image table of contents</span>
 <span class="kw">lsmksysb</span> <span class="flag">-lf</span> ${LOC} | <span class="kw">head</span></div>
-        <p class="note">A healthy resource shows <code>state = ready for use</code>, a sensible <code>alloc_count</code>, and <code>lsmksysb -lf</code> returns a valid TOC. If <code>state</code> is anything else (e.g. <code>not ready</code>), the underlying file is absent or truncated — re-issue the define after fixing the cause.</p>
+        <p class="note">A healthy resource shows <code>state = ready for use</code>, a sensible <code>alloc_count</code>, and <code>lsmksysb -lf</code> returns a valid TOC. If <code>state</code> is anything else (e.g. <code>not ready</code>), the underlying file is absent or truncated. Re-issue the define after fixing the cause.</p>
       </div>
     </div>
 
@@ -372,12 +372,12 @@ LOC=/export/mksysb/${RES}
     <span class="flag">-a</span> accept_licenses=<span class="str">yes</span> \
     <span class="flag">-a</span> boot_client=<span class="str">yes</span> \
     <span class="ph">&lt;target_client&gt;</span></div>
-        <p class="note">Cloning to a different machine is supported but requires post-install attention — verify hostname, IP, license acceptance, and any per-host application config that travels in rootvg.</p>
+        <p class="note">Cloning to a different machine is supported but requires post-install attention: verify hostname, IP, license acceptance, and any per-host application config that travels in rootvg.</p>
       </div>
     </div>
   </div>
 
-  <!-- ════ PHASE 4 — METHOD 3: TAPE ════ -->
+  <!-- ════ PHASE 4 · METHOD 3: TAPE ════ -->
   <div class="phase-label"><span>Method 3</span> mksysb to tape</div>
   <div class="steps">
     <div class="step ph-tape open">
@@ -392,7 +392,7 @@ LOC=/export/mksysb/${RES}
 <span class="kw">lsdev</span> <span class="flag">-Cc</span> tape | <span class="kw">grep</span> <span class="ph">rmt1</span>
 <span class="kw">lscfg</span> <span class="flag">-vl</span> <span class="ph">rmt1</span>
 
-<span class="c"># Current block size — must be 0 (variable) for mksysb</span>
+<span class="c"># Current block size: must be 0 (variable) for mksysb</span>
 <span class="kw">lsattr</span> <span class="flag">-El</span> <span class="ph">rmt1</span> <span class="flag">-a</span> block_size
 
 <span class="c"># If non-zero, set to variable</span>
@@ -400,7 +400,7 @@ LOC=/export/mksysb/${RES}
 
 <span class="c"># If the drive is in use:</span>
 <span class="c">#   chdev -l rmt1 -a block_size=0 -P    # ODM only, takes effect at reboot</span></div>
-        <p class="note note-caution"><strong>Variable block size (<code>block_size=0</code>) is mandatory.</strong> A fixed block size produces a tape that <code>lsmksysb</code> cannot read and SMS cannot boot — this is the single most common tape <code>mksysb</code> failure. Confirm with <code>lsattr -El rmt1 -a block_size</code> before every tape job; do not assume previous configuration persists across reboots if anyone has touched ODM.</p>
+        <p class="note note-caution"><strong>Variable block size (<code>block_size=0</code>) is mandatory.</strong> A fixed block size produces a tape that <code>lsmksysb</code> cannot read and SMS cannot boot. This is the single most common tape <code>mksysb</code> failure. Confirm with <code>lsattr -El rmt1 -a block_size</code> before every tape job; do not assume previous configuration persists across reboots if anyone has touched ODM.</p>
       </div>
     </div>
 
@@ -412,14 +412,14 @@ LOC=/export/mksysb/${RES}
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="c"># Always rewind before writing — mksysb writes from BOT (beginning of tape).</span>
+        <div class="cmd" id="c11"><button class="copy-btn" onclick="copy('c11',this)">COPY</button><span class="c"># Always rewind before writing: mksysb writes from BOT (beginning of tape).</span>
 <span class="c"># A non-rewound tape will append at the wrong position or fail outright.</span>
 <span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> rewind &amp;
 
-<span class="c"># & returns the prompt while the rewind completes (LTO from end-of-tape: 30–90s)</span>
+<span class="c"># & returns the prompt while the rewind completes (LTO from end-of-tape: 30 to 90s)</span>
 <span class="c"># Wait for the background job to finish before the next step</span>
 <span class="kw">wait</span></div>
-        <p class="note">Other useful <code>tctl</code> operations on the same drive: <code>status</code> (drive busy/ready, block size, position), <code>rewind</code> (to BOT), <code>offline</code> (rewind and unload/eject), <code>fsf N</code> (forward-space N file marks), <code>bsf N</code> (back-space N file marks), <code>weof N</code> (write a file mark — rarely needed by hand).</p>
+        <p class="note">Other useful <code>tctl</code> operations on the same drive: <code>status</code> (drive busy/ready, block size, position), <code>rewind</code> (to BOT), <code>offline</code> (rewind and unload/eject), <code>fsf N</code> (forward-space N file marks), <code>bsf N</code> (back-space N file marks), <code>weof N</code> (write a file mark, rarely needed by hand).</p>
       </div>
     </div>
 
@@ -436,20 +436,20 @@ LOC=/export/mksysb/${RES}
 <span class="c"># -p        no pack</span>
 <span class="c"># -e        honour /etc/exclude.rootvg if present</span>
 <span class="kw">mksysb</span> <span class="flag">-i</span> <span class="flag">-X</span> <span class="flag">-p</span> /dev/<span class="ph">rmt1</span></div>
-        <p class="note"><code>mksysb</code> writes four sections to tape, in order: (1) BOS boot image — kernel + minimal install kernel, (2) <code>mkinsttape</code> image — install scripts, (3) dummy TOC, (4) the actual rootvg backup in <code>backbyname</code> format. This four-section layout is what makes the tape bootable from SMS, and is also why a single-file extract requires <code>fsf 3</code> (skip three file marks to reach section 4).</p>
-        <p class="note">Typical runtime: tape-speed limited. LTO-7/8 native ~300 MB/s, so a 60 GB rootvg lands around 4–8 minutes plus tape mechanics (load, BOT seek, write, file marks).</p>
+        <p class="note"><code>mksysb</code> writes four sections to tape, in order: (1) BOS boot image, kernel plus minimal install kernel, (2) <code>mkinsttape</code> image, install scripts, (3) dummy TOC, (4) the actual rootvg backup in <code>backbyname</code> format. This four-section layout is what makes the tape bootable from SMS, and is also why a single-file extract requires <code>fsf 3</code> (skip three file marks to reach section 4).</p>
+        <p class="note">Typical runtime: tape-speed limited. LTO-7/8 native ~300 MB/s, so a 60 GB rootvg lands around 4 to 8 minutes plus tape mechanics (load, BOT seek, write, file marks).</p>
       </div>
     </div>
 
     <div class="step ph-tape">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">13</span>
-        <span class="step-title">3d · Verify the tape — TOC and spot-check</span>
+        <span class="step-title">3d · Verify the tape: TOC and spot-check</span>
         <span class="step-tag tag-info">REFERENCE</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="c"># Rewind first — verification reads from BOT</span>
+        <div class="cmd" id="c13"><button class="copy-btn" onclick="copy('c13',this)">COPY</button><span class="c"># Rewind first: verification reads from BOT</span>
 <span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> rewind
 
 <span class="c"># Show table of contents from tape</span>
@@ -457,7 +457,7 @@ LOC=/export/mksysb/${RES}
 
 <span class="c"># Spot-check a known file (read-only)</span>
 <span class="kw">restore</span> <span class="flag">-Tvqf</span> /dev/<span class="ph">rmt1</span> ./etc/passwd</div>
-        <p class="note">A valid tape returns the same <code>image.data</code> / <code>bosinst.data</code> / file tree as a file-based image. If <code>lsmksysb</code> errors with <code>0511-…</code> block-size or read errors, the drive was not in variable block mode at write time — re-check <code>lsattr -El rmt1 -a block_size</code> and recreate the tape from scratch.</p>
+        <p class="note">A valid tape returns the same <code>image.data</code> / <code>bosinst.data</code> / file tree as a file-based image. If <code>lsmksysb</code> errors with <code>0511-…</code> block-size or read errors, the drive was not in variable block mode at write time. Re-check <code>lsattr -El rmt1 -a block_size</code> and recreate the tape from scratch.</p>
       </div>
     </div>
 
@@ -471,31 +471,31 @@ LOC=/export/mksysb/${RES}
       <div class="step-body">
         <div class="cmd" id="c14"><button class="copy-btn" onclick="copy('c14',this)">COPY</button><span class="c"># Rewind and unload</span>
 <span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> offline</div>
-        <p class="note">Label with: hostname, OS level (<code>oslevel -s</code>), date, and rootvg used size. Store with the corresponding <code>bosinst</code> record / customer ticket — without this metadata, restore-side decisions (which tape, which level, what's missing) become guesswork.</p>
+        <p class="note">Label with: hostname, OS level (<code>oslevel -s</code>), date, and rootvg used size. Store with the corresponding <code>bosinst</code> record / customer ticket. Without this metadata, restore-side decisions (which tape, which level, what's missing) become guesswork.</p>
       </div>
     </div>
 
     <div class="step ph-tape">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">15</span>
-        <span class="step-title">3f · Restore from tape — full rootvg or single file</span>
+        <span class="step-title">3f · Restore from tape: full rootvg or single file</span>
         <span class="step-tag tag-info">REFERENCE</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note note-info"><strong>Boot from tape (full rootvg restore):</strong> insert tape, power-cycle into SMS (key 1 / 5 depending on platform), then <em>Select Boot Options</em> → <em>Install/Boot Device</em> → <em>Tape</em> → select the rmt drive. Tape boots into the BOS install menus — pick <em>Install with Settings</em> and follow the migration / overwrite path.</p>
+        <p class="note note-info"><strong>Boot from tape (full rootvg restore):</strong> insert tape, power-cycle into SMS (key 1 / 5 depending on platform), then <em>Select Boot Options</em> → <em>Install/Boot Device</em> → <em>Tape</em> → select the rmt drive. Tape boots into the BOS install menus. Pick <em>Install with Settings</em> and follow the migration / overwrite path.</p>
         <div class="cmd" id="c15"><button class="copy-btn" onclick="copy('c15',this)">COPY</button><span class="c"># Restore a single file from tape</span>
 <span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> rewind
 
-<span class="c"># mksysb image is the 4th file on tape — skip the first 3 file marks</span>
+<span class="c"># mksysb image is the 4th file on tape, skip the first 3 file marks</span>
 <span class="kw">tctl</span> <span class="flag">-f</span> /dev/<span class="ph">rmt1</span> fsf <span class="str">3</span>
 <span class="kw">restore</span> <span class="flag">-xvqf</span> /dev/<span class="ph">rmt1</span> ./<span class="ph">path/to/file</span></div>
-        <p class="note"><code>fsf 3</code> is non-negotiable for tape extracts — sections 1–3 (boot image, mkinsttape, dummy TOC) must be skipped to land on the <code>backbyname</code> data. Forgetting this gives a "garbage" read because <code>restore</code> tries to interpret the boot image as a backup archive.</p>
+        <p class="note"><code>fsf 3</code> is non-negotiable for tape extracts: sections 1 to 3 (boot image, mkinsttape, dummy TOC) must be skipped to land on the <code>backbyname</code> data. Forgetting this gives a "garbage" read because <code>restore</code> tries to interpret the boot image as a backup archive.</p>
       </div>
     </div>
   </div>
 
-  <!-- ════ PHASE 5 — RESTORE QUICK REFERENCE ════ -->
+  <!-- ════ PHASE 5 · RESTORE QUICK REFERENCE ════ -->
   <div class="phase-label"><span>Restore</span> Quick reference</div>
   <div class="steps">
     <div class="step ph-ref open">
@@ -509,7 +509,7 @@ LOC=/export/mksysb/${RES}
         <table class="flag-table">
           <tr><th>Target</th><th>How</th></tr>
           <tr><td>Full rootvg, same machine</td><td>Boot from NIM (<code>bos_inst</code>), tape, or boot media → SMS → select the <code>mksysb</code> image source.</td></tr>
-          <tr><td>Alternate disk, same machine</td><td><code>alt_disk_mksysb -m /backup/host_YYYYMMDD.mksysb -d hdiskN</code> — installs in parallel without disturbing the running rootvg.</td></tr>
+          <tr><td>Alternate disk, same machine</td><td><code>alt_disk_mksysb -m /backup/host_YYYYMMDD.mksysb -d hdiskN</code>. Installs in parallel without disturbing the running rootvg.</td></tr>
           <tr><td>Different machine</td><td>NIM <code>bos_inst</code> with <code>mksysb</code> resource (cloning). Verify license, hostname, and IP after first boot.</td></tr>
           <tr><td>Single file (file image)</td><td><code>restore -xvqf /backup/img.mksysb ./path/to/file</code></td></tr>
           <tr><td>Single file (tape)</td><td><code>tctl -f /dev/rmt1 rewind; tctl -f /dev/rmt1 fsf 3; restore -xvqf /dev/rmt1 ./path</code></td></tr>
@@ -518,7 +518,7 @@ LOC=/export/mksysb/${RES}
     </div>
   </div>
 
-  <!-- ════ PHASE 6 — COMMON FAILURES ════ -->
+  <!-- ════ PHASE 6 · COMMON FAILURES ════ -->
   <div class="phase-label"><span>Failures</span> Common errors and fixes</div>
   <div class="steps">
     <div class="step ph-fail">
@@ -535,7 +535,7 @@ LOC=/export/mksysb/${RES}
           <tr><td><code>mksysb: 0512-046 Filesystem cannot be expanded</code></td><td><code>/backup</code> full and <code>-X</code> not set. Add <code>-X</code>, or grow <code>/backup</code> first.</td></tr>
           <tr><td>NIM define returns <code>0042-001 ... cannot reach client</code></td><td><code>nimsh</code> not running on client, or firewall blocking 3901/3902. <code>startsrc -s nimsh</code>; open the firewall.</td></tr>
           <tr><td><code>mksysb</code> runs but resulting file is small</td><td>Source filesystem unmounted mid-run. Ensure <code>/</code>, <code>/usr</code>, <code>/var</code> are mounted; rerun.</td></tr>
-          <tr><td>Restore boots but applications missing</td><td>App data lives on a non-rootvg VG. <code>mksysb</code> is rootvg-only — capture other VGs with <code>savevg</code>.</td></tr>
+          <tr><td>Restore boots but applications missing</td><td>App data lives on a non-rootvg VG. <code>mksysb</code> is rootvg-only. Capture other VGs with <code>savevg</code>.</td></tr>
           <tr><td>Tape <code>mksysb</code> writes OK but tape won't boot in SMS / <code>lsmksysb</code> errors</td><td><code>block_size</code> non-zero on <code>rmt1</code>. <code>chdev -l rmt1 -a block_size=0</code>; rewind; recreate the tape.</td></tr>
           <tr><td><code>tctl: 0506-901 ... I/O error</code></td><td>Tape not loaded, drive offline, or wrong device path. <code>lsdev -Cc tape</code>; load tape; confirm <code>/dev/rmt1</code> vs <code>rmt0</code>.</td></tr>
         </table>
@@ -569,12 +569,12 @@ LOC=/export/mksysb/${RES}
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li><code>mksysb</code> captures <strong>rootvg only</strong>. Non-rootvg VGs (application data, database volumes, user home filesystems on separate VGs) need <code>savevg</code> — a "successful" mksysb that misses the apps is the most-common post-restore complaint.</li>
+      <li><code>mksysb</code> captures <strong>rootvg only</strong>. Non-rootvg VGs (application data, database volumes, user home filesystems on separate VGs) need <code>savevg</code>. A "successful" mksysb that misses the apps is the most-common post-restore complaint.</li>
       <li><code>/etc/exclude.rootvg</code> is honoured only when <code>-e</code> is passed. The file uses regex against the full path with paths anchored as <code>^./tmp/</code>; a missing leading <code>^./</code> usually means the rule does nothing.</li>
-      <li>NIM define needs <code>mk_image=yes</code> to actually capture a fresh image. Without it, <code>nim -o define -t mksysb</code> only registers an existing file as a resource — easy to misdiagnose because the command returns success either way.</li>
-      <li>Tape <code>mksysb</code> requires <code>block_size=0</code> (variable) on <code>rmt1</code>. A fixed block size produces a tape that <code>lsmksysb</code> cannot read and SMS cannot boot — the single most common tape gotcha.</li>
+      <li>NIM define needs <code>mk_image=yes</code> to actually capture a fresh image. Without it, <code>nim -o define -t mksysb</code> only registers an existing file as a resource, which is easy to misdiagnose because the command returns success either way.</li>
+      <li>Tape <code>mksysb</code> requires <code>block_size=0</code> (variable) on <code>rmt1</code>. A fixed block size produces a tape that <code>lsmksysb</code> cannot read and SMS cannot boot, the single most common tape gotcha.</li>
       <li>A tape <code>mksysb</code> writes four sections in order: BOS boot, <code>mkinsttape</code>, dummy TOC, and the actual <code>backbyname</code> archive. Single-file extracts require <code>tctl ... fsf 3</code> to skip the first three file marks before <code>restore -x</code>.</li>
-      <li>Always <code>tctl ... rewind</code> before writing or verifying a tape. <code>mksysb</code> writes from BOT — a non-rewound tape appends at the wrong position or errors out.</li>
+      <li>Always <code>tctl ... rewind</code> before writing or verifying a tape. <code>mksysb</code> writes from BOT, so a non-rewound tape appends at the wrong position or errors out.</li>
       <li>Run <code>lppchk -v</code> before every snapshot. A <code>mksysb</code> of a broken-fileset state restores broken; the image is faithful to the running system, defects included.</li>
     </ul>
   </div>

@@ -2,7 +2,7 @@
 """Approved identity data for every runbook: RB-ID + one-line operation.
 
 This file is the source of truth for the top-of-page identity strip. It is
-DATA, not code — it exists so the decisions survive a lost session and can be
+DATA, not code: it exists so the decisions survive a lost session and can be
 resumed cold. See docs/META_GRID_MIGRATION.md.
 
 Scheme:  RB-<DOMAIN>-<PLATFORM>-<NNN>
@@ -23,10 +23,10 @@ Scheme:  RB-<DOMAIN>-<PLATFORM>-<NNN>
 The five IDs that already existed in the runbooks are preserved exactly.
 
 `operation` is the one-line summary shown in the identity strip. Keep it SHORT
-(≈ 40 chars) — it sits beside the ID and the review date, and the fuller
+(≈ 40 chars). It sits beside the ID and the review date, and the fuller
 description already appears directly above the grid as the page subtitle.
 
-STATUS: fully approved by Jack — IDs 2026-07-13, operation strings 2026-07-14.
+STATUS: fully approved by Jack, IDs 2026-07-13, operation strings 2026-07-14.
 Changing an `operation` here after the migration has run does NOT propagate:
 the strings are baked into each runbook's markup. Edit the runbook.
 """

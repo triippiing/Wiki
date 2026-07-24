@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Linux Log Housekeeping — Free Space &amp; Configure Logrotate</title>
+<title>Linux Log Housekeeping: Free Space &amp; Configure Logrotate</title>
 <meta name="description" content="Reactive disk-space recovery on Linux servers (truncate, compress, clear caches) and long-term logrotate policy to prevent recurrence.">
 <meta name="reviewed" content="2026-05-09">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -128,7 +128,7 @@
     </div>
     <div class="primer-body">
       <p><strong>Part 1</strong> is the response when a Linux server is full now: truncate, compress, delete, clear caches. It restores capacity but does nothing to stop recurrence.</p>
-      <p><strong>Part 2</strong> is the fix: drop a config file under <code>/etc/logrotate.d/</code> and the daily cron hook handles rotation, compression, and retention going forward — no service restart, no manual intervention.</p>
+      <p><strong>Part 2</strong> is the fix: drop a config file under <code>/etc/logrotate.d/</code> and the daily cron hook handles rotation, compression, and retention going forward: no service restart, no manual intervention.</p>
       <p>If you only ever do Part 1, you'll be back here in a fortnight. Always close the loop with Part 2 once the immediate fire is out.</p>
     </div>
   </div>
@@ -140,12 +140,12 @@
     <div class="step ph-react open">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">01</span>
-        <span class="step-title">Triage — find what's actually using the space</span>
+        <span class="step-title">Triage: find what's actually using the space</span>
         <span class="step-tag tag-info">DISCOVER</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># Filesystem-level view — confirm which mount is full</span>
+        <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="c"># Filesystem-level view: confirm which mount is full</span>
 <span class="kw">df</span> <span class="flag">-h</span>
 
 <span class="c"># Top 20 directories under /var/log by size</span>
@@ -153,7 +153,7 @@
 
 <span class="c"># Top files under /var across the whole subtree</span>
 <span class="kw">du</span> <span class="flag">-ahx</span> <span class="str">/var</span> 2&gt;<span class="str">/dev/null</span> <span class="flag">| sort -h | tail -20</span></div>
-        <p class="note note-info"><strong>Tip:</strong> the <code>-x</code> flag stops <code>du</code> crossing into other filesystems — useful when <code>/</code> and <code>/var</code> sit on different mounts and you want to attribute usage correctly.</p>
+        <p class="note note-info"><strong>Tip:</strong> the <code>-x</code> flag stops <code>du</code> crossing into other filesystems, which is useful when <code>/</code> and <code>/var</code> sit on different mounts and you want to attribute usage correctly.</p>
       </div>
     </div>
 
@@ -165,15 +165,15 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># Truncate to zero bytes — preserves inode and any open file handles</span>
+        <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># Truncate to zero bytes: preserves inode and any open file handles</span>
 <span class="kw">truncate</span> <span class="flag">-s</span> 0 <span class="str">/var/log/syslog</span> <span class="str">/var/log/messages</span>
 
-<span class="c"># Alternative — for logs not actively being written to</span>
+<span class="c"># Alternative: for logs not actively being written to</span>
 <span class="kw">echo</span> &gt; <span class="str">/var/log/<span class="ph">somelogname</span>.log</span>
 
 <span class="c"># Clear lastlog (read first if needed: lastlog | less)</span>
 <span class="kw">cp</span> <span class="str">/dev/null</span> <span class="str">/var/log/lastlog</span></div>
-        <p class="note note-caution"><strong>Use <code>truncate</code>, not <code>rm</code></strong> on logs the kernel or a daemon has open. Removing the file leaves the process writing to a now-orphaned inode — the bytes still exist, the file is "gone" from <code>ls</code>, and <code>df</code> won't recover until the holder is restarted. Truncation preserves the inode and frees space immediately.</p>
+        <p class="note note-caution"><strong>Use <code>truncate</code>, not <code>rm</code></strong> on logs the kernel or a daemon has open. Removing the file leaves the process writing to a now-orphaned inode: the bytes still exist, the file is "gone" from <code>ls</code>, and <code>df</code> won't recover until the holder is restarted. Truncation preserves the inode and frees space immediately.</p>
       </div>
     </div>
 
@@ -185,12 +185,12 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c">#  TSM app logs — safe to zero (not delete) on systems we manage</span>
+        <div class="cmd" id="c3"><button class="copy-btn" onclick="copy('c3',this)">COPY</button><span class="c">#  TSM app logs: safe to zero (not delete) on systems we manage</span>
 <span class="kw">rm</span> <span class="flag">-f</span> <span class="str">/usr/tivoli/tsm/client/oracle/bin64/logs/*</span>
 
 <span class="c"># Other historical logs no longer needed</span>
 <span class="kw">rm</span> <span class="flag">-f</span> <span class="str">/var/log/<span class="ph">oldunusedlog</span>.log</span></div>
-        <p class="note"><strong>Always confirm</strong> a log can be removed before deleting it. Application logs may be required for audit, support cases, or compliance — when in doubt, archive off the system first (rsync/scp to a retention host) and remove only after the copy is verified.</p>
+        <p class="note"><strong>Always confirm</strong> a log can be removed before deleting it. Application logs may be required for audit, support cases, or compliance. When in doubt, archive off the system first (rsync/scp to a retention host) and remove only after the copy is verified.</p>
       </div>
     </div>
 
@@ -202,18 +202,18 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Compress — replaces .log with .log.gz</span>
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Compress: replaces .log with .log.gz</span>
 <span class="kw">gzip</span> <span class="str">/var/log/<span class="ph">somelogname</span>.log</span>
 
 <span class="cmd-section">Read without decompressing</span>
 <span class="kw">zcat</span> <span class="str">/var/log/<span class="ph">somelogname</span>.log.gz</span>
 
-<span class="cmd-section">Decompress — removes the .gz</span>
+<span class="cmd-section">Decompress: removes the .gz</span>
 <span class="kw">gunzip</span> <span class="str">/var/log/<span class="ph">somelogname</span>.log.gz</span>
 
-<span class="cmd-section">Decompress — keep both files</span>
+<span class="cmd-section">Decompress: keep both files</span>
 <span class="kw">gzip</span> <span class="flag">-d</span> <span class="flag">-c</span> <span class="str">/var/log/<span class="ph">somelogname</span>.log.gz</span> &gt; <span class="str">/var/log/<span class="ph">somelogname</span>.log</span></div>
-        <p class="note note-info"><strong>Use <code>gzip -9</code></strong> for maximum compression. Best applied to old logs retained for audit — compressed files cannot be appended to or monitored without decompression, so don't compress logs that anything is still writing to.</p>
+        <p class="note note-info"><strong>Use <code>gzip -9</code></strong> for maximum compression. Best applied to old logs retained for audit: compressed files cannot be appended to or monitored without decompression, so don't compress logs that anything is still writing to.</p>
       </div>
     </div>
 
@@ -232,7 +232,7 @@
 <span class="c"># RHEL / Rocky / Alma / OL</span>
 <span class="kw">dnf</span> clean all
 
-<span class="cmd-section">Old kernels — keep at least one backup</span>
+<span class="cmd-section">Old kernels: keep at least one backup</span>
 <span class="c"># Ubuntu / Debian</span>
 <span class="kw">apt</span> autoremove <span class="flag">--purge</span>
 
@@ -242,7 +242,7 @@
 <span class="cmd-section">Other quick wins</span>
 <span class="c"># Inspect /tmp and clear what's safe to remove</span>
 <span class="kw">ls</span> <span class="flag">-la</span> <span class="str">/tmp</span></div>
-        <p class="note note-caution"><strong>Always keep one backup kernel.</strong> If the running kernel develops a problem after a future update, that backup is what you boot into to recover. <code>--count=1</code> on RHEL family and <code>autoremove --purge</code> on Debian both respect this by default — but verify with <code>uname -r</code> and <code>ls /boot</code> afterwards.</p>
+        <p class="note note-caution"><strong>Always keep one backup kernel.</strong> If the running kernel develops a problem after a future update, that backup is what you boot into to recover. <code>--count=1</code> on RHEL family and <code>autoremove --purge</code> on Debian both respect this by default, but verify with <code>uname -r</code> and <code>ls /boot</code> afterwards.</p>
       </div>
     </div>
 
@@ -264,16 +264,16 @@
 <span class="kw">which</span> logrotate
 <span class="kw">ls</span> <span class="flag">-la</span> <span class="str">/etc/cron.daily/logrotate</span>
 
-<span class="c"># Drop-in config — picked up automatically by the daily cron hook</span>
+<span class="c"># Drop-in config: picked up automatically by the daily cron hook</span>
 <span class="kw">vi</span> <span class="str">/etc/logrotate.d/<span class="ph">somelogfilename</span></span></div>
-        <p class="note note-info"><strong>No service restart needed.</strong> Files in <code>/etc/logrotate.d/</code> are read every time logrotate runs. The default cron hook fires it daily — for size-driven rotation you can also invoke logrotate from a more frequent cron entry, but for typical log volumes daily is sufficient.</p>
+        <p class="note note-info"><strong>No service restart needed.</strong> Files in <code>/etc/logrotate.d/</code> are read every time logrotate runs. The default cron hook fires it daily. For size-driven rotation you can also invoke logrotate from a more frequent cron entry, but for typical log volumes daily is sufficient.</p>
       </div>
     </div>
 
     <div class="step ph-rotate">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">07</span>
-        <span class="step-title">Config contents — annotated template</span>
+        <span class="step-title">Config contents: annotated template</span>
         <span class="step-tag tag-info">TEMPLATE</span>
         <span class="step-chevron">▶</span>
       </div>
@@ -295,7 +295,7 @@
         &gt; <span class="str">/path/to/your/log/file.log</span>  <span class="c"># Truncate after rotation.</span>
     endscript
 }</div>
-        <p class="note note-caution"><strong>Replace <code>/path/to/your/log/file.log</code></strong> with the real log path before saving. The truncate (<code>&gt; /path...</code>) inside <code>postrotate</code> is only needed when the writing process holds the file open and won't reopen on rotation — for most well-behaved daemons, <code>create</code> on its own is sufficient. Use <code>copytruncate</code> instead of <code>create</code>+<code>postrotate</code> when in doubt.</p>
+        <p class="note note-caution"><strong>Replace <code>/path/to/your/log/file.log</code></strong> with the real log path before saving. The truncate (<code>&gt; /path...</code>) inside <code>postrotate</code> is only needed when the writing process holds the file open and won't reopen on rotation. For most well-behaved daemons, <code>create</code> on its own is sufficient. Use <code>copytruncate</code> instead of <code>create</code>+<code>postrotate</code> when in doubt.</p>
       </div>
     </div>
 
@@ -307,7 +307,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="cmd-section">Dry run — checks syntax and reports what would happen</span>
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="cmd-section">Dry run: checks syntax and reports what would happen</span>
 <span class="kw">sudo</span> logrotate <span class="flag">-d</span> <span class="str">/etc/logrotate.d/<span class="ph">somelogfilename</span></span>
 
 <span class="cmd-section">Force a real run</span>
@@ -319,7 +319,7 @@
 
 <span class="c"># Confirm the state file recorded the rotation</span>
 <span class="kw">grep</span> <span class="ph">somelogname</span> <span class="str">/var/lib/logrotate/logrotate.status</span></div>
-        <p class="note note-ok"><strong>Always dry-run first.</strong> <code>-d</code> shows the actions logrotate <em>would</em> take without making changes — read the output before forcing. <code>-f</code> bypasses the schedule check, so use it only after the dry run looks correct.</p>
+        <p class="note note-ok"><strong>Always dry-run first.</strong> <code>-d</code> shows the actions logrotate <em>would</em> take without making changes. Read the output before forcing. <code>-f</code> bypasses the schedule check, so use it only after the dry run looks correct.</p>
       </div>
     </div>
 
@@ -329,12 +329,12 @@
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li><strong>Truncate, don't <code>rm</code>, on open logs.</strong> A removed file held open by a daemon does not free space until the daemon closes the handle — typically a restart. <code>truncate -s 0</code> frees space immediately and preserves the inode.</li>
+      <li><strong>Truncate, don't <code>rm</code>, on open logs.</strong> A removed file held open by a daemon does not free space until the daemon closes the handle, typically a restart. <code>truncate -s 0</code> frees space immediately and preserves the inode.</li>
       <li><strong>Always close Part 1 with Part 2.</strong> Reactive cleanup buys time; logrotate prevents recurrence. Don't leave the loop open.</li>
       <li><strong><code>copytruncate</code> vs <code>create</code>.</strong> Use <code>create</code> for daemons that reopen log handles on rotation (most syslog implementations, journald-shipped logs). Use <code>copytruncate</code> for application scripts that append with <code>&gt;&gt;</code> and never reopen.</li>
       <li><strong><code>delaycompress</code> avoids gzipping a file in flight.</strong> Skips compression on the most recent rotation. Worth adding to any policy where the writing process may briefly continue writing post-rotation.</li>
       <li><strong>Always dry-run before forcing.</strong> <code>logrotate -d</code> is harmless; <code>logrotate -f</code> rotates regardless of schedule. Read the dry-run output first, every time.</li>
-      <li><strong>Keep at least one backup kernel</strong> when running <code>package-cleanup --oldkernels</code> or <code>apt autoremove --purge</code>. The default <code>--count=1</code> respects this — confirm with <code>ls /boot</code> after.</li>
+      <li><strong>Keep at least one backup kernel</strong> when running <code>package-cleanup --oldkernels</code> or <code>apt autoremove --purge</code>. The default <code>--count=1</code> respects this. Confirm with <code>ls /boot</code> after.</li>
       <li><strong>If <code>df</code> shows full but <code>du</code> doesn't account for it</strong>, look for deleted-but-open files: <code>lsof | grep deleted</code>. Restarting the holder reclaims the space.</li>
       <li><strong>Don't compress active logs.</strong> Gzipped files cannot be appended to or tailed without decompression. Compression is for retention, not in-flight rotation.</li>
     </ul>

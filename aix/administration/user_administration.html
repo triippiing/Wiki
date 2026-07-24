@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIX User Administration</title>
-<meta name="description" content="Reference for everyday user and group administration on AIX — creating and removing users, building and managing groups, and modifying group membership with mkuser, rmuser, mkgroup, chuser, and rmgroup.">
+<meta name="description" content="Reference for everyday user and group administration on AIX: creating and removing users, building and managing groups, and modifying group membership with mkuser, rmuser, mkgroup, chuser, and rmgroup.">
 <meta name="reviewed" content="2026-05-09">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -118,7 +118,7 @@
   </nav>
 
   <h1 class="page-title">AIX User Administration</h1>
-  <p class="page-sub">Reference for everyday user and group administration on AIX — creating and removing users, building and managing groups, and modifying group membership with mkuser, rmuser, mkgroup, chuser, and rmgroup.</p>
+  <p class="page-sub">Reference for everyday user and group administration on AIX: creating and removing users, building and managing groups, and modifying group membership with mkuser, rmuser, mkgroup, chuser, and rmgroup.</p>
 
   <div class="badges">
     <span class="badge badge-accent">REFERENCE</span>
@@ -145,7 +145,7 @@
     </div>
   </div>
 
-  <p class="note note-info" style="margin-top:0; margin-bottom:24px;">User administration on AIX maps closely onto its Linux equivalent — the lifecycle and concepts are identical, but the binaries differ. Edits are committed atomically through the high-level commands below; do not hand-edit <code>/etc/passwd</code> or <code>/etc/group</code> on AIX, as the security ODM and shadow files (<code>/etc/security/passwd</code>, <code>/etc/security/user</code>) must be kept in sync.</p>
+  <p class="note note-info" style="margin-top:0; margin-bottom:24px;">User administration on AIX maps closely onto its Linux equivalent: the lifecycle and concepts are identical, but the binaries differ. Edits are committed atomically through the high-level commands below; do not hand-edit <code>/etc/passwd</code> or <code>/etc/group</code> on AIX, as the security ODM and shadow files (<code>/etc/security/passwd</code>, <code>/etc/security/user</code>) must be kept in sync.</p>
 
   <!-- ════ PHASE 1 ════ -->
   <div class="phase-label"><span>Reference</span> Common mkuser flags</div>
@@ -160,15 +160,15 @@
       <div class="step-body">
         <table class="flag-table">
           <tr><th>Flag</th><th>Purpose</th></tr>
-          <tr><td>-a</td><td>Assigns an attribute to the user (e.g. <code>-a home=/home/trip</code>) — used to set the home directory path and other stanza attributes.</td></tr>
+          <tr><td>-a</td><td>Assigns an attribute to the user (e.g. <code>-a home=/home/trip</code>), used to set the home directory path and other stanza attributes.</td></tr>
           <tr><td>-B</td><td>When run with <code>mkuser</code>, creates the home directory specified via the <code>-a home=</code> attribute. Without it, the home path is recorded but the directory is not created on disk.</td></tr>
           <tr><td>-c</td><td>Adds a comment / GECOS-style description for the user.</td></tr>
           <tr><td>-h</td><td>Sets the home directory for the user (alternate form, used directly rather than via <code>-a home=</code>).</td></tr>
           <tr><td>-g</td><td>Specifies the user's <strong>primary</strong> group (GID).</td></tr>
           <tr><td>-G</td><td>Specifies <strong>additional</strong> groups (comma-separated) the user belongs to.</td></tr>
-          <tr><td>-p</td><td>Sets the user's password. Rarely used directly — prefer <code>passwd &lt;user&gt;</code> after creation so the password is not stored in shell history.</td></tr>
+          <tr><td>-p</td><td>Sets the user's password. Rarely used directly: prefer <code>passwd &lt;user&gt;</code> after creation so the password is not stored in shell history.</td></tr>
         </table>
-        <p class="note">Multiple <code>-a</code> attributes can be supplied in the same <code>mkuser</code> invocation — for example <code>mkuser -a home=/home/trip shell=/usr/bin/bash gecos="Trip Doe" trip</code>. All stanza attributes from <code>/etc/security/user</code> are settable via <code>-a</code>.</p>
+        <p class="note">Multiple <code>-a</code> attributes can be supplied in the same <code>mkuser</code> invocation, for example <code>mkuser -a home=/home/trip shell=/usr/bin/bash gecos="Trip Doe" trip</code>. All stanza attributes from <code>/etc/security/user</code> are settable via <code>-a</code>.</p>
       </div>
     </div>
   </div>
@@ -187,7 +187,7 @@
         <div class="cmd" id="c2"><button class="copy-btn" onclick="copy('c2',this)">COPY</button><span class="c"># Create the account and build the home directory in a single call</span>
 <span class="kw">mkuser</span> <span class="ph">trip</span> <span class="flag">-a</span> home=<span class="str">/home/trip</span> <span class="flag">-B</span>
 
-<span class="c"># Set the initial password (interactive — will prompt for new password)</span>
+<span class="c"># Set the initial password (interactive, will prompt for new password)</span>
 <span class="kw">passwd</span> <span class="ph">trip</span>
 
 <span class="c"># Force password change at next login</span>
@@ -207,7 +207,7 @@
     <div class="step ph-remove">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">03</span>
-        <span class="step-title">Remove user "trip" — account and home directory</span>
+        <span class="step-title">Remove user "trip": account and home directory</span>
         <span class="step-tag tag-critical">DESTRUCTIVE</span>
         <span class="step-chevron">▶</span>
       </div>
@@ -216,14 +216,14 @@
 <span class="kw">lsuser</span> <span class="ph">trip</span>
 <span class="kw">ls</span> <span class="flag">-la</span> /home/trip
 
-<span class="c"># Remove the user — this also removes the home directory</span>
+<span class="c"># Remove the user: this also removes the home directory</span>
 <span class="kw">rmuser</span> <span class="ph">trip</span>
 
 <span class="c"># If you want to keep the home directory, preserve it before rmuser</span>
 <span class="kw">tar</span> <span class="flag">-cvf</span> /backup/trip_home.tar /home/trip
 <span class="kw">rmuser</span> <span class="ph">trip</span></div>
         <p class="note note-critical"><strong>rmuser is destructive.</strong> The home directory is removed along with the account. For staff who have left the organisation, archive any contents that may be required (mailboxes, shell history, scripts, .ssh keys for shared automation) before issuing <code>rmuser</code>. There is no built-in recovery.</p>
-        <p class="note">If an account is being deactivated rather than deleted (audit retention, pending handover), prefer <code>chuser account_locked=true trip</code> instead — this keeps the home directory and audit trail intact while preventing login.</p>
+        <p class="note">If an account is being deactivated rather than deleted (audit retention, pending handover), prefer <code>chuser account_locked=true trip</code> instead: this keeps the home directory and audit trail intact while preventing login.</p>
       </div>
     </div>
   </div>
@@ -258,7 +258,7 @@
     <div class="step ph-group-mod">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">05</span>
-        <span class="step-title">Add user "trip" to "Service_Express" — preserving existing groups</span>
+        <span class="step-title">Add user "trip" to "Service_Express": preserving existing groups</span>
         <span class="step-tag tag-caution">REPLACES LIST</span>
         <span class="step-chevron">▶</span>
       </div>
@@ -267,13 +267,13 @@
 <span class="kw">lsuser</span> <span class="flag">-a</span> groups <span class="ph">trip</span>
 <span class="kw">grep</span> <span class="ph">trip</span> /etc/group
 
-<span class="c"># chuser groups= REPLACES the entire list — must include existing groups</span>
+<span class="c"># chuser groups= REPLACES the entire list: must include existing groups</span>
 <span class="c"># Example: trip is currently in "admins" and we want to add "Service_Express"</span>
 <span class="kw">chuser</span> groups=<span class="str">admins,Service_Express</span> <span class="ph">trip</span>
 
 <span class="c"># Verify the new membership</span>
 <span class="kw">lsuser</span> <span class="flag">-a</span> groups <span class="ph">trip</span></div>
-        <p class="note note-caution"><strong>chuser groups= replaces the full list, it does not append.</strong> Always read <code>lsuser -a groups &lt;user&gt;</code> first and supply the complete comma-separated list. Forgetting an existing group will silently remove the user from it — most commonly seen when an admin loses their <code>system</code> or <code>security</code> group membership.</p>
+        <p class="note note-caution"><strong>chuser groups= replaces the full list, it does not append.</strong> Always read <code>lsuser -a groups &lt;user&gt;</code> first and supply the complete comma-separated list. Forgetting an existing group will silently remove the user from it, most commonly seen when an admin loses their <code>system</code> or <code>security</code> group membership.</p>
       </div>
     </div>
 
@@ -285,7 +285,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="c"># Read the current list — assume trip is in admins,Service_Express</span>
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="c"># Read the current list: assume trip is in admins,Service_Express</span>
 <span class="kw">lsuser</span> <span class="flag">-a</span> groups <span class="ph">trip</span>
 
 <span class="c"># Re-issue chuser with admins OMITTED from the new list</span>
@@ -294,7 +294,7 @@
 <span class="c"># Verify removal</span>
 <span class="kw">lsuser</span> <span class="flag">-a</span> groups <span class="ph">trip</span>
 <span class="kw">grep</span> <span class="ph">trip</span> /etc/group</div>
-        <p class="note">There is no separate "remove from group" command on AIX — removal is achieved by listing the desired membership and omitting the unwanted group. This is the same mechanism as adding a group, just with a different target list.</p>
+        <p class="note">There is no separate "remove from group" command on AIX: removal is achieved by listing the desired membership and omitting the unwanted group. This is the same mechanism as adding a group, just with a different target list.</p>
       </div>
     </div>
   </div>
@@ -319,9 +319,9 @@
 <span class="c"># Remove the group</span>
 <span class="kw">rmgroup</span> <span class="ph">admins</span>
 
-<span class="c"># Verify removal — should report "does not exist"</span>
+<span class="c"># Verify removal: should report "does not exist"</span>
 <span class="kw">lsgroup</span> <span class="ph">admins</span></div>
-        <p class="note note-critical"><strong>rmgroup also strips the group from every member's secondary group list.</strong> Confirm membership with <code>lsgroup -a users &lt;group&gt;</code> first, and ensure no user has the group as their <em>primary</em> group (<code>pgrp</code>) — <code>rmgroup</code> will fail in that case, and the user must have their <code>pgrp</code> reassigned via <code>chuser pgrp=</code> first. Only remove groups you are certain are safe to remove.</p>
+        <p class="note note-critical"><strong>rmgroup also strips the group from every member's secondary group list.</strong> Confirm membership with <code>lsgroup -a users &lt;group&gt;</code> first, and ensure no user has the group as their <em>primary</em> group (<code>pgrp</code>): <code>rmgroup</code> will fail in that case, and the user must have their <code>pgrp</code> reassigned via <code>chuser pgrp=</code> first. Only remove groups you are certain are safe to remove.</p>
       </div>
     </div>
   </div>
@@ -332,13 +332,13 @@
     <table class="summary-table">
       <tr><th>Command</th><th>Purpose</th><th>Notes</th></tr>
       <tr><td>mkuser trip -a home=/home/trip -B</td><td>Create user and build home directory</td><td>-B is required to create the directory on disk</td></tr>
-      <tr><td>passwd trip</td><td>Set initial password</td><td>Prefer over <code>mkuser -p</code> — keeps password out of history</td></tr>
+      <tr><td>passwd trip</td><td>Set initial password</td><td>Prefer over <code>mkuser -p</code>, which keeps password out of history</td></tr>
       <tr><td>pwdadm -f ADMCHG trip</td><td>Force password change at next login</td><td>Standard for new accounts</td></tr>
       <tr><td>lsuser trip</td><td>Inspect user stanza</td><td>Use <code>-a groups</code> to see only group membership</td></tr>
       <tr><td>chuser account_locked=true trip</td><td>Disable login without deletion</td><td>Preferred over rmuser for departing staff awaiting handover</td></tr>
-      <tr><td>rmuser trip</td><td>Delete user and home directory</td><td>Destructive — archive home dir first if needed</td></tr>
+      <tr><td>rmuser trip</td><td>Delete user and home directory</td><td>Destructive: archive home dir first if needed</td></tr>
       <tr><td>mkgroup Service_Express</td><td>Create group</td><td>Add <code>id=N</code> to fix GID for cross-host alignment</td></tr>
-      <tr><td>chuser groups=g1,g2 trip</td><td>Set user's secondary groups</td><td>REPLACES list — always include existing groups</td></tr>
+      <tr><td>chuser groups=g1,g2 trip</td><td>Set user's secondary groups</td><td>REPLACES list: always include existing groups</td></tr>
       <tr><td>lsgroup -a users admins</td><td>List members of a group</td><td>Required pre-check before rmgroup</td></tr>
       <tr><td>rmgroup admins</td><td>Delete group</td><td>Strips group from all members; fails if any user has it as pgrp</td></tr>
     </table>
@@ -348,12 +348,12 @@
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li>Do not hand-edit <code>/etc/passwd</code>, <code>/etc/group</code>, or the files under <code>/etc/security/</code>. Use the <code>mkuser</code>/<code>chuser</code>/<code>rmuser</code> family — they keep the security ODM and shadow files in sync.</li>
-      <li><code>chuser groups=</code> <strong>replaces</strong> the user's secondary group list — it does not append. Always read the existing list first, edit it, then write it back.</li>
+      <li>Do not hand-edit <code>/etc/passwd</code>, <code>/etc/group</code>, or the files under <code>/etc/security/</code>. Use the <code>mkuser</code>/<code>chuser</code>/<code>rmuser</code> family: they keep the security ODM and shadow files in sync.</li>
+      <li><code>chuser groups=</code> <strong>replaces</strong> the user's secondary group list. It does not append. Always read the existing list first, edit it, then write it back.</li>
       <li><code>rmuser</code> deletes the user's home directory along with the account. Archive anything required (mailboxes, .ssh, shell history) before issuing the command.</li>
       <li>For staff awaiting handover or audit retention, prefer <code>chuser account_locked=true &lt;user&gt;</code> over <code>rmuser</code>.</li>
       <li><code>rmgroup</code> removes the group from every member's secondary list. Run <code>lsgroup -a users &lt;group&gt;</code> first; <code>rmgroup</code> will fail if any user has it as their primary group (<code>pgrp</code>).</li>
-      <li>Group and user names are case-sensitive on AIX — <code>Service_Express</code> and <code>service_express</code> are different groups.</li>
+      <li>Group and user names are case-sensitive on AIX: <code>Service_Express</code> and <code>service_express</code> are different groups.</li>
       <li>When aligning UIDs/GIDs across NIM masters or NFS clients, supply <code>id=N</code> at creation time rather than letting AIX auto-pick.</li>
     </ul>
   </div>

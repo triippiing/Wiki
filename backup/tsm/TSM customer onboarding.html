@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TSM Customer Onboarding Template — Bluechip</title>
-<meta name="description" content="End-to-end onboarding template for new TSM clients — node registration, MAXNUMMP tuning, dsm.sys layout, and dsmcad scheduler setup.">
+<title>TSM Customer Onboarding Template: Bluechip</title>
+<meta name="description" content="End-to-end onboarding template for new TSM clients: node registration, MAXNUMMP tuning, dsm.sys layout, and dsmcad scheduler setup.">
 <meta name="reviewed" content="2026-05-02">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -176,11 +176,11 @@
 <div class="wrap">
 
   <nav class="crumb">
-    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#backup">Backup</a><span class="sep">/</span><a href="../../index.html#backup">TSM</a><span class="sep">/</span>TSM Customer Onboarding Template — Bluechip
+    <a href="../../index.html">Wiki</a><span class="sep">/</span><a href="../../index.html#backup">Backup</a><span class="sep">/</span><a href="../../index.html#backup">TSM</a><span class="sep">/</span>TSM Customer Onboarding Template: Bluechip
   </nav>
 
-  <h1 class="page-title">TSM Customer Onboarding Template — Bluechip</h1>
-  <p class="page-sub">End-to-end onboarding template for new TSM clients — node registration, MAXNUMMP tuning, dsm.sys layout, and dsmcad scheduler setup.</p>
+  <h1 class="page-title">TSM Customer Onboarding Template: Bluechip</h1>
+  <p class="page-sub">End-to-end onboarding template for new TSM clients: node registration, MAXNUMMP tuning, dsm.sys layout, and dsmcad scheduler setup.</p>
 
   <div class="badges">
     <span class="badge badge-accent">REUSABLE TEMPLATE</span>
@@ -190,7 +190,7 @@
 
   <!-- ════ Template variables ════ -->
   <div class="vars">
-    <div class="vars-title">Template Variables — Substitute For Each New Customer</div>
+    <div class="vars-title">Template Variables: Substitute For Each New Customer</div>
     <div class="vars-grid">
       <div class="vars-row"><span class="vk">CUSTOMER</span><span class="vv placeholder">BLUECHIP</span></div>
       <div class="vars-row"><span class="vk">DOMAIN</span><span class="vv placeholder">BLUECHIP_DOM</span></div>
@@ -231,7 +231,7 @@
   </div>
 
   <!-- ════ PHASE 1 ════ -->
-  <div class="phase-label"><span>Phase 1</span> Pre-flight — Naming Collision Check</div>
+  <div class="phase-label"><span>Phase 1</span> Pre-flight · Naming Collision Check</div>
   <div class="steps">
     <div class="step ph-pre open">
       <div class="step-header" onclick="toggle(this)">
@@ -249,7 +249,7 @@
 
 <span class="c"># Confirm shared pool exists and is healthy (it should already exist from architecture build)</span>
 <span class="kw">QUERY STGPOOL</span> DCPOOL_PRIMARY <span class="flag">F=D</span> | <span class="kw">grep</span> <span class="flag">-iE</span> <span class="str">"status|util"</span></div>
-        <p class="note note-info"><strong>Why this matters:</strong> TSM/SP object names are global within their type. A clash on a node name with another customer would fail the define, or worse, attach the new client to an existing node's filespace — extremely difficult to unwind cleanly. This 5-second check has saved hours of cleanup more than once.</p>
+        <p class="note note-info"><strong>Why this matters:</strong> TSM/SP object names are global within their type. A clash on a node name with another customer would fail the define, or worse, attach the new client to an existing node's filespace, which is extremely difficult to unwind cleanly. This 5-second check has saved hours of cleanup more than once.</p>
       </div>
     </div>
   </div>
@@ -272,7 +272,7 @@
 
 <span class="c"># Verify</span>
 <span class="kw">QUERY DOMAIN</span> <span class="var">BLUECHIP_DOM</span> <span class="flag">F=D</span></div>
-        <p class="note"><strong>BACKRETENTION / ARCHRETENTION</strong> are domain-level fallback retentions used only when objects cannot bind to a management class (e.g. an MC is deleted while objects still reference it). The real retention controls live on the copy groups in Phase 3 — these are belt-and-braces.</p>
+        <p class="note"><strong>BACKRETENTION / ARCHRETENTION</strong> are domain-level fallback retentions used only when objects cannot bind to a management class (e.g. an MC is deleted while objects still reference it). The real retention controls live on the copy groups in Phase 3. These are belt-and-braces.</p>
       </div>
     </div>
   </div>
@@ -292,9 +292,9 @@
 <span class="kw">DEFINE POLICYSET</span> <span class="var">BLUECHIP_DOM</span> STANDARD <span class="ph">\</span>
     <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> policy v1"</span>
 
-<span class="cmd-section">MC #1 — File-level incremental, 30-day retention</span>
+<span class="cmd-section">MC #1 · File-level incremental, 30-day retention</span>
 <span class="kw">DEFINE MGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_FILE_30D <span class="ph">\</span>
-    <span class="flag">DESCRIPTION=</span><span class="str">"Daily file-level incremental — 30-day retention"</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Daily file-level incremental: 30-day retention"</span>
 
 <span class="kw">DEFINE COPYGROUP</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_FILE_30D STANDARD <span class="ph">\</span>
     <span class="flag">TYPE=</span>BACKUP <span class="ph">\</span>
@@ -306,9 +306,9 @@
     <span class="flag">MODE=</span>MODIFIED <span class="ph">\</span>
     <span class="flag">SERIALIZATION=</span>SHRSTATIC
 
-<span class="cmd-section">MC #2 — Monthly full, 6-month retention (180d / 6 versions)</span>
+<span class="cmd-section">MC #2 · Monthly full, 6-month retention (180d / 6 versions)</span>
 <span class="kw">DEFINE MGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_MFULL_6M <span class="ph">\</span>
-    <span class="flag">DESCRIPTION=</span><span class="str">"Monthly full — 180-day retention (6 versions)"</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Monthly full: 180-day retention (6 versions)"</span>
 
 <span class="kw">DEFINE COPYGROUP</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_MFULL_6M STANDARD <span class="ph">\</span>
     <span class="flag">TYPE=</span>BACKUP <span class="ph">\</span>
@@ -320,9 +320,9 @@
     <span class="flag">MODE=</span>ABSOLUTE <span class="ph">\</span>
     <span class="flag">SERIALIZATION=</span>SHRSTATIC
 
-<span class="cmd-section">MC #3 — Yearly full, 7-year retention (2555d / 7 versions)</span>
+<span class="cmd-section">MC #3 · Yearly full, 7-year retention (2555d / 7 versions)</span>
 <span class="kw">DEFINE MGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_YFULL_7Y <span class="ph">\</span>
-    <span class="flag">DESCRIPTION=</span><span class="str">"Yearly full — 2555-day retention (7 versions)"</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"Yearly full: 2555-day retention (7 versions)"</span>
 
 <span class="kw">DEFINE COPYGROUP</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_YFULL_7Y STANDARD <span class="ph">\</span>
     <span class="flag">TYPE=</span>BACKUP <span class="ph">\</span>
@@ -337,7 +337,7 @@
 <span class="cmd-section">Set the default management class</span>
 <span class="kw">ASSIGN DEFMGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> STANDARD MC_FILE_30D
 
-<span class="cmd-section">Validate before activating — fail-fast on policy errors</span>
+<span class="cmd-section">Validate before activating: fail-fast on policy errors</span>
 <span class="kw">VALIDATE POLICYSET</span> <span class="var">BLUECHIP_DOM</span> STANDARD
 <span class="c"># Expect: "ANR1515I Policy set STANDARD validated"</span>
 
@@ -360,7 +360,7 @@
 
         <p class="note"><strong>Reading the parameters:</strong> <code>VEREXISTS</code> = how many versions to keep while the file still exists. <code>VERDELETED</code> = how many versions to keep after the file is deleted. <code>RETEXTRA</code> = days to keep a version after it's been superseded. <code>RETONLY</code> = days to keep the last remaining version after the file is deleted. <code>MODE=ABSOLUTE</code> on full schedules forces unchanged files to re-send each cycle so they get re-bound to the long-retention MC.</p>
 
-        <p class="note note-caution"><strong>7 yearly versions is intentional.</strong> With <code>VEREXISTS=7</code> and <code>RETEXTRA=2555</code>, after 7 years of yearly fulls you'll hold all 7 simultaneously. The 8th yearly will start expiring the oldest. If your retention requirement is strictly 7 years total (not "the most recent 7 yearlies"), set <code>VEREXISTS=7</code> and rely on RETEXTRA for time-based aging — the configuration above does exactly this.</p>
+        <p class="note note-caution"><strong>7 yearly versions is intentional.</strong> With <code>VEREXISTS=7</code> and <code>RETEXTRA=2555</code>, after 7 years of yearly fulls you'll hold all 7 simultaneously. The 8th yearly will start expiring the oldest. If your retention requirement is strictly 7 years total (not "the most recent 7 yearlies"), set <code>VEREXISTS=7</code> and rely on RETEXTRA for time-based aging. The configuration above does exactly this.</p>
 
         <p class="note note-critical"><strong>Activate is one-way without rollback.</strong> Once <code>ACTIVATE POLICYSET</code> runs, the active policy replaces what was active before. Always <code>VALIDATE</code> first. To revert, you re-edit the inactive policy set and re-activate.</p>
       </div>
@@ -368,7 +368,7 @@
   </div>
 
   <!-- ════ PHASE 4 ════ -->
-  <div class="phase-label"><span>Phase 4</span> Client Option Sets — Bind Data to Correct MC</div>
+  <div class="phase-label"><span>Phase 4</span> Client Option Sets: Bind Data to Correct MC</div>
   <div class="steps">
     <div class="step ph-cloptset">
       <div class="step-header" onclick="toggle(this)">
@@ -378,17 +378,17 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Customer-prefixed cloptsets — keeps namespace clean across customers</span>
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Customer-prefixed cloptsets: keeps namespace clean across customers</span>
 <span class="kw">DEFINE CLOPTSET</span> <span class="var">BLUECHIP</span>_COPT_FILE <span class="ph">\</span>
-    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> — bind data to MC_FILE_30D"</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span>: bind data to MC_FILE_30D"</span>
 <span class="kw">DEFINE CLIENTOPT</span> <span class="var">BLUECHIP</span>_COPT_FILE INCLEXCL <span class="str">"INCLUDE /.../* MC_FILE_30D"</span>
 
 <span class="kw">DEFINE CLOPTSET</span> <span class="var">BLUECHIP</span>_COPT_MFULL <span class="ph">\</span>
-    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> — bind data to MC_MFULL_6M"</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span>: bind data to MC_MFULL_6M"</span>
 <span class="kw">DEFINE CLIENTOPT</span> <span class="var">BLUECHIP</span>_COPT_MFULL INCLEXCL <span class="str">"INCLUDE /.../* MC_MFULL_6M"</span>
 
 <span class="kw">DEFINE CLOPTSET</span> <span class="var">BLUECHIP</span>_COPT_YFULL <span class="ph">\</span>
-    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> — bind data to MC_YFULL_7Y"</span>
+    <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span>: bind data to MC_YFULL_7Y"</span>
 <span class="kw">DEFINE CLIENTOPT</span> <span class="var">BLUECHIP</span>_COPT_YFULL INCLEXCL <span class="str">"INCLUDE /.../* MC_YFULL_7Y"</span>
 
 <span class="cmd-section">Verify</span>
@@ -407,58 +407,58 @@
     <div class="step ph-nodes">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">05</span>
-        <span class="step-title">Register all 9 nodes — bound to domain and cloptset</span>
+        <span class="step-title">Register all 9 nodes: bound to domain and cloptset</span>
         <span class="step-tag tag-build">REGISTER</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="cmd-section">File-level nodes (3) — daily incremental → MC_FILE_30D</span>
+        <div class="cmd" id="c5"><button class="copy-btn" onclick="copy('c5',this)">COPY</button><span class="cmd-section">File-level nodes (3): daily incremental → MC_FILE_30D</span>
 <span class="kw">REGISTER NODE</span> <span class="var">BC01</span>_FILE <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
     <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_FILE <span class="ph">\</span>
     <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
-    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC01</span> — daily file-level incremental"</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC01</span>: daily file-level incremental"</span>
 
 <span class="kw">REGISTER NODE</span> <span class="var">BC02</span>_FILE <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
     <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_FILE <span class="ph">\</span>
     <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
-    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC02</span> — daily file-level incremental"</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC02</span>: daily file-level incremental"</span>
 
 <span class="kw">REGISTER NODE</span> <span class="var">BC03</span>_FILE <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
     <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_FILE <span class="ph">\</span>
     <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
-    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC03</span> — daily file-level incremental"</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC03</span>: daily file-level incremental"</span>
 
 <span class="cmd-section">Monthly-full nodes (3) → MC_MFULL_6M</span>
 <span class="kw">REGISTER NODE</span> <span class="var">BC01</span>_MFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
     <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_MFULL <span class="ph">\</span>
     <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
-    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC01</span> — monthly full"</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC01</span>: monthly full"</span>
 
 <span class="kw">REGISTER NODE</span> <span class="var">BC02</span>_MFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
     <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_MFULL <span class="ph">\</span>
     <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
-    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC02</span> — monthly full"</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC02</span>: monthly full"</span>
 
 <span class="kw">REGISTER NODE</span> <span class="var">BC03</span>_MFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
     <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_MFULL <span class="ph">\</span>
     <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
-    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC03</span> — monthly full"</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC03</span>: monthly full"</span>
 
 <span class="cmd-section">Yearly-full nodes (3) → MC_YFULL_7Y</span>
 <span class="kw">REGISTER NODE</span> <span class="var">BC01</span>_YFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
     <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_YFULL <span class="ph">\</span>
     <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
-    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC01</span> — yearly full"</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC01</span>: yearly full"</span>
 
 <span class="kw">REGISTER NODE</span> <span class="var">BC02</span>_YFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
     <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_YFULL <span class="ph">\</span>
     <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
-    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC02</span> — yearly full"</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC02</span>: yearly full"</span>
 
 <span class="kw">REGISTER NODE</span> <span class="var">BC03</span>_YFULL <span class="ph">&lt;PASSWORD&gt;</span> <span class="ph">\</span>
     <span class="flag">DOMAIN=</span><span class="var">BLUECHIP_DOM</span> <span class="flag">CLOPTSET=</span><span class="var">BLUECHIP</span>_COPT_YFULL <span class="ph">\</span>
     <span class="flag">COMPRESSION=</span>NO <span class="flag">MAXNUMMP=</span>4 <span class="ph">\</span>
-    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC03</span> — yearly full"</span>
+    <span class="flag">CONTACT=</span><span class="str">"<span class="var">Bluechip BC03</span>: yearly full"</span>
 
 <span class="cmd-section">Verify all 9 nodes</span>
 <span class="kw">QUERY NODE</span> <span class="var">BC0*</span> <span class="flag">F=D</span>
@@ -480,7 +480,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">Daily incremental — every day, 22:00</span>
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">Daily incremental: every day, 22:00</span>
 <span class="kw">DEFINE SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> SCH_DAILY_INCR <span class="ph">\</span>
     <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> - daily file-level incremental"</span> <span class="ph">\</span>
     <span class="flag">ACTION=</span>INCREMENTAL <span class="ph">\</span>
@@ -491,7 +491,7 @@
     <span class="flag">DURATION=</span>2 <span class="flag">DURUNITS=</span>HOURS <span class="ph">\</span>
     <span class="flag">PRIORITY=</span>5
 
-<span class="cmd-section">Monthly full — 1st of every month, 20:00, mode=absolute</span>
+<span class="cmd-section">Monthly full: 1st of every month, 20:00, mode=absolute</span>
 <span class="kw">DEFINE SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> SCH_MONTHLY_FULL <span class="ph">\</span>
     <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> - monthly full (mode=absolute)"</span> <span class="ph">\</span>
     <span class="flag">ACTION=</span>INCREMENTAL <span class="ph">\</span>
@@ -502,7 +502,7 @@
     <span class="flag">DURATION=</span>4 <span class="flag">DURUNITS=</span>HOURS <span class="ph">\</span>
     <span class="flag">PRIORITY=</span>3
 
-<span class="cmd-section">Yearly full — 1st January, 18:00, mode=absolute</span>
+<span class="cmd-section">Yearly full: 1st January, 18:00, mode=absolute</span>
 <span class="kw">DEFINE SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> SCH_YEARLY_FULL <span class="ph">\</span>
     <span class="flag">DESCRIPTION=</span><span class="str">"<span class="var">Bluechip</span> - yearly full (mode=absolute)"</span> <span class="ph">\</span>
     <span class="flag">ACTION=</span>INCREMENTAL <span class="ph">\</span>
@@ -526,7 +526,7 @@
 <span class="cmd-section">Verify schedules and associations</span>
 <span class="kw">QUERY SCHEDULE</span> <span class="var">BLUECHIP_DOM</span> <span class="flag">F=D</span>
 <span class="kw">QUERY ASSOCIATION</span> <span class="var">BLUECHIP_DOM</span></div>
-        <p class="note note-caution"><strong>1st January overlap:</strong> on Jan 1 each year, all three schedules fire — daily at 22:00, monthly at 20:00 (1st of month), yearly at 18:00 (1st Jan). Three sequential ingest waves on the same LPAR within 4 hours. If network/throughput is constrained, offset the monthly to <code>DAYOFMONTH=2</code> to give yearly clear air. Document the choice either way.</p>
+        <p class="note note-caution"><strong>1st January overlap:</strong> on Jan 1 each year, all three schedules fire: daily at 22:00, monthly at 20:00 (1st of month), yearly at 18:00 (1st Jan). Three sequential ingest waves on the same LPAR within 4 hours. If network/throughput is constrained, offset the monthly to <code>DAYOFMONTH=2</code> to give yearly clear air. Document the choice either way.</p>
       </div>
     </div>
   </div>
@@ -548,7 +548,7 @@
 <span class="kw">QUERY MGMTCLASS</span> <span class="var">BLUECHIP_DOM</span> ACTIVE <span class="flag">F=D</span>
 <span class="kw">QUERY COPYGROUP</span> <span class="var">BLUECHIP_DOM</span> ACTIVE STANDARD <span class="flag">F=D</span>
 
-<span class="cmd-section">Cloptsets &amp; nodes — confirm all 9 nodes bound correctly</span>
+<span class="cmd-section">Cloptsets &amp; nodes: confirm all 9 nodes bound correctly</span>
 <span class="kw">QUERY CLOPTSET</span> <span class="var">BLUECHIP</span>_COPT_*
 <span class="kw">SELECT</span> node_name,domain_name,cloptset_name,maxmp,contact <span class="ph">\</span>
   <span class="kw">FROM</span> nodes <span class="kw">WHERE</span> node_name <span class="kw">LIKE</span> <span class="str">'<span class="var">BC0</span>%'</span> <span class="kw">ORDER BY</span> node_name
@@ -562,32 +562,32 @@
 <span class="kw">SELECT</span> COUNT(*) <span class="kw">AS</span> <span class="str">"<span class="var">Bluechip</span> schedules"</span> <span class="kw">FROM</span> client_schedules <span class="kw">WHERE</span> domain_name=<span class="str">'<span class="var">BLUECHIP_DOM</span>'</span>
 <span class="kw">SELECT</span> COUNT(*) <span class="kw">AS</span> <span class="str">"<span class="var">Bluechip</span> MCs"</span>   <span class="kw">FROM</span> mgmtclasses     <span class="kw">WHERE</span> domain_name=<span class="str">'<span class="var">BLUECHIP_DOM</span>'</span> <span class="kw">AND</span> set_name=<span class="str">'ACTIVE'</span>
 <span class="c"># Expected: 9 nodes, 3 schedules, 3 MCs</span></div>
-        <p class="note note-info"><strong>Server-side build complete.</strong> The 3 LPARs cannot back up yet — the AIX clients still need <code>dsm.sys</code> / <code>dsm.opt</code> with TCPSERVERADDRESS, NODENAME, PASSWORDACCESS, and the <code>dsmcad</code> scheduler started. Three nodes per LPAR means three stanzas in <code>dsm.sys</code> and three <code>dsmcad</code> instances (or three named-server invocations).</p>
+        <p class="note note-info"><strong>Server-side build complete.</strong> The 3 LPARs cannot back up yet: the AIX clients still need <code>dsm.sys</code> / <code>dsm.opt</code> with TCPSERVERADDRESS, NODENAME, PASSWORDACCESS, and the <code>dsmcad</code> scheduler started. Three nodes per LPAR means three stanzas in <code>dsm.sys</code> and three <code>dsmcad</code> instances (or three named-server invocations).</p>
       </div>
     </div>
   </div>
 
   <!-- ════════════ SQL REPORTING ════════════ -->
-  <div class="phase-label"><span>Phase 8</span> SQL Reporting — Backup Job Status</div>
+  <div class="phase-label"><span>Phase 8</span> SQL Reporting · Backup Job Status</div>
   <div class="steps">
 
     <div class="step ph-report open">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">08</span>
-        <span class="step-title">Daily backup result query — what failed, what missed, what completed</span>
+        <span class="step-title">Daily backup result query: what failed, what missed, what completed</span>
         <span class="step-tag tag-info">REPORT</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="cmd-section">events table — schedule status codes you'll see</span>
-<span class="c">#   Completed     — schedule ran and succeeded</span>
-<span class="c">#   Failed        — client reported a non-zero RC</span>
-<span class="c">#   Missed        — schedule window passed and the client never connected</span>
-<span class="c">#   Severed       — connection dropped mid-backup</span>
-<span class="c">#   Started       — currently running</span>
-<span class="c">#   Future        — schedule defined for a future window, not yet due</span>
+        <div class="cmd" id="c8"><button class="copy-btn" onclick="copy('c8',this)">COPY</button><span class="cmd-section">events table: schedule status codes you'll see</span>
+<span class="c">#   Completed:      schedule ran and succeeded</span>
+<span class="c">#   Failed:         client reported a non-zero RC</span>
+<span class="c">#   Missed:         schedule window passed and the client never connected</span>
+<span class="c">#   Severed:        connection dropped mid-backup</span>
+<span class="c">#   Started:        currently running</span>
+<span class="c">#   Future:         schedule defined for a future window, not yet due</span>
 
-<span class="cmd-section">Query 1 — last 24h schedule outcomes for this customer</span>
+<span class="cmd-section">Query 1: last 24h schedule outcomes for this customer</span>
 <span class="kw">SELECT</span> <span class="ph">\</span>
     schedule_name      <span class="kw">AS</span> <span class="str">"Schedule"</span>, <span class="ph">\</span>
     node_name          <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
@@ -600,7 +600,7 @@
     <span class="kw">AND</span> scheduled_start &gt; (current_timestamp - 24 hours) <span class="ph">\</span>
   <span class="kw">ORDER BY</span> scheduled_start <span class="kw">DESC</span>, node_name
 
-<span class="cmd-section">Query 2 — only failures &amp; missed in the last 24h (the alert query)</span>
+<span class="cmd-section">Query 2: only failures &amp; missed in the last 24h (the alert query)</span>
 <span class="kw">SELECT</span> <span class="ph">\</span>
     node_name          <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
     schedule_name      <span class="kw">AS</span> <span class="str">"Schedule"</span>, <span class="ph">\</span>
@@ -613,7 +613,7 @@
     <span class="kw">AND</span> scheduled_start &gt; (current_timestamp - 24 hours) <span class="ph">\</span>
   <span class="kw">ORDER BY</span> scheduled_start <span class="kw">DESC</span>
 
-<span class="cmd-section">Query 3 — bytes transferred + duration per node (last 7 days)</span>
+<span class="cmd-section">Query 3: bytes transferred + duration per node (last 7 days)</span>
 <span class="c"># summary table holds completed-activity stats; entity = node, activity = type</span>
 <span class="kw">SELECT</span> <span class="ph">\</span>
     entity                                 <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
@@ -629,7 +629,7 @@
     <span class="kw">AND</span> start_time &gt; (current_timestamp - 7 days) <span class="ph">\</span>
   <span class="kw">ORDER BY</span> entity, start_time <span class="kw">DESC</span>
 
-<span class="cmd-section">Query 4 — last successful backup per node (gaps = stale data!)</span>
+<span class="cmd-section">Query 4: last successful backup per node (gaps = stale data!)</span>
 <span class="kw">SELECT</span> <span class="ph">\</span>
     node_name                              <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
     MAX(actual_start)                      <span class="kw">AS</span> <span class="str">"Last Run"</span>, <span class="ph">\</span>
@@ -640,7 +640,7 @@
   <span class="kw">GROUP BY</span> node_name <span class="ph">\</span>
   <span class="kw">ORDER BY</span> node_name
 
-<span class="cmd-section">Query 5 — per-node occupancy (logical vs stored = dedup ratio)</span>
+<span class="cmd-section">Query 5: per-node occupancy (logical vs stored = dedup ratio)</span>
 <span class="kw">SELECT</span> <span class="ph">\</span>
     node_name                              <span class="kw">AS</span> <span class="str">"Node"</span>, <span class="ph">\</span>
     filespace_name                         <span class="kw">AS</span> <span class="str">"Filespace"</span>, <span class="ph">\</span>
@@ -660,7 +660,7 @@
             <tr><td>Severed</td><td>Connection dropped mid-backup</td><td>Likely network or client crash</td></tr>
             <tr><td>Started</td><td>Currently running</td><td>Wait or check QUERY SESS</td></tr>
             <tr><td>Future</td><td>Schedule not yet due</td><td>Nothing</td></tr>
-            <tr><td>Pending</td><td>In window, client not yet connected</td><td>Watch — may transition</td></tr>
+            <tr><td>Pending</td><td>In window, client not yet connected</td><td>Watch: may transition</td></tr>
             <tr><td>InProgress</td><td>Client connected, scheduling phase</td><td>Watch</td></tr>
           </table>
         </div>
@@ -699,7 +699,7 @@
   <span class="kw">FROM</span> occupancy <span class="ph">\</span>
   <span class="kw">GROUP BY</span> SUBSTR(node_name,1,4) <span class="ph">\</span>
   <span class="kw">ORDER BY</span> 1</div>
-        <p class="note"><strong>The "Stored GB" column reflects per-node attribution after dedup.</strong> Sum of all customers' "Stored GB" should be close to the actual pool occupancy. Discrepancies are usually cross-customer dedup savings — files that exist on multiple customer nodes are stored once but logically attributed to each.</p>
+        <p class="note"><strong>The "Stored GB" column reflects per-node attribution after dedup.</strong> Sum of all customers' "Stored GB" should be close to the actual pool occupancy. Discrepancies are usually cross-customer dedup savings: files that exist on multiple customer nodes are stored once but logically attributed to each.</p>
       </div>
     </div>
 
@@ -711,7 +711,7 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="cmd-section">Pattern — dsmadmc one-shot SQL with stable output</span>
+        <div class="cmd" id="c10"><button class="copy-btn" onclick="copy('c10',this)">COPY</button><span class="cmd-section">Pattern: dsmadmc one-shot SQL with stable output</span>
 <span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span class="flag">-password=&lt;pwd&gt;</span> <span class="ph">\</span>
         <span class="flag">-dataonly=yes</span> <span class="flag">-displaymode=table</span> <span class="ph">\</span>
         <span class="str">"SELECT node_name, schedule_name, status, result"</span> <span class="ph">\</span>
@@ -722,12 +722,12 @@
 <span class="cmd-section">Common flags for scripted use</span>
 <span class="c">#   -dataonly=yes     suppress headers & banners (dataonly not displaymode)</span>
 <span class="c">#   -displaymode=table  preserve column alignment</span>
-<span class="c">#   -displaymode=list   one field per line — easier for awk/grep parsing</span>
+<span class="c">#   -displaymode=list   one field per line: easier for awk/grep parsing</span>
 <span class="c">#   -outfile=/tmp/x.txt  write to file rather than stdout</span>
 <span class="c">#   -comma            comma-separated output for CSV ingest</span>
 <span class="c">#   -tab              tab-separated output</span>
 
-<span class="cmd-section">CSV-friendly variant — pipe straight into anything</span>
+<span class="cmd-section">CSV-friendly variant: pipe straight into anything</span>
 <span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span class="flag">-password=&lt;pwd&gt;</span> <span class="flag">-dataonly=yes</span> <span class="flag">-comma</span> <span class="ph">\</span>
         <span class="str">"SELECT node_name,status,result,actual_start FROM events"</span> <span class="ph">\</span>
         <span class="str">"WHERE domain_name='<span class="var">BLUECHIP_DOM</span>' AND scheduled_start &gt; (current_timestamp - 24 hours)"</span> <span class="ph">\</span>
@@ -735,7 +735,7 @@
 
 <span class="cmd-section">Exit-code-driven alerting (for cron + email)</span>
 <span class="kw">#!/bin/ksh</span>
-<span class="c"># Runs at 06:00 daily — alerts on any failure/miss in last 24h</span>
+<span class="c"># Runs at 06:00 daily: alerts on any failure/miss in last 24h</span>
 PWD=<span class="str">"$(cat /etc/sp/admin.pw)"</span>
 OUT=$(<span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span class="flag">-password=$PWD</span> <span class="flag">-dataonly=yes</span> <span class="flag">-comma</span> \
         <span class="str">"SELECT COUNT(*) FROM events WHERE domain_name='<span class="var">BLUECHIP_DOM</span>'
@@ -750,7 +750,7 @@ OUT=$(<span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span 
              AND status IN ('Failed','Missed','Severed')"</span> \
         | mailx <span class="flag">-s</span> <span class="str">"<span class="var">Bluechip</span> SP failures: $OUT"</span> backups@example.com
 <span class="kw">fi</span></div>
-        <p class="note note-caution"><strong>Don't put the admin password in cron-readable scripts.</strong> Either use a <code>dsmadmc</code> wrapper that pulls from a 600-permissioned file (as above), or — better — generate an admin password file with <code>dsmadmc -id=admin -password=&lt;pw&gt; -genpwfile</code> and reference it with <code>-passwordaccess=generate</code>. For scripted operations, register a dedicated read-only admin (e.g. <code>SP_REPORT</code>) with <code>SYSTEM</code> privilege restricted to <code>QUERY</code>/<code>SELECT</code> via SP's command authority controls.</p>
+        <p class="note note-caution"><strong>Don't put the admin password in cron-readable scripts.</strong> Either use a <code>dsmadmc</code> wrapper that pulls from a 600-permissioned file (as above), or better still, generate an admin password file with <code>dsmadmc -id=admin -password=&lt;pw&gt; -genpwfile</code> and reference it with <code>-passwordaccess=generate</code>. For scripted operations, register a dedicated read-only admin (e.g. <code>SP_REPORT</code>) with <code>SYSTEM</code> privilege restricted to <code>QUERY</code>/<code>SELECT</code> via SP's command authority controls.</p>
         <p class="note"><strong>Output format hierarchy for parsing ease:</strong> <code>-comma</code> &gt; <code>-tab</code> &gt; <code>-displaymode=table</code> &gt; <code>-displaymode=list</code>. Use <code>-comma</code> for anything you'll parse with awk/perl/python; use <code>-displaymode=table</code> for human-readable email reports.</p>
       </div>
     </div>
@@ -783,11 +783,11 @@ OUT=$(<span class="kw">dsmadmc</span> <span class="flag">-id=admin</span> <span 
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li>This runbook is <strong>server-side only</strong> — the 3 AIX clients still need <code>dsm.sys</code> / <code>dsm.opt</code> with <code>TCPSERVERADDRESS</code>, <code>NODENAME</code>, <code>PASSWORDACCESS</code>, and <code>dsmcad</code> scheduler started. Three nodes per LPAR = three stanzas, three <code>dsmcad</code> instances.</li>
+      <li>This runbook is <strong>server-side only</strong>: the 3 AIX clients still need <code>dsm.sys</code> / <code>dsm.opt</code> with <code>TCPSERVERADDRESS</code>, <code>NODENAME</code>, <code>PASSWORDACCESS</code>, and <code>dsmcad</code> scheduler started. Three nodes per LPAR = three stanzas, three <code>dsmcad</code> instances.</li>
       <li>Retention is governed by <code>VEREXISTS</code>, <code>VERDELETED</code>, <code>RETEXTRA</code>, <code>RETONLY</code> on the copy groups. Domain-level <code>BACKRETENTION</code> is fallback only and applies when objects can't bind to any MC.</li>
-      <li><code>MODE=ABSOLUTE</code> on the monthly/yearly copy groups is mandatory for the snapshot pattern — without it, unchanged files are not re-sent and won't be tagged to the long-retention MC.</li>
+      <li><code>MODE=ABSOLUTE</code> on the monthly/yearly copy groups is mandatory for the snapshot pattern. Without it, unchanged files are not re-sent and won't be tagged to the long-retention MC.</li>
       <li><code>COMPRESSION=NO</code> at register is correct for container-pool destinations. Client compression on top of container-pool inline compression wastes CPU on the AIX LPAR <em>and</em> degrades dedup matching across customers.</li>
-      <li>For <strong>7-year yearly retention</strong>, ensure DCPOOL_PRIMARY → CCPOOL_ARCHIVE tiering rule is in place — yearly fulls aged past 30 days will tier to COS automatically and stay there for the full 2555 days. Without tiering, 7 yearly fulls per LPAR will sit on the SSD tier permanently.</li>
+      <li>For <strong>7-year yearly retention</strong>, ensure DCPOOL_PRIMARY → CCPOOL_ARCHIVE tiering rule is in place: yearly fulls aged past 30 days will tier to COS automatically and stay there for the full 2555 days. Without tiering, 7 yearly fulls per LPAR will sit on the SSD tier permanently.</li>
       <li><code>ACTIVATE POLICYSET</code> has no clean rollback. Always run <code>VALIDATE</code> first; if validation fails, fix the MC/copygroup before activating.</li>
       <li>Naming convention: every Bluechip object prefixed <code>BLUECHIP_</code>, <code>BC0X_</code>, or <code>BLUECHIP_*</code>. Keeping this strict is what makes <code>SELECT … WHERE node_name LIKE 'BC0%'</code> useful for reporting and cleanup.</li>
       <li>For cron-based reporting, never embed admin passwords in scripts. Use <code>-genpwfile</code> + <code>passwordaccess=generate</code>, and create a dedicated read-only admin (e.g. <code>SP_REPORT</code>) with restricted command authority for monitoring scripts.</li>

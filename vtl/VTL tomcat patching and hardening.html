@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tomcat Hardening Runbook</title>
-<meta name="description" content="Patching and hardening the Apache Tomcat instance behind a virtual tape library — CVE remediation, config hardening, and rollback.">
+<meta name="description" content="Patching and hardening the Apache Tomcat instance behind a virtual tape library: CVE remediation, config hardening, and rollback.">
 <meta name="reviewed" content="2026-05-02">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -184,7 +184,7 @@
   </nav>
 
   <h1 class="page-title">Tomcat Hardening Runbook</h1>
-  <p class="page-sub">Patching and hardening the Apache Tomcat instance behind a virtual tape library — CVE remediation, config hardening, and rollback.</p>
+  <p class="page-sub">Patching and hardening the Apache Tomcat instance behind a virtual tape library: CVE remediation, config hardening, and rollback.</p>
 
   <div class="badges">
     <span class="badge badge-accent">VULN REMEDIATION</span>
@@ -231,7 +231,7 @@
 
     <div class="finding-row">
       <div class="finding-cve">CVE-2020-1938</div>
-      <div class="finding-desc">"Ghostcat" — AJP connector file read / RCE class. Triggered by exposed AJP/8009 with <code>secretRequired="false"</code>. Mitigated by AJP lockdown or removal (Phase 3).</div>
+      <div class="finding-desc">"Ghostcat": AJP connector file read / RCE class. Triggered by exposed AJP/8009 with <code>secretRequired="false"</code>. Mitigated by AJP lockdown or removal (Phase 3).</div>
       <div class="finding-status stat-critical">PHASE 3</div>
     </div>
 
@@ -243,7 +243,7 @@
 
     <div class="finding-row">
       <div class="finding-cve">Default webapps</div>
-      <div class="finding-desc"><code>manager</code> and <code>host-manager</code> deployed under FalconStor Tomcat. Standard hardening — not in customer scan but widely audited.</div>
+      <div class="finding-desc"><code>manager</code> and <code>host-manager</code> deployed under FalconStor Tomcat. Standard hardening: not in customer scan but widely audited.</div>
       <div class="finding-status stat-mitigate">PHASE 4</div>
     </div>
 
@@ -266,10 +266,10 @@
       </div>
       <div class="step-body">
         <div class="cmd" id="c1"><button class="copy-btn" onclick="copy('c1',this)">COPY</button><span class="cmd-section">Confirm Tomcat instances and listeners</span>
-<span class="c"># FalconStor Tomcat — should show 9.0.112 and IBM J9</span>
+<span class="c"># FalconStor Tomcat: should show 9.0.112 and IBM J9</span>
 <span class="kw">/usr/local/apache-tomcat/bin/version.sh</span>
 
-<span class="c"># All listening sockets — note 80, 443, 8009, 1311 in particular</span>
+<span class="c"># All listening sockets: note 80, 443, 8009, 1311 in particular</span>
 <span class="kw">ss</span> <span class="flag">-ltnp</span>
 
 <span class="c"># OMSA web service status</span>
@@ -291,7 +291,7 @@
 
 <span class="cmd-section">Verify FalconStor service-control script</span>
 <span class="kw">cat</span> <span class="str">/etc/rc.d/init.d/autovtl</span> | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">'tomcat|catalina|fms|obd'</span> | <span class="kw">head</span> <span class="flag">-30</span></div>
-        <p class="note note-info"><strong>Snapshot first.</strong> All edits in later phases assume a clean rollback path — the baseline tarball is the source of truth. Tomcat is started by FalconStor's <code>autovtl</code> init script, not systemd, so service control commands later will go via that script.</p>
+        <p class="note note-info"><strong>Snapshot first.</strong> All edits in later phases assume a clean rollback path. The baseline tarball is the source of truth. Tomcat is started by FalconStor's <code>autovtl</code> init script, not systemd, so service control commands later will go via that script.</p>
       </div>
     </div>
 
@@ -315,7 +315,7 @@
 
 <span class="c"># Recent AJP traffic in Tomcat access logs (if any)</span>
 <span class="kw">tail</span> <span class="flag">-200</span> <span class="str">/apps/apache-tomcat/logs/localhost_access*</span> 2>/dev/null | <span class="kw">grep</span> <span class="flag">-i</span> ajp</div>
-        <p class="note">If <code>ss -tn | grep ':8009 '</code> returns no rows AND no <code>mod_proxy_ajp</code> config exists locally, AJP is unused — proceed with <strong>Option A (remove)</strong> in Phase 3. If anything is connected, treat as <strong>Option B (lock down)</strong>.</p>
+        <p class="note">If <code>ss -tn | grep ':8009 '</code> returns no rows AND no <code>mod_proxy_ajp</code> config exists locally, AJP is unused. Proceed with <strong>Option A (remove)</strong> in Phase 3. If anything is connected, treat as <strong>Option B (lock down)</strong>.</p>
       </div>
     </div>
 
@@ -349,12 +349,12 @@
     <div class="step ph-omsa open">
       <div class="step-header" onclick="toggle(this)">
         <span class="step-num">04</span>
-        <span class="step-title">Stop and disable dsm_om_connsvc — keep hardware monitoring</span>
+        <span class="step-title">Stop and disable dsm_om_connsvc: keep hardware monitoring</span>
         <span class="step-tag tag-ok">QUICK WIN</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Pre-check — confirm OMSA architecture</span>
+        <div class="cmd" id="c4"><button class="copy-btn" onclick="copy('c4',this)">COPY</button><span class="cmd-section">Pre-check: confirm OMSA architecture</span>
 <span class="c"># All three services should be present; only dsm_om_connsvc runs the web GUI</span>
 <span class="kw">systemctl</span> status dsm_om_connsvc dataeng dsm_om_shrsvc
 
@@ -372,7 +372,7 @@
 <span class="kw">ss</span> <span class="flag">-ltn</span> | <span class="kw">grep</span> <span class="str">1311</span>   <span class="c"># expect: no output</span>
 
 <span class="cmd-section">Confirm hardware monitoring still works (CLI path)</span>
-<span class="c"># dataeng must still be active — this is the actual monitoring engine</span>
+<span class="c"># dataeng must still be active: this is the actual monitoring engine</span>
 <span class="kw">systemctl</span> status dataeng
 
 <span class="c"># omreport CLI talks directly to dataeng, not the web service</span>
@@ -386,7 +386,7 @@
   </div>
 
   <!-- ════ PHASE 3 ════ -->
-  <div class="phase-label"><span>Phase 3</span> AJP Connector Lockdown — Ghostcat (CVE-2020-1938)</div>
+  <div class="phase-label"><span>Phase 3</span> AJP Connector Lockdown · Ghostcat (CVE-2020-1938)</div>
   <div class="steps">
     <div class="step ph-ajp">
       <div class="step-header" onclick="toggle(this)">
@@ -398,11 +398,11 @@
       <div class="step-body">
         <div class="option-grid">
           <div class="option-card">
-            <div class="option-header opt-a">Option A — Remove (preferred)</div>
+            <div class="option-header opt-a">Option A · Remove (preferred)</div>
             <div class="option-desc">No frontend proxy on this host (Phase 1 step 02 returned no AJP traffic / no httpd). Comment out the connector entirely.</div>
           </div>
           <div class="option-card">
-            <div class="option-header opt-b">Option B — Lock down</div>
+            <div class="option-header opt-b">Option B · Lock down</div>
             <div class="option-desc">AJP is in active use by a local Apache httpd / IIS frontend. Bind to localhost and add a shared secret.</div>
           </div>
         </div>
@@ -410,7 +410,7 @@
 <span class="kw">cp</span> <span class="flag">-p</span> <span class="str">/usr/local/apache-tomcat/conf/server.xml</span> \
    <span class="str">/usr/local/apache-tomcat/conf/server.xml.bak.$(date +%Y%m%d-%H%M%S)</span>
 
-<span class="cmd-section">Option A — Comment out the AJP connector</span>
+<span class="cmd-section">Option A: Comment out the AJP connector</span>
 <span class="c"># Edit /usr/local/apache-tomcat/conf/server.xml and wrap the AJP block in</span>
 <span class="c"># comments so it is preserved but inert:</span>
 <span class="c">#</span>
@@ -420,14 +420,14 @@
 
 <span class="kw">vi</span> <span class="str">/usr/local/apache-tomcat/conf/server.xml</span>
 
-<span class="c"># Confirm only the comment markers and connector remain — no orphan brackets</span>
+<span class="c"># Confirm only the comment markers and connector remain: no orphan brackets</span>
 <span class="kw">grep</span> <span class="flag">-n</span> <span class="str">'8009\|AJP'</span> <span class="str">/usr/local/apache-tomcat/conf/server.xml</span>
 
-<span class="cmd-section">Option B — Lock down (only if AJP genuinely required)</span>
+<span class="cmd-section">Option B: Lock down (only if AJP genuinely required)</span>
 <span class="c"># Generate a strong shared secret</span>
 <span class="kw">openssl</span> rand <span class="flag">-hex</span> 32
 
-<span class="c"># Edit server.xml — replace the AJP connector with the locked-down version:</span>
+<span class="c"># Edit server.xml, replacing the AJP connector with the locked-down version:</span>
 <span class="c">#</span>
 <span class="c">#   &lt;Connector port="8009" protocol="AJP/1.3"</span>
 <span class="c">#              address="127.0.0.1"</span>
@@ -442,7 +442,7 @@
 <span class="c"># Sanity-check XML structure before restart</span>
 <span class="kw">xmllint</span> <span class="flag">--noout</span> <span class="str">/usr/local/apache-tomcat/conf/server.xml</span> &amp;&amp; <span class="kw">echo</span> <span class="str">"XML OK"</span></div>
         <p class="note note-critical"><strong>Why this matters more than the flagged CVEs:</strong> CVE-2020-1938 (Ghostcat) is a pre-auth file read / potential RCE. Any host that can reach 8009 with the connector in its current state can read arbitrary files from inside webapps and, in many configurations, execute uploaded JSPs. <code>secretRequired="false"</code> + no <code>address=</code> bind = wide open from any network interface this Tomcat listens on.</p>
-        <p class="note note-caution"><strong>Restart deferred:</strong> Do not restart Tomcat yet — Phases 4 and 5 may require additional <code>server.xml</code> / webapp changes. Phase 6 handles the single coordinated restart.</p>
+        <p class="note note-caution"><strong>Restart deferred:</strong> Do not restart Tomcat yet. Phases 4 and 5 may require additional <code>server.xml</code> / webapp changes. Phase 6 handles the single coordinated restart.</p>
       </div>
     </div>
   </div>
@@ -458,11 +458,11 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">Pre-check — does FalconStor reference these webapps?</span>
+        <div class="cmd" id="c6"><button class="copy-btn" onclick="copy('c6',this)">COPY</button><span class="cmd-section">Pre-check: does FalconStor reference these webapps?</span>
 <span class="c"># Search FalconStor install tree for any reference to manager/host-manager</span>
 <span class="kw">grep</span> <span class="flag">-rli</span> <span class="str">'/manager\|/host-manager'</span> <span class="str">/usr/local/vtl</span> 2>/dev/null
 
-<span class="c"># Check tomcat-users.xml — are any users provisioned for these roles?</span>
+<span class="c"># Check tomcat-users.xml: are any users provisioned for these roles?</span>
 <span class="kw">grep</span> <span class="flag">-iE</span> <span class="str">'manager-gui|manager-script|admin-gui'</span> \
      <span class="str">/usr/local/apache-tomcat/conf/tomcat-users.xml</span>
 
@@ -498,11 +498,11 @@
       <div class="step-body">
         <div class="option-grid">
           <div class="option-card">
-            <div class="option-header opt-a">Use Case 1 — Redirect only</div>
+            <div class="option-header opt-a">Use Case 1 · Redirect only</div>
             <div class="option-desc">Phase 1 step 03 showed 80 issues only 301/302 to https. Acceptable risk; leave in place or optionally disable.</div>
           </div>
           <div class="option-card">
-            <div class="option-header opt-b">Use Case 2 — Plaintext fms/obd</div>
+            <div class="option-header opt-b">Use Case 2 · Plaintext fms/obd</div>
             <div class="option-desc">80 actually serves the webapps over plaintext. Must be disabled.</div>
           </div>
         </div>
@@ -554,19 +554,19 @@
 <span class="kw">ss</span> <span class="flag">-ltn</span>
 
 <span class="c"># Expected listeners after hardening:</span>
-<span class="c">#   443  — HTTPS (FalconStor fms/obd)              ✓ present</span>
-<span class="c">#   80   — depending on Phase 5 decision           ✓ or absent</span>
-<span class="c">#   8009 — absent (Option A) or 127.0.0.1 (Opt B)  ✓ no public bind</span>
-<span class="c">#   1311 — absent (OMSA web disabled)              ✓ silent</span>
+<span class="c">#   443:  HTTPS (FalconStor fms/obd)              ✓ present</span>
+<span class="c">#   80:   depending on Phase 5 decision           ✓ or absent</span>
+<span class="c">#   8009: absent (Option A) or 127.0.0.1 (Opt B)  ✓ no public bind</span>
+<span class="c">#   1311: absent (OMSA web disabled)              ✓ silent</span>
 
-<span class="cmd-section">Functional verification — FalconStor webapps</span>
+<span class="cmd-section">Functional verification · FalconStor webapps</span>
 <span class="kw">curl</span> <span class="flag">-Ik</span> <span class="str">https://localhost/fms/</span>
 <span class="kw">curl</span> <span class="flag">-Ik</span> <span class="str">https://localhost/obd/</span>
 
 <span class="c"># Manager webapp should now 404 (or connection refused if 80 is closed)</span>
 <span class="kw">curl</span> <span class="flag">-sk</span> <span class="str">https://localhost/manager/html</span> | <span class="kw">head</span> <span class="flag">-3</span>
 
-<span class="cmd-section">Functional verification — OMSA hardware monitoring</span>
+<span class="cmd-section">Functional verification · OMSA hardware monitoring</span>
 <span class="kw">omreport</span> chassis
 <span class="kw">omreport</span> storage controller
 
@@ -592,10 +592,10 @@
 <span class="c"># Capture installed Tomcat version for evidence</span>
 <span class="kw">/usr/local/apache-tomcat/bin/version.sh</span> | <span class="kw">grep</span> <span class="flag">-E</span> <span class="str">'Server version|Server number'</span>
 
-<span class="c"># OMSA package state — for evidence the bundled web service is no longer reachable</span>
+<span class="c"># OMSA package state: for evidence the bundled web service is no longer reachable</span>
 <span class="kw">rpm</span> <span class="flag">-q</span> srvadmin-tomcat
 <span class="kw">systemctl</span> is-enabled dsm_om_connsvc</div>
-        <p class="note">Open a re-scan request with the customer's vuln scanning team. Expected outcome: the AJP, manager-webapp, and OMSA-Tomcat findings should all clear. The original two CVEs (9.0.117) will <strong>remain open</strong> until the FalconStor patch lands — note this in the change record with the FalconStor case number as the linked remediation track.</p>
+        <p class="note">Open a re-scan request with the customer's vuln scanning team. Expected outcome: the AJP, manager-webapp, and OMSA-Tomcat findings should all clear. The original two CVEs (9.0.117) will <strong>remain open</strong> until the FalconStor patch lands. Note this in the change record with the FalconStor case number as the linked remediation track.</p>
       </div>
     </div>
   </div>
@@ -631,7 +631,7 @@
 
 <span class="cmd-section">Restart FalconStor Tomcat</span>
 <span class="kw">/etc/rc.d/init.d/autovtl</span> restart</div>
-        <p class="note">Each phase has an independent rollback path — you do not have to roll back everything if only one change causes an issue. Identify the failing phase, restore only its artefacts, and proceed with the remainder.</p>
+        <p class="note">Each phase has an independent rollback path. You do not have to roll back everything if only one change causes an issue. Identify the failing phase, restore only its artefacts, and proceed with the remainder.</p>
       </div>
     </div>
   </div>
@@ -644,13 +644,13 @@
       <tr><td>/usr/local/apache-tomcat/bin/version.sh</td><td>Confirm FalconStor Tomcat version</td><td>9.0.112 expected baseline</td></tr>
       <tr><td>ss -ltnp</td><td>Capture listener state pre/post change</td><td>Diff for evidence</td></tr>
       <tr><td>tar -czf .../tomcat-conf.tar.gz</td><td>Backup full conf tree</td><td>Rollback artefact</td></tr>
-      <tr><td>systemctl disable --now dsm_om_connsvc</td><td>Disable OMSA web GUI</td><td>Phase 2 — kills 1311 listener</td></tr>
+      <tr><td>systemctl disable --now dsm_om_connsvc</td><td>Disable OMSA web GUI</td><td>Phase 2: kills 1311 listener</td></tr>
       <tr><td>omreport chassis</td><td>Verify hardware monitoring intact</td><td>dataeng path, not Tomcat</td></tr>
       <tr><td>vi .../conf/server.xml</td><td>Comment out AJP /8009 connector</td><td>Phase 3 Option A</td></tr>
       <tr><td>openssl rand -hex 32</td><td>Generate AJP shared secret</td><td>Phase 3 Option B only</td></tr>
-      <tr><td>xmllint --noout server.xml</td><td>Validate XML before restart</td><td>Critical — bad XML = no Tomcat</td></tr>
-      <tr><td>rm -rf .../webapps/{manager,host-manager}</td><td>Remove default management webapps</td><td>Phase 4 — re-verify after FalconStor patches</td></tr>
-      <tr><td>/etc/rc.d/init.d/autovtl restart</td><td>Restart FalconStor Tomcat</td><td>Not systemd — vendor init script</td></tr>
+      <tr><td>xmllint --noout server.xml</td><td>Validate XML before restart</td><td>Critical: bad XML = no Tomcat</td></tr>
+      <tr><td>rm -rf .../webapps/{manager,host-manager}</td><td>Remove default management webapps</td><td>Phase 4: re-verify after FalconStor patches</td></tr>
+      <tr><td>/etc/rc.d/init.d/autovtl restart</td><td>Restart FalconStor Tomcat</td><td>Not systemd: vendor init script</td></tr>
       <tr><td>curl -Ik https://localhost/fms/</td><td>Confirm FalconStor webapp reachable</td><td>Functional check post-restart</td></tr>
       <tr><td>diff listeners-before listeners-after</td><td>Evidence of port-state change</td><td>Attach to change record</td></tr>
     </table>
@@ -660,13 +660,13 @@
   <div class="warn-box">
     <div class="warn-title">⚠ Key Notes</div>
     <ul>
-      <li>This runbook does <strong>not</strong> close CVE-2026-34487 / CVE-2026-34500 — those require the FalconStor patch that brings their bundled Tomcat to 9.0.117. Track that separately under the FalconStor support case.</li>
-      <li>Tomcat is started by <code>/etc/rc.d/init.d/autovtl</code>, not systemd. Do not attempt <code>systemctl start tomcat</code> — there is no such unit on this host.</li>
-      <li>OMSA hardware monitoring (alerts, SNMP traps, <code>omreport</code> CLI) continues to function with <code>dsm_om_connsvc</code> disabled — only the web GUI on port 1311 is removed.</li>
+      <li>This runbook does <strong>not</strong> close CVE-2026-34487 / CVE-2026-34500. Those require the FalconStor patch that brings their bundled Tomcat to 9.0.117. Track that separately under the FalconStor support case.</li>
+      <li>Tomcat is started by <code>/etc/rc.d/init.d/autovtl</code>, not systemd. Do not attempt <code>systemctl start tomcat</code>. There is no such unit on this host.</li>
+      <li>OMSA hardware monitoring (alerts, SNMP traps, <code>omreport</code> CLI) continues to function with <code>dsm_om_connsvc</code> disabled. Only the web GUI on port 1311 is removed.</li>
       <li>The AJP connector currently has <code>secretRequired="false"</code> and no address bind. This is the highest-impact finding in the room and is not on the customer's scan report. Address it regardless of the FalconStor patch timeline.</li>
       <li>FalconStor's next patch may re-deploy <code>manager</code> / <code>host-manager</code> webapps and may revert <code>server.xml</code>. Add a post-patch hardening verification step to your FalconStor change procedure.</li>
       <li>Validate <code>server.xml</code> with <code>xmllint --noout</code> before every restart. A malformed connector block will prevent Tomcat starting and FalconStor's <code>fms</code>/<code>obd</code> with it.</li>
-      <li>Always keep a clear rollback path — back up <code>conf/</code> and any removed webapps under <code>/root/tomcat-baseline-YYYYMMDD/</code> before editing.</li>
+      <li>Always keep a clear rollback path. Back up <code>conf/</code> and any removed webapps under <code>/root/tomcat-baseline-YYYYMMDD/</code> before editing.</li>
     </ul>
   </div>
 
