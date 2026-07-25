@@ -34,11 +34,16 @@ If you'd rather read a clone locally, run `./serve.sh` and browse to `http://loc
 | **vtl/** | FalconStor VTL: configuration, hardening, virtual tape library management |
 | **security/** | Hardening runbooks, vulnerability remediation, patching procedures |
 | **reference/** | Cheat sheets and quick-reference cards (FTP, SCP, rsync, etc.) |
+| **meta/** | Documentation about the wiki itself: contributing guide, design system, architecture |
+| **claude/** | Documentation about the tooling: repo conventions, slash commands, environment and guardrails |
 | **assets/** | The shared design library: CSS tokens and components, plus the page chrome script |
-| **scripts/** | Tooling for the wiki itself: index generation, review-date stamping, runbook identity data |
+| **scripts/** | Tooling for the wiki itself: index generation, review-date stamping, runbook identity data, source-block syncing |
+| **.claude/commands/** | Project slash commands, version controlled so they travel with a clone |
 | **docs/** | Notes on the wiki's own structural changes |
 
 Several of these directories are sparsely populated as of writing this readme and will fill out over time as procedures get uploaded. The full taxonomy is deliberate, im lazy and do not want to be constantly editing this thing so have provisioned for the future.
+
+The last two content categories are about the wiki rather than about UNIX. **Meta** covers how the site is built and styled, and **Claude** covers the tooling around it: what `CLAUDE.md` enforces, what each `/wiki-*` command does, and the hook and permission setup on the authoring machine. Both read as ordinary runbooks, they just sit one folder deep instead of two.
 
 ## File format
 
@@ -46,6 +51,8 @@ Every article is a plain `.html` file. There is no framework, no static-site gen
 
 Runbooks are not standalone, though. They share a design library out of `assets/`, so a page links three stylesheets (`tokens.css`, `runbook.css`, `sidebar.css`), two scripts (`nav-data.js`, `chrome.js`), and a Google Fonts stylesheet. That shared library is what lets a restyle land across the whole wiki at once, and it means a runbook needs to be served over http rather than opened as a loose file. `CONTRIBUTING.md` covers the details.
 
-Two files are generated and should never be hand-edited: the root `index.html` and `assets/js/nav-data.js`, the page tree that the sidebar rail is built from. `scripts/build_index.py` writes both.
+Two files are generated and should never be hand-edited: the root `index.html` and `assets/js/nav-data.js`, the page tree that the sidebar rail is built from. `scripts/build_index.py` writes both. To change the landing page's layout or styling, edit the template constants inside that script rather than its output.
+
+Parts of the pages under `claude/` are generated too. Those pages explain a file and then reproduce it in full, and the copies are filled in by `scripts/sync_source_blocks.py` rather than pasted, so a page cannot drift from the file it documents. Re-run it after editing anything reproduced on one, or use `--check` to find out whether you need to.
 
 The cheatsheets under `reference/` are the exception to all of the above. They are self-contained, single-file lookup cards on their own light-mode design, which suits quick reference better than a step-through accordion would. That exception is intentional.
