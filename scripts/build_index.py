@@ -595,8 +595,13 @@ STYLES = """  :root {
     gap: 14px;
   }
 
+  /* Flex column so .card-foot can be pushed to the bottom. Grid already
+     stretches every card to the tallest in its row, so without this the
+     review date floats up under a short description and the dates in a
+     row sit at different heights. */
   .card {
-    display: block;
+    display: flex;
+    flex-direction: column;
     background: var(--paper);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -653,11 +658,14 @@ STYLES = """  :root {
     line-height: 1.55;
   }
 
+  /* margin-top auto pins this to the bottom of the card; padding-top keeps
+     the 14px gap when the description is long enough to fill the space. */
   .card-foot {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 14px;
+    margin-top: auto;
+    padding-top: 14px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px;
     color: var(--faint);
