@@ -8,7 +8,8 @@ Scaffold a new runbook: `$ARGUMENTS`
 **Read `CONTRIBUTING.md` first**, specifically "Minimum boilerplate" and "The identity strip and the environment block". Build the file from that spec. Do not copy a nearby runbook: some predate the current shape, and you will propagate an old pattern.
 
 1. **Collect what you need.** From `$ARGUMENTS` or by asking:
-   - Category and sub-tag, which is the folder pair (`aix/lvm`, `backup/tsm`). Categories are `aix`, `linux`, `backup`, `cohesity`, `reference`, `vtl`, `security`.
+   - Category and sub-tag, which is the folder pair (`aix/lvm`, `backup/tsm`). Categories are `aix`, `linux`, `backup`, `cohesity`, `reference`, `vtl`, `security`, `meta`, `claude`. The canonical list is the `CATEGORIES` dict in `scripts/build_index.py`, so check there rather than trusting this line.
+   - `meta` and `claude` are documentation about the wiki and the tooling, not procedures. Those sit one folder deep with no sub-tag (`meta/architecture.html`), link assets via `../`, and use a `DOC-<AREA>-<NNN>` ID in a "Doc ID" cell instead of an RB-ID.
    - Title, in plain prose.
    - One-sentence description, which becomes the card body on the index.
    - Optional keywords for the live search, for terms not already in the title.

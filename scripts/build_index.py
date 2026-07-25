@@ -25,6 +25,7 @@ CATEGORIES: dict[str, dict] = {
     "vtl":       {"name": "VTL",       "accent": "vtl",      "order": 6},
     "security":  {"name": "Security",  "accent": "sec",      "order": 7},
     "meta":      {"name": "Meta",      "accent": "meta",     "order": 8},
+    "claude":    {"name": "Claude",    "accent": "claude",   "order": 9},
 }
 
 # Categories with no real runbooks yet render a "coming soon" placeholder
@@ -326,6 +327,7 @@ STYLES = """  :root {
     --ochre-bd:   #E6D8B8;
     --rust:       #A35A35;
     --sage:       #5F7038;
+    --brass:      #C9A44F;
     --shadow:     0 2px 10px rgba(43, 38, 32, .07);
     --header-h:   56px;
   }
@@ -349,6 +351,7 @@ STYLES = """  :root {
     --rust-tint:  #38271C;
     --rust-bd:    #543829;
     --sage:       #A9BE7E;
+    --brass:      #C9A44F;
     --shadow:     0 2px 14px rgba(0, 0, 0, .5);
     color-scheme: dark;
   }
@@ -358,6 +361,7 @@ STYLES = """  :root {
       --ink:#ECE4D5; --ink-2:#D3CAB8; --muted:#A79C88; --faint:#7C725F;
       --ochre:#D9B87C; --ochre-tint:#322818; --ochre-bd:#4A3B22;
       --rust:#E0975E; --rust-tint:#38271C; --rust-bd:#543829; --sage:#A9BE7E;
+      --brass:#C9A44F;
       --shadow:0 2px 14px rgba(0,0,0,.5); color-scheme:dark;
     }
   }
@@ -583,6 +587,7 @@ STYLES = """  :root {
   .accent-cohesity { background: var(--faint); }
   .accent-sec      { background: var(--border); }
   .accent-meta     { background: var(--ink-2); }
+  .accent-claude   { background: var(--brass);  }
 
   .grid {
     display: grid;

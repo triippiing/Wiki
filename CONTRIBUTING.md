@@ -24,8 +24,12 @@ Place the runbook in one of the existing category folders:
 | Reference | `reference/` | muted           |
 | VTL       | `vtl/`       | ink             |
 | Security  | `security/`  | border          |
+| Meta      | `meta/`      | ink-2           |
+| Claude    | `claude/`    | brass           |
 
 The second-level folder (`aix/lvm/`, `backup/tsm/`) becomes the card's sub-tag, shown as `aix · lvm`.
+
+**`meta/` and `claude/` are documentation, not procedures.** Those two sit one folder deep with no sub-tag (`meta/architecture.html`), link the shared assets via `../` rather than `../../`, and carry a `DOC-<AREA>-<NNN>` ID in a "Doc ID" cell instead of an RB-ID. Everything else below applies to them unchanged.
 
 ## Required `<head>` metadata
 
@@ -199,7 +203,9 @@ If you want a category that doesn't exist yet, say `database/` or `monitoring/`:
    }
    ```
 
-   `order` is the position on the landing page, and 1 to 7 are taken. Existing accents are `aix`, `linux`, `backup`, `cohesity`, `ref`, `vtl` and `sec`. To add a fresh one, define an `.accent-<name>` rule in the `STYLES` constant lower down the same file, pointing at a token colour.
+   `order` is the position on the landing page, and 1 to 9 are taken. Existing accents are `aix`, `linux`, `backup`, `cohesity`, `ref`, `vtl`, `sec`, `meta` and `claude`. To add a fresh one, define an `.accent-<name>` rule in the `STYLES` constant lower down the same file, pointing at a token colour.
+
+   The palette is nearly spent: every neutral and every accent in `tokens.css` is now claimed by a category. `claude` needed a genuinely new one, `--brass`, which is defined in all three theme blocks of the `STYLES` constant (light, dark, and the `prefers-color-scheme` fallback). A tenth category will need the same treatment, so add the variable to all three or it will render invisible in one theme.
 
 ## How the build works
 

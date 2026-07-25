@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slash Commands</title>
+<meta name="description" content="The five /wiki project commands that drive this repo: scaffolding a runbook, piloting a bulk change, preflighting the assets, stamping a review date, and shipping to Pages.">
+<meta name="reviewed" content="2026-07-25">
+<meta name="keywords" content="claude code slash command wiki-new wiki-check wiki-ship wiki-reviewed wiki-pilot project commands prompt">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/runbook.css">
+<link rel="stylesheet" href="../assets/css/sidebar.css">
+<script src="../assets/js/nav-data.js" defer></script>
+<script src="../assets/js/chrome.js" defer></script>
+<style>
+  /* command name in a step title, so the slash form reads as machine text */
+  .cmd-name { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  .step.ph-make { border-left-color: var(--sage);  }
+  .step.ph-risk { border-left-color: var(--rust);  }
+  .step.ph-ship { border-left-color: var(--ochre); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../index.html">Wiki</a><span class="sep">/</span><a href="../index.html#claude">Claude</a><span class="sep">/</span>Slash Commands
+  </nav>
+
+  <h1 class="page-title">Slash Commands</h1>
+  <p class="page-sub">Five project commands live with this repo and cover the jobs that are easy to do slightly wrong: allocating an ID, not bumping a review date by accident, proving the shared CSS actually loads, and confirming a push really reached Pages. Prefer them over improvising the same steps.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">5 commands</span>
+    <span class="badge">version controlled</span>
+    <span class="badge">repo scoped</span>
+    <span class="badge">Claude Code</span>
+  </div>
+
+  <!-- Meta -->
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Doc ID</div><div class="meta-val mono">DOC-CMD-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">The five /wiki project commands</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Where they live</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Path</div><div class="env-val mono">.claude/commands/*.md</div></div>
+      <div class="env-cell"><div class="env-label">Scope</div><div class="env-val info">This repo only</div></div>
+      <div class="env-cell"><div class="env-label">Tracked</div><div class="env-val ok">Yes, committed with the wiki</div></div>
+      <div class="env-cell"><div class="env-label">Invoked as</div><div class="env-val mono">/wiki-new · /wiki-check · ...</div></div>
+      <div class="env-cell"><div class="env-label">Working dir</div><div class="env-val warn">Repo root (Wiki/)</div></div>
+      <div class="env-cell"><div class="env-label">Added</div><div class="env-val">2026-07-24 (commit 4b942bb)</div></div>
+    </div>
+  </div>
+
+  <!-- ════ 01 ════ -->
+  <div class="phase-label"><span>01</span> What a project command is</div>
+  <div class="steps">
+    <div class="step open">
+      <div class="step-header">
+        <span class="step-num">01</span>
+        <span class="step-title">A markdown file that becomes a prompt</span>
+        <span class="step-tag tag-info">MECHANISM</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Each file in <code>.claude/commands/</code> is a prompt with a small YAML front matter block. The filename becomes the command name, so <code>wiki-ship.md</code> is invoked as <code class="cmd-name">/wiki-ship</code>. Anything typed after the command is substituted into the body wherever <code>$ARGUMENTS</code> appears.</p>
+        <div class="cmd" data-lang="markdown">---
+description: Commit, push, watch the build-index workflow, and confirm the Pages deploy landed
+argument-hint: "[commit message]"
+---
+
+Ship the current work. Commit message: $ARGUMENTS
+<span class="c"># ...the rest of the file is the instruction body</span></div>
+        <p class="note"><code>description</code> is what shows in the command menu. <code>argument-hint</code> is the grey placeholder next to it. Neither affects behaviour, they only make the menu readable.</p>
+        <p class="note note-info">These are <strong>project</strong> commands, not personal ones. They sit in the repo rather than in <code>~/.claude/commands/</code>, so they travel with a clone and are reviewable in a diff like any other file. A command that encodes a repo's conventions belongs to the repo.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 02 ════ -->
+  <div class="phase-label"><span>02</span> Making a page</div>
+  <div class="steps">
+    <div class="step ph-make">
+      <div class="step-header">
+        <span class="step-num">02</span>
+        <span class="step-title"><span class="cmd-name">/wiki-new</span> scaffolds a runbook and allocates its ID</span>
+        <span class="step-tag tag-ok">CREATE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="text">/wiki-new aix/lvm "AIX rootvg Disk Replacement"</div>
+        <p class="note">It builds the file from the spec in <code>CONTRIBUTING.md</code>, specifically "Minimum boilerplate" and the identity strip section, rather than copying a nearby runbook. That distinction is the point of the command: some existing pages predate the current shape, and copying one propagates an old pattern silently.</p>
+        <p class="note">Before writing, it collects the category and sub-tag, the title, the one-sentence description that becomes the index card body, optional search keywords, and the roughly 40 character <code>Operation</code> line. Then it allocates the next free ID by looking at what is actually taken:</p>
+        <div class="cmd" data-lang="bash">grep -ohrE 'RB-[A-Z]+-[A-Z]+-[0-9]+' . --include='*.html' | sort -u</div>
+        <p class="note note-caution"><strong>The ID comes from the pages, not from <code>scripts/runbook_meta.py</code>.</strong> That file is a historical record of what the meta migration allocated. The migration has already run, so editing a string there changes nothing and misleads the next person.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>The command in full</strong>, reproduced verbatim from the repo.</p>
+        <!--SRC:.claude/commands/wiki-new.md-->
+        <div class="cmd" data-lang="wiki-new.md" data-src-lang="markdown">---
+description: Scaffold a new runbook from the CONTRIBUTING spec, allocating the next free RB-ID
+argument-hint: "&lt;category&gt;/&lt;subtag&gt; \"Runbook Title\""
+---
+
+Scaffold a new runbook: `$ARGUMENTS`
+
+**Read `CONTRIBUTING.md` first**, specifically "Minimum boilerplate" and "The identity strip and the environment block". Build the file from that spec. Do not copy a nearby runbook: some predate the current shape, and you will propagate an old pattern.
+
+1. **Collect what you need.** From `$ARGUMENTS` or by asking:
+   - Category and sub-tag, which is the folder pair (`aix/lvm`, `backup/tsm`). Categories are `aix`, `linux`, `backup`, `cohesity`, `reference`, `vtl`, `security`, `meta`, `claude`. The canonical list is the `CATEGORIES` dict in `scripts/build_index.py`, so check there rather than trusting this line.
+   - `meta` and `claude` are documentation about the wiki and the tooling, not procedures. Those sit one folder deep with no sub-tag (`meta/architecture.html`), link assets via `../`, and use a `DOC-&lt;AREA&gt;-&lt;NNN&gt;` ID in a "Doc ID" cell instead of an RB-ID.
+   - Title, in plain prose.
+   - One-sentence description, which becomes the card body on the index.
+   - Optional keywords for the live search, for terms not already in the title.
+   - The `Operation` line, roughly 40 characters, since it sits beside the ID and the date.
+
+2. **Allocate the RB-ID.** The scheme is `RB-&lt;DOMAIN&gt;-&lt;PLATFORM&gt;-&lt;NNN&gt;`. Find what is taken:
+   ```bash
+   grep -ohrE 'RB-[A-Z]+-[A-Z]+-[0-9]+' . --include='*.html' | sort -u
+   ```
+   Pick the next free number in that domain and platform. Note that `scripts/runbook_meta.py` is a historical record, not a live source: editing it changes nothing, so do not bother.
+
+3. **Write the file** at `&lt;category&gt;/&lt;subtag&gt;/&lt;name&gt;.html`. Hyphens in the filename, not spaces. Assets link via `../../` because runbooks sit exactly two folders deep.
+
+   Requirements that are easy to get wrong:
+   - `&lt;meta name="reviewed"&gt;` is today's date, since you are writing the procedure now.
+   - The identity strip has exactly two authored cells, Runbook ID and Operation. The third, Last reviewed, is appended at load by `chrome.js`. Do not write it into the markup.
+   - **Keep the RB-ID out of `&lt;title&gt;` and `&lt;h1&gt;`.** It belongs in the identity strip and the footer only.
+   - Value cells take `info`, `ok`, `warn`, `mono`.
+   - Put bespoke CSS in the page's `&lt;style&gt;` block. Shared components belong in `assets/css/`.
+
+4. **Rebuild the index:**
+   ```bash
+   python3 scripts/build_index.py
+   ```
+
+5. **Tell Jack to run `/wiki-check`** before pushing, and remind him the body is a skeleton: you scaffolded the structure, you did not write the procedure.</div>
+        <!--/SRC-->
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 03 ════ -->
+  <div class="phase-label"><span>03</span> Changing many pages at once</div>
+  <div class="steps">
+    <div class="step ph-risk">
+      <div class="step-header">
+        <span class="step-num">03</span>
+        <span class="step-title"><span class="cmd-name">/wiki-pilot</span> proves a bulk change on one file first</span>
+        <span class="step-tag tag-caution">GUARD</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="text">/wiki-pilot aix/administration/aix_tl_upgrade.html "move the badges above the identity strip"</div>
+        <p class="note" style="margin-top:0">Sweeping edits across twenty runbooks are hard to review after the fact and expensive to undo. The command copies one representative file into <code>_sandbox/</code>, applies the change there only, serves it, and hands back a URL to look at.</p>
+        <div class="cmd" data-lang="bash">mkdir -p _sandbox
+cp "aix/administration/aix_tl_upgrade.html" "_sandbox/pilot.html"
+./serve.sh
+<span class="c"># then: http://localhost:8765/_sandbox/pilot.html</span></div>
+        <p class="note note-critical"><strong>Nothing outside <code>_sandbox/</code> is touched until you sign off.</strong> If a second real runbook gets opened, the command has already failed at its one job.</p>
+        <p class="note note-verify">The representative file should be typical in structure, not the simplest page in the repo. A pilot on the easiest file proves nothing. <code>_sandbox/</code> is in <code>build_index.py</code>'s <code>SKIP_DIRS</code>, so a pilot never reaches the index or the rail.</p>
+        <p class="note">After sign-off the same change goes to the real files, and it must not touch a single <code>reviewed</code> date no matter how many files it modifies.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>The command in full</strong>, reproduced verbatim from the repo.</p>
+        <!--SRC:.claude/commands/wiki-pilot.md-->
+        <div class="cmd" data-lang="wiki-pilot.md" data-src-lang="markdown">---
+description: Pilot a bulk change on one representative runbook in _sandbox/ before touching the rest
+argument-hint: "&lt;representative-file.html&gt; &lt;what to change&gt;"
+---
+
+Pilot a change before applying it broadly: `$ARGUMENTS`
+
+This exists because sweeping edits across many runbooks are hard to review after the fact and expensive to undo. One file, reviewed properly, catches the problem the other twenty would have inherited.
+
+**The rule: nothing outside `_sandbox/` gets touched until Jack signs off.** If you find yourself opening a second real runbook, you have broken the point of this command.
+
+1. **Pick the representative file.** If `$ARGUMENTS` does not name one, propose one and explain why it represents the set: it should be typical in structure, not the simplest page in the repo. A pilot on the easiest file proves nothing.
+
+2. **Copy it into the sandbox:**
+   ```bash
+   mkdir -p _sandbox
+   cp "&lt;file&gt;" "_sandbox/&lt;name&gt;.html"
+   ```
+   `_sandbox/` is in `build_index.py`'s `SKIP_DIRS`, so pilots never reach the index or the sidebar rail.
+
+3. **Apply the change to the sandbox copy only.**
+
+4. **Serve it and give Jack the URL:**
+   ```bash
+   ./serve.sh
+   ```
+   then the `http://localhost:8765/_sandbox/&lt;name&gt;.html` link. Never ask him to open it from Finder: `file://` blocks the shared CSS and the page will look broken for reasons unrelated to your change.
+
+5. **Stop and wait.** Report what you changed and what he should look at specifically. Do not proceed to the other files, and do not offer to, until he has said the pilot looks right.
+
+6. **After sign-off**, apply the same change to the real files. Remember that a bulk change like this must not touch any `&lt;meta name="reviewed"&gt;` date, no matter how many files it modifies.</div>
+        <!--/SRC-->
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 04 ════ -->
+  <div class="phase-label"><span>04</span> Before pushing</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">04</span>
+        <span class="step-title"><span class="cmd-name">/wiki-check</span> proves the shared assets return 200</span>
+        <span class="step-tag tag-info">PREFLIGHT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Reports only. It never commits and never pushes. It rebuilds the generated files, makes sure a server is up on 8765 (reusing one that is already listening rather than starting a second), then requests each shared asset over http and tabulates the status codes.</p>
+        <div class="cmd" data-lang="bash">python3 scripts/build_index.py
+lsof -nP -iTCP:8765 -sTCP:LISTEN     <span class="c"># reuse if something is already there</span>
+./serve.sh                            <span class="c"># otherwise start one</span></div>
+        <p class="note">The paths it checks:</p>
+        <div class="cmd" data-lang="text">/
+/assets/css/tokens.css
+/assets/css/runbook.css
+/assets/css/sidebar.css
+/assets/js/nav-data.js
+/assets/js/chrome.js</div>
+        <p class="note note-verify"><strong>This is the whole point of the command.</strong> Under <code>file://</code> those stylesheets fail silently and the page renders unstyled, so a visual check proves nothing about whether the assets resolve. Any non-200 is a failure and the command says so plainly rather than reporting the run as clean.</p>
+        <p class="note note-caution">Two things to hold in mind when reading the result. <code>chrome.js</code> caches hard, so when checking a change to it, add a cache-busting query string or the 200 you get back may be the old file. And a 200 means the asset is reachable, not that the page looks right.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>The command in full</strong>, reproduced verbatim from the repo.</p>
+        <!--SRC:.claude/commands/wiki-check.md-->
+        <div class="cmd" data-lang="wiki-check.md" data-src-lang="markdown">---
+description: Preflight the wiki before pushing: rebuild the index, serve locally, verify the shared assets actually load
+argument-hint: "[optional runbook path to also check]"
+---
+
+Preflight this repo. Do not commit anything, and do not push. This command only reports.
+
+Work from the repo root (`Wiki/`).
+
+1. **Rebuild the generated files.**
+   ```bash
+   python3 scripts/build_index.py
+   ```
+   Surface any warnings it prints verbatim, especially `UNREVIEWED` pages and anything unreviewed for 12+ months. Do not fix those here, just report them.
+
+2. **Make sure a server is up.** Check whether anything is already listening on 8765:
+   ```bash
+   lsof -nP -iTCP:8765 -sTCP:LISTEN
+   ```
+   If nothing is, start `./serve.sh` in the background. If something is, reuse it rather than starting a second one.
+
+3. **Verify the shared assets return 200 over http.** This is the whole point of the command. Under `file://` these silently fail and the page renders unstyled, so a visual check proves nothing.
+   ```
+   /
+   /assets/css/tokens.css
+   /assets/css/runbook.css
+   /assets/css/sidebar.css
+   /assets/js/nav-data.js
+   /assets/js/chrome.js
+   ```
+   If `$ARGUMENTS` names a runbook, check that URL too (URL-encode spaces in the filename).
+
+4. **Report which generated files moved:**
+   ```bash
+   git status --short
+   ```
+   Call out `index.html` and `assets/js/nav-data.js` specifically. Both are generated, so changes there are expected after step 1 and are not something to worry about.
+
+5. **Summarise as a table** of path and HTTP code. Any non-200 is a failure: say so plainly, name the file, and stop rather than reporting the run as clean.
+
+Two things to remember when interpreting the result:
+
+- `assets/js/chrome.js` caches hard. If you are checking a change to it, add a cache-busting query string or the 200 you get back may be the old file.
+- A 200 means the asset is reachable, not that the page looks right. Say what you verified, not more.</div>
+        <!--/SRC-->
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 05 ════ -->
+  <div class="phase-label"><span>05</span> Stamping a review</div>
+  <div class="steps">
+    <div class="step ph-risk">
+      <div class="step-header">
+        <span class="step-num">05</span>
+        <span class="step-title"><span class="cmd-name">/wiki-reviewed</span> stamps a date, and refuses during a bulk edit</span>
+        <span class="step-tag tag-caution">GUARD</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="text">/wiki-reviewed aix/lvm/aix_lvm_basics.html</div>
+        <p class="note" style="margin-top:0"><code>&lt;meta name="reviewed"&gt;</code> means <em>a human confirmed this procedure still works</em>. It is the one date a reader can trust, which is why the command spends most of its effort refusing to run.</p>
+        <p class="note">First it checks whether this is really a review or the tail end of a restyle:</p>
+        <div class="cmd" data-lang="bash">git status --short -- '*.html'</div>
+        <p class="note note-critical">If more than two unrelated <code>.html</code> files are modified, that is the signature of a markup migration, and the command stops and asks. A sweeping change bumping every date at once is the exact failure the field exists to prevent.</p>
+        <p class="note">Then it checks the premise: a typo fix is not a review, so if it is not already clear the procedure was actually re-read, it asks. Only then does it use the helper, which stamps the date and regenerates the index in one step:</p>
+        <div class="cmd" data-lang="bash">python3 scripts/mark_reviewed.py &lt;paths&gt;   <span class="c"># --date YYYY-MM-DD for a specific day</span>
+python3 scripts/mark_reviewed.py --stale     <span class="c"># what needs a look</span></div>
+        <p class="note note-verify">Commit the runbook, <code>index.html</code> and <code>assets/js/nav-data.js</code> together. Committing the page alone leaves the index disagreeing with it.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>The command in full</strong>, reproduced verbatim from the repo.</p>
+        <!--SRC:.claude/commands/wiki-reviewed.md-->
+        <div class="cmd" data-lang="wiki-reviewed.md" data-src-lang="markdown">---
+description: Stamp a runbook as re-read, with a guard against sweeping dates in during a bulk edit
+argument-hint: "&lt;path.html&gt; [more paths]"
+---
+
+Stamp the review date on: `$ARGUMENTS`
+
+`&lt;meta name="reviewed"&gt;` means *a human confirmed this procedure still works*. It is the one date a reader can trust. Treat it accordingly.
+
+1. **Guard against a bulk edit first.** Run:
+   ```bash
+   git status --short -- '*.html'
+   ```
+   If more than two `.html` files are modified beyond the ones named in `$ARGUMENTS`, that is the signature of a restyle or a markup migration. Stop and ask Jack before going further. A sweeping change must never bump review dates, because that is the exact failure the field exists to prevent.
+
+2. **Check the premise.** If it is not already clear from the conversation that Jack has actually re-read the procedure, ask. Do not stamp a date because a file was edited. A typo fix is not a review.
+
+3. **Use the helper, never a hand edit.** It stamps the date and regenerates the index in one step:
+   ```bash
+   python3 scripts/mark_reviewed.py &lt;paths&gt;
+   ```
+   Pass `--date YYYY-MM-DD` only if Jack named a specific day. The helper adds the tag if the file lacks one.
+
+4. **Show what is now stale:**
+   ```bash
+   python3 scripts/mark_reviewed.py --stale
+   ```
+
+5. **Remind him what to commit together:** the runbook, `index.html`, and `assets/js/nav-data.js`. Committing the runbook alone leaves the index disagreeing with the page.</div>
+        <!--/SRC-->
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 06 ════ -->
+  <div class="phase-label"><span>06</span> Publishing</div>
+  <div class="steps">
+    <div class="step ph-ship">
+      <div class="step-header">
+        <span class="step-num">06</span>
+        <span class="step-title"><span class="cmd-name">/wiki-ship</span> commits, pushes, watches CI, and verifies the deploy</span>
+        <span class="step-tag tag-info">RELEASE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="text">/wiki-ship docs: add the claude category</div>
+        <p class="note" style="margin-top:0">It shows the diff first, then greps the diff for review-date changes and stops if any turned up outside a deliberate <code>/wiki-reviewed</code> run:</p>
+        <div class="cmd" data-lang="bash">git diff -- '*.html' | grep -E '^[-+].*meta name="reviewed"'</div>
+        <p class="note note-caution">Commit messages follow the existing history (<code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>build:</code>) and carry no dashes. The hook blocks dashes in files but <strong>not</strong> in commit messages, so that one is on you.</p>
+        <p class="note">Pushing needs credentials passed explicitly. The remote deliberately carries no token and there is no cached credential, so a plain <code>git push</code> fails with <code>could not read Username</code>:</p>
+        <div class="cmd" data-lang="bash">git -c credential.helper='!f(){ echo username=triippiing; echo "password=$GITHUB_PERSONAL_ACCESS_TOKEN"; };f' push origin main</div>
+        <p class="note note-critical"><strong>Never echo, print, or interpolate <code>GITHUB_PERSONAL_ACCESS_TOKEN</code>.</strong> Its value lands in the session transcript if you do, and the transcript then needs scrubbing. Reference it only inside the helper above. It is read from <code>~/.claude/settings.json</code>.</p>
+        <p class="note">Then it waits on CI. <strong><code>gh</code> is not installed on this machine</strong>, so <code>gh run watch</code> is not an option and the workflow status comes from the API instead:</p>
+        <div class="cmd" data-lang="bash">curl -s -H "Authorization: Bearer $GITHUB_PERSONAL_ACCESS_TOKEN" \
+     -H "Accept: application/vnd.github+json" \
+     "https://api.github.com/repos/triippiing/Wiki/actions/runs?per_page=3"</div>
+        <p class="note">Two workflows answer a push, <code>Build index</code> and <code>pages build and deployment</code>, and both must reach <code>completed</code>. Because CI commits the regenerated files back, the local tree then needs catching up:</p>
+        <div class="cmd" data-lang="bash">git fetch origin &amp;&amp; git log --oneline HEAD..origin/main
+git pull --ff-only</div>
+        <p class="note note-verify"><strong>A 200 from the live site is not proof.</strong> Pages serves the previous build until deployment finishes, so the command checks for content specific to the change, with a cache-busting parameter, before calling the ship complete.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>The command in full</strong>, reproduced verbatim from the repo.</p>
+        <!--SRC:.claude/commands/wiki-ship.md-->
+        <div class="cmd" data-lang="wiki-ship.md" data-src-lang="markdown">---
+description: Commit, push, watch the build-index workflow, and confirm the Pages deploy landed
+argument-hint: "[commit message]"
+---
+
+Ship the current work. Commit message: `$ARGUMENTS`
+
+1. **Show what is about to go out** before doing anything:
+   ```bash
+   git status --short
+   git diff --stat
+   git rev-parse --abbrev-ref HEAD
+   ```
+
+2. **Check for accidental review-date changes:**
+   ```bash
+   git diff -- '*.html' | grep -E '^[-+].*meta name="reviewed"'
+   ```
+   If review dates changed and this is not a deliberate `/wiki-reviewed` run, stop and ask. A restyle must not bump them.
+
+3. **Commit.** If `$ARGUMENTS` is empty, propose a message from the actual diff and confirm it. Follow the existing history's style (`feat:`, `fix:`, `docs:`, `build:`). No em dashes in the message: a hook blocks them in files, but not in commit messages, so this one is on you.
+
+4. **Push to `main`. Never force push.**
+
+   ```bash
+   git push origin main
+   ```
+
+   This machine has no cached GitHub credentials and the remote URL deliberately carries no token, so a plain push often fails with `could not read Username for 'https://github.com'`. When it does, authenticate from the environment variable rather than putting a token on the command line or into the remote URL:
+
+   ```bash
+   git -c credential.helper='!f(){ echo username=triippiing; echo "password=$GITHUB_PERSONAL_ACCESS_TOKEN"; };f' push origin main
+   ```
+
+   `GITHUB_PERSONAL_ACCESS_TOKEN` comes from `~/.claude/settings.json`. **Never echo, print, or interpolate that variable anywhere its value would be displayed.** It lands in the session transcript if you do, which then needs scrubbing. Only ever reference it inside the helper above.
+
+5. **Watch CI.** Pushing anything matching `**.html` or `scripts/build_index.py` fires `build-index.yml`, which regenerates `index.html` and `assets/js/nav-data.js` and commits them back with `[skip ci]`.
+
+   **`gh` is not installed on this machine.** Do not call `gh run watch`. Use the API:
+
+   ```bash
+   curl -s -H "Authorization: Bearer $GITHUB_PERSONAL_ACCESS_TOKEN" \
+        -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/triippiing/Wiki/actions/runs?per_page=3" \
+   | python3 -c "
+   import json,sys
+   for r in json.load(sys.stdin).get('workflow_runs',[])[:3]:
+       print(f\"{r['name']:26} {r['head_sha'][:7]} status={r['status']} conclusion={r['conclusion']}\")
+   "
+   ```
+
+   Two workflows respond to a push: `Build index` and `pages build and deployment`. Wait for both to reach `completed`. On failure, fetch and show the failing job's log rather than summarising it.
+
+6. **Pull any CI commit back down** so the local tree does not fall behind:
+   ```bash
+   git fetch origin &amp;&amp; git log --oneline HEAD..origin/main
+   git pull --ff-only
+   ```
+   If the index was already rebuilt locally before committing, CI finds no diff and makes no commit. That is the normal, quiet case.
+
+7. **Confirm the deploy actually serves the new content.** A 200 is not proof: Pages serves the previous build until deployment finishes, so check the content, not just the status code.
+
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}\n" https://triippiing.github.io/Wiki/
+   ```
+
+   Then verify something specific to this change is live, cache-busting the request:
+   ```bash
+   curl -s "https://triippiing.github.io/Wiki/?cb=$RANDOM" | grep -c '&lt;some string from your change&gt;'
+   ```
+   If the Pages run is still `in_progress`, say so and poll rather than reporting either success or failure.
+
+Report what actually happened at each step. If CI failed, say so with the output. Do not describe the ship as complete until the workflow passed **and** the live site serves the new content.</div>
+        <!--/SRC-->
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 07 ════ -->
+  <div class="phase-label"><span>07</span> At a glance</div>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><th>Command</th><th>Arguments</th><th>What it is for</th></tr>
+      <tr><td>/wiki-new</td><td>&lt;cat&gt;/&lt;subtag&gt; "Title"</td><td>Scaffold from the CONTRIBUTING spec, allocating the next free RB-ID</td></tr>
+      <tr><td>/wiki-pilot</td><td>&lt;file.html&gt; &lt;change&gt;</td><td>Try a bulk change on one file in _sandbox/ and stop for sign-off</td></tr>
+      <tr><td>/wiki-check</td><td>[path]</td><td>Rebuild, serve, and prove every shared asset returns 200. Reports only</td></tr>
+      <tr><td>/wiki-reviewed</td><td>&lt;path.html&gt; [more]</td><td>Stamp a review date, refusing when a bulk edit is in flight</td></tr>
+      <tr><td>/wiki-ship</td><td>[message]</td><td>Commit, push, watch both workflows, confirm the live content changed</td></tr>
+    </table>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>The commands are version controlled with the wiki, so they change in a pull request like anything else. Edit the markdown, do not work around it.</li>
+      <li>Three of the five exist mainly to <em>refuse</em>: <code>/wiki-pilot</code>, <code>/wiki-reviewed</code> and the review-date guard inside <code>/wiki-ship</code>. That is deliberate, they guard the things that are quiet and expensive when they go wrong.</li>
+      <li><code>gh</code> is not installed here. CI status comes from the Actions API with <code>curl</code>.</li>
+      <li>Pushing requires the inline credential helper. Never print the token.</li>
+      <li>A 200 proves reachability, not correctness. Verify content, and check in a private window.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>DOC-CMD-001 · Slash Commands · the five /wiki project commands</span>
+  <span>claude · .claude/commands/ · Claude Code</span>
+</footer>
+
+</body>
+</html>

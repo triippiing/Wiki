@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repo Conventions</title>
+<meta name="description" content="What CLAUDE.md tells Claude Code about this repo: which files are generated, why review dates are never derived from git, the pilot rule for bulk edits, and the house writing style.">
+<meta name="reviewed" content="2026-07-25">
+<meta name="keywords" content="claude code CLAUDE.md conventions generated files reviewed dates pilot sandbox writing style em dash context">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/runbook.css">
+<link rel="stylesheet" href="../assets/css/sidebar.css">
+<script src="../assets/js/nav-data.js" defer></script>
+<script src="../assets/js/chrome.js" defer></script>
+<style>
+  .step.ph-gen  { border-left-color: var(--rust);  }
+  .step.ph-date { border-left-color: var(--ochre); }
+  .step.ph-word { border-left-color: var(--sage);  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../index.html">Wiki</a><span class="sep">/</span><a href="../index.html#claude">Claude</a><span class="sep">/</span>Repo Conventions
+  </nav>
+
+  <h1 class="page-title">Repo Conventions</h1>
+  <p class="page-sub">A single file at the repo root tells Claude Code how this wiki works. Most of it exists because of a specific way the repo can be damaged quietly: a generated file hand-edited, a review date bumped by a restyle, a bulk change applied to twenty runbooks before anyone looked at one.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">CLAUDE.md</span>
+    <span class="badge">repo root</span>
+    <span class="badge">version controlled</span>
+    <span class="badge">always loaded</span>
+  </div>
+
+  <!-- Meta -->
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Doc ID</div><div class="meta-val mono">DOC-CONV-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">What CLAUDE.md enforces</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">The file</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Path</div><div class="env-val mono">CLAUDE.md</div></div>
+      <div class="env-cell"><div class="env-label">Scope</div><div class="env-val info">Whole repo, every session</div></div>
+      <div class="env-cell"><div class="env-label">Tracked</div><div class="env-val ok">Yes, committed with the wiki</div></div>
+      <div class="env-cell"><div class="env-label">Defers to</div><div class="env-val mono">CONTRIBUTING.md</div></div>
+      <div class="env-cell"><div class="env-label">Enforced by</div><div class="env-val warn">Convention, plus one hook</div></div>
+      <div class="env-cell"><div class="env-label">Added</div><div class="env-val">2026-07-24 (commit 24ea16f)</div></div>
+    </div>
+  </div>
+
+  <!-- ════ 01 ════ -->
+  <div class="phase-label"><span>01</span> What the file is</div>
+  <div class="steps">
+    <div class="step open">
+      <div class="step-header">
+        <span class="step-num">01</span>
+        <span class="step-title">Context that loads before anyone types anything</span>
+        <span class="step-tag tag-info">MECHANISM</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">A <code>CLAUDE.md</code> at the root of a repo is read into context automatically at the start of every session in that directory. It is not a document anyone has to remember to open, which is the whole reason it works: the conventions arrive before the first mistake rather than after it.</p>
+        <p class="note note-info">It is deliberately short and points elsewhere for detail. <strong><code>CONTRIBUTING.md</code> is the authoritative spec</strong> for page structure, and <code>CLAUDE.md</code> says so rather than duplicating it, because two copies of a spec means one of them is wrong. The same page is on the wiki under <a href="../meta/contributing.html">Meta, Contributing</a>.</p>
+        <p class="note note-caution">One structural fact it states up front, because it is easy to get wrong: <strong><code>Wiki/</code> is its own git repo</strong>, sitting inside <code>~/Documents/AUTOMATION/</code>, which is not a repo at all. Nothing outside <code>Wiki/</code> is version controlled, so a parent-level git operation will simply fail.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 02 ════ -->
+  <div class="phase-label"><span>02</span> Generated files</div>
+  <div class="steps">
+    <div class="step ph-gen">
+      <div class="step-header">
+        <span class="step-num">02</span>
+        <span class="step-title">Two files are output, and editing them loses the edit</span>
+        <span class="step-tag tag-critical">NEVER EDIT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="text">index.html
+assets/js/nav-data.js</div>
+        <p class="note"><code>scripts/build_index.py</code> writes both, and CI regenerates them on every push that touches HTML. A hand edit to either survives until the next push and then vanishes, which is worse than failing outright because the change appears to work first.</p>
+        <p class="note note-verify">To change the landing page's layout, copy or styling, edit the <code>STYLES</code>, <code>SCRIPT</code> and <code>TEMPLATE</code> constants inside <code>build_index.py</code>. That is the source. The HTML is the artifact.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 03 ════ -->
+  <div class="phase-label"><span>03</span> Review dates</div>
+  <div class="steps">
+    <div class="step ph-date">
+      <div class="step-header">
+        <span class="step-num">03</span>
+        <span class="step-title">A cosmetic commit must never make a stale runbook look fresh</span>
+        <span class="step-tag tag-critical">TRUST</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0"><code>&lt;meta name="reviewed"&gt;</code> means <em>a human confirmed this procedure still works</em>. It is deliberately not derived from git, and the reason is specific rather than theoretical: the stone restyle and the sidebar rollout each touched every runbook in the repo. Had the date come from git, both would have reset twenty stale runbooks to look freshly checked on the same afternoon.</p>
+        <p class="note note-critical"><strong>When a change touches many files, leave every <code>reviewed</code> date exactly as it is.</strong> A theme, a shared component, a markup migration: none of them are reviews. Only Jack bumps these, and only after actually re-reading the procedure.</p>
+        <p class="note">When it is legitimately time to stamp one, the helper does it and regenerates the index in the same step, so the page and its index card never disagree:</p>
+        <div class="cmd" data-lang="bash">python3 scripts/mark_reviewed.py &lt;path.html&gt;   <span class="c"># stamp today</span>
+python3 scripts/mark_reviewed.py --stale         <span class="c"># report what needs a look</span></div>
+        <p class="note note-info">The <a href="commands.html"><code>/wiki-reviewed</code></a> command wraps this with a guard that refuses to run when a bulk edit is in flight, and <code>/wiki-ship</code> greps the diff for date changes before committing.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 04 ════ -->
+  <div class="phase-label"><span>04</span> Bulk edits</div>
+  <div class="steps">
+    <div class="step ph-gen">
+      <div class="step-header">
+        <span class="step-num">04</span>
+        <span class="step-title">One file, reviewed properly, before the other twenty</span>
+        <span class="step-tag tag-caution">PILOT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">For any change spanning multiple runbooks, one representative file is copied into <code>_sandbox/</code>, changed there, and signed off before anything real is touched. <code>_sandbox/</code> is in <code>build_index.py</code>'s <code>SKIP_DIRS</code>, so a pilot never reaches the index or the sidebar rail.</p>
+        <p class="note note-verify">The value is in the reviewing, not the copying. A sweeping edit is hard to review after the fact and expensive to undo, and the same mistake lands in every file at once. One file caught early is the cheapest version of that problem.</p>
+        <p class="note">Automated by <a href="commands.html"><code>/wiki-pilot</code></a>, which also picks a representative file rather than the simplest one, on the grounds that a pilot on the easiest page proves nothing.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 05 ════ -->
+  <div class="phase-label"><span>05</span> Writing style</div>
+  <div class="steps">
+    <div class="step ph-word">
+      <div class="step-header">
+        <span class="step-num">05</span>
+        <span class="step-title">No dashes, no IDs in titles, operational voice</span>
+        <span class="step-tag tag-ok">STYLE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <table class="ref-table">
+          <thead><tr><th>Rule</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>No em or en dashes in any prose, comment or page copy</td><td>They read as machine written. Use commas, colons, parentheses or a full stop. This one is enforced by a hook, see <a href="environment.html">Environment and Guardrails</a>.</td></tr>
+            <tr><td>Keep RB-IDs out of <code>&lt;title&gt;</code> and <code>&lt;h1&gt;</code></td><td>Both are surfaced by browsers, search and the index card, and the ID is noise in all three. It belongs in the identity strip and the footer.</td></tr>
+            <tr><td>Prose in runbooks is plain and operational</td><td>Match the voice of the page you are in.</td></tr>
+            <tr><td>Comments read like the surrounding code</td><td>Match its density, naming and idiom rather than importing a different house style.</td></tr>
+          </tbody>
+        </table>
+        <p class="note note-caution">The hook covers files only. A commit message with a dash in it goes straight through, so that one stays a matter of attention.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 06 ════ -->
+  <div class="phase-label"><span>06</span> Where things live</div>
+  <div class="summary-wrap">
+    <table class="summary-table">
+      <tr><th>Path</th><th>What</th></tr>
+      <tr><td>&lt;category&gt;/&lt;subtag&gt;/*.html</td><td>The runbooks. Two folders deep, so assets link via ../../</td></tr>
+      <tr><td>assets/css/</td><td>tokens.css (palette, fonts, dark theme), runbook.css, sidebar.css</td></tr>
+      <tr><td>assets/js/</td><td>chrome.js (page chrome, built at load), nav-data.js (generated)</td></tr>
+      <tr><td>scripts/</td><td>build_index.py, mark_reviewed.py, runbook_meta.py, migrate_meta.py, sync_source_blocks.py</td></tr>
+      <tr><td>meta/</td><td>Pages about the wiki itself: contributing, design system, architecture</td></tr>
+      <tr><td>claude/</td><td>Pages about the tooling: these three</td></tr>
+      <tr><td>reference/</td><td>Cheatsheets on a deliberately different design system</td></tr>
+    </table>
+  </div>
+  <p class="note note-caution"><code>scripts/runbook_meta.py</code> is a record of allocated RB-IDs, not a live source. The migration that used it has already run, so editing a string there changes nothing.</p>
+
+  <!-- ════ 07 ════ -->
+  <div class="phase-label"><span>07</span> The file in full</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">07</span>
+        <span class="step-title">CLAUDE.md, reproduced verbatim from the repo</span>
+        <span class="step-tag tag-info">SOURCE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0;margin-bottom:0">Generated by <code>scripts/sync_source_blocks.py</code>, so this block cannot drift from the real file.</p>
+        <!--SRC:CLAUDE.md-->
+        <div class="cmd" data-lang="CLAUDE.md" data-src-lang="markdown"># CLAUDE.md
+
+Guidance for Claude Code when working in this repo.
+
+## What this is
+
+A library of hand-written HTML runbooks for AIX/Linux administration, published via
+GitHub Pages at &lt;https://triippiing.github.io/Wiki/&gt;. No framework, no bundler, no
+dependencies. Writing a runbook means writing HTML.
+
+This is its own git repo (`origin` = `triippiing/Wiki.git`, branch `main`). It sits
+inside `~/Documents/AUTOMATION/`, which is *not* a repo. Nothing outside `Wiki/` is
+version controlled, so never assume a parent-level git operation will work.
+
+## Read CONTRIBUTING.md before authoring or restyling
+
+`CONTRIBUTING.md` is the authoritative spec for page structure: required `&lt;head&gt;`
+metadata, the identity strip and `.env` block, the RB-ID scheme, shared vs bespoke
+CSS, and how to add a category. Read it rather than inferring the pattern from a
+nearby runbook, which may predate the current shape.
+
+## Generated files: never hand-edit
+
+- `index.html`
+- `assets/js/nav-data.js`
+
+`scripts/build_index.py` writes both, and CI regenerates them on every push that
+touches HTML. Manual edits are silently overwritten. To change the landing page's
+layout, copy, or styling, edit the `STYLES` / `SCRIPT` / `TEMPLATE` constants inside
+`build_index.py` instead.
+
+## Verify locally before pushing
+
+```sh
+python3 scripts/build_index.py     # rebuild index.html + nav-data.js
+./serve.sh                         # http://localhost:8765/  (optional port arg)
+```
+
+Never open a runbook from Finder. Under `file://` the browser blocks the shared
+stylesheets in `assets/css/`, the page renders unstyled, and you will report a
+working change as broken.
+
+`assets/js/chrome.js` is a stable URL that keeps gaining behaviour, so it caches
+aggressively. Check changes in a private window or with a cache-busting query
+string before concluding anything about them.
+
+## Reviewed dates: do not bump them for cosmetic work
+
+`&lt;meta name="reviewed"&gt;` means *a human confirmed this procedure still works*. It is
+deliberately not derived from git, precisely so a repo-wide restyle cannot make
+twenty stale runbooks look freshly checked.
+
+**When a change touches many files (a theme, a shared component, a markup
+migration), leave every `reviewed` date exactly as it is.** Only Jack bumps these,
+and only after actually re-reading the procedure.
+
+When it is legitimately time to stamp one, use the helper rather than editing the
+tag by hand, since it regenerates the index in the same step:
+
+```sh
+python3 scripts/mark_reviewed.py &lt;path.html&gt;       # stamp today
+python3 scripts/mark_reviewed.py --stale           # report what needs a look
+```
+
+## Pilot before bulk edits
+
+For any change spanning multiple runbooks, copy one representative file into
+`_sandbox/`, apply the change there, and get Jack's sign-off on that single page
+before touching the rest. `_sandbox/` is in `build_index.py`'s `SKIP_DIRS`, so
+pilots never reach the index or the sidebar.
+
+## Writing style
+
+- **No em dashes or en dashes** in any prose, comments, or page copy. Use commas,
+  colons, or parentheses. They read as machine-written and Jack strips them.
+- Keep RB-IDs out of `&lt;title&gt;` and `&lt;h1&gt;`. They belong in the identity strip and the
+  footer, not in anything surfaced by browsers, search, or the index card.
+- Prose in runbooks is plain and operational. Match the voice of the page you are in.
+- Write code comments and notations that read like the surrounding code: match its
+  comment density, naming, and idiom.
+
+## Layout
+
+| Path | What |
+|---|---|
+| `&lt;category&gt;/&lt;subtag&gt;/*.html` | The runbooks. Two folders deep, so assets link via `../../` |
+| `assets/css/` | `tokens.css` (palette, fonts, dark theme), `runbook.css`, `sidebar.css` |
+| `assets/js/` | `chrome.js` (page chrome, built at load), `nav-data.js` (generated) |
+| `scripts/` | `build_index.py`, `mark_reviewed.py`, `runbook_meta.py`, `migrate_meta.py`, `sync_source_blocks.py` |
+| `meta/` | Pages about the wiki itself: contributing, design system, architecture |
+| `claude/` | Pages about the tooling: repo conventions, slash commands, environment |
+| `reference/` | Cheatsheets on a deliberately different design system. See CONTRIBUTING.md |
+
+`scripts/runbook_meta.py` is a record of allocated RB-IDs, not a live source. The
+migration that used it has already run, so editing a string there changes nothing.
+
+## Pages under `claude/` reproduce real files
+
+Those pages explain a file and then show it in full. The copies are generated, not
+pasted: a `&lt;!--SRC:path--&gt;` marker is filled in by `scripts/sync_source_blocks.py`.
+**After editing anything reproduced on one of those pages, re-run it**, or the wiki
+publishes a stale copy of a file that lives two directories away.
+
+```sh
+python3 scripts/sync_source_blocks.py           # refresh every block
+python3 scripts/sync_source_blocks.py --check   # read only, exit 1 if stale
+```
+
+It refuses to read outside the repo, so the machine level Claude config on
+`claude/environment.html` is a hand copy and is labelled on the page as one.</div>
+        <!--/SRC-->
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li><code>CONTRIBUTING.md</code> is the spec. <code>CLAUDE.md</code> points at it rather than restating it, so there is only ever one copy to be wrong.</li>
+      <li><code>index.html</code> and <code>assets/js/nav-data.js</code> are output. Edit the template constants in <code>build_index.py</code> instead.</li>
+      <li>Review dates are the one date a reader can trust. A bulk change must leave every one of them alone.</li>
+      <li>Pilot a sweeping change on one representative file in <code>_sandbox/</code> and get sign-off before touching the rest.</li>
+      <li><code>Wiki/</code> is the repo. Its parent is not, so nothing above it is version controlled.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>DOC-CONV-001 · Repo Conventions · what CLAUDE.md enforces</span>
+  <span>claude · CLAUDE.md · Claude Code</span>
+</footer>
+
+</body>
+</html>

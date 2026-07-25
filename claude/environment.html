@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Environment and Guardrails</title>
+<meta name="description" content="The Claude Code setup around this repo: the PreToolUse hook that blocks dashes, the permission allow and deny model, how the GitHub token is handled, and what is simply not installed on this machine.">
+<meta name="reviewed" content="2026-07-25">
+<meta name="keywords" content="claude code hooks PreToolUse permissions allow deny settings.json github token PAT gh not installed serve.sh file protocol">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/runbook.css">
+<link rel="stylesheet" href="../assets/css/sidebar.css">
+<script src="../assets/js/nav-data.js" defer></script>
+<script src="../assets/js/chrome.js" defer></script>
+<style>
+  .step.ph-hook { border-left-color: var(--sage);  }
+  .step.ph-perm { border-left-color: var(--ochre); }
+  .step.ph-sec  { border-left-color: var(--rust);  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../index.html">Wiki</a><span class="sep">/</span><a href="../index.html#claude">Claude</a><span class="sep">/</span>Environment and Guardrails
+  </nav>
+
+  <h1 class="page-title">Environment and Guardrails</h1>
+  <p class="page-sub">The machine level setup that sits around the wiki: one hook that blocks a punctuation habit, a permission list tuned to prompt only for things that can actually cause damage, a token that must never be printed, and a short list of tools that are not installed here and whose absence has already cost a session.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">not version controlled</span>
+    <span class="badge">1 hook</span>
+    <span class="badge">machine specific</span>
+    <span class="badge">Claude Code</span>
+  </div>
+
+  <!-- Meta -->
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Doc ID</div><div class="meta-val mono">DOC-ENV-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Hooks, permissions, token, tooling</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Where the config lives</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Hook and permissions</div><div class="env-val mono">~/Documents/AUTOMATION/.claude/</div></div>
+      <div class="env-cell"><div class="env-label">Token</div><div class="env-val mono">~/.claude/settings.json</div></div>
+      <div class="env-cell"><div class="env-label">Guarded root</div><div class="env-val info">~/Documents/AUTOMATION</div></div>
+      <div class="env-cell"><div class="env-label">Tracked</div><div class="env-val warn">No, none of it</div></div>
+      <div class="env-cell"><div class="env-label">Platform</div><div class="env-val">macOS, zsh</div></div>
+      <div class="env-cell"><div class="env-label">Snapshot taken</div><div class="env-val">2026-07-25</div></div>
+    </div>
+  </div>
+
+  <div class="warn-box">
+    <div class="warn-title">⚠ This page is a snapshot, not a mirror</div>
+    <ul>
+      <li>Everything described here lives in <code>~/Documents/AUTOMATION/.claude/</code>, which is <strong>not a git repo</strong>. The wiki repo sits inside that directory, so the config is a level above version control and no clone carries it.</li>
+      <li>The command pages elsewhere in this category are generated from the real files and cannot drift. <strong>These blocks cannot be, so they can.</strong> They were copied by hand on the date above.</li>
+      <li>On a new machine this page is the only record. Reproducing it is a manual job.</li>
+    </ul>
+  </div>
+
+  <!-- ════ 01 ════ -->
+  <div class="phase-label"><span>01</span> The dash hook</div>
+  <div class="steps">
+    <div class="step ph-hook open">
+      <div class="step-header">
+        <span class="step-num">01</span>
+        <span class="step-title">A PreToolUse guard that blocks the write outright</span>
+        <span class="step-tag tag-ok">HOOK</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">A <code>PreToolUse</code> hook runs <em>before</em> a tool call and can refuse it. This one matches <code>Write</code> and <code>Edit</code>, and exiting with status 2 blocks the call and hands the message back as feedback. Preference lives in a memory file; this is the part that actually stops the write.</p>
+        <div class="cmd" data-lang="settings.local.json">"hooks": {
+  "PreToolUse": [
+    {
+      "matcher": "Write|Edit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/no-em-dash.py\""
+        }
+      ]
+    }
+  ]
+}</div>
+        <p class="note">Four decisions in it are worth knowing, because each one is the difference between a guard that helps and a guard that gets switched off:</p>
+        <table class="ref-table">
+          <thead><tr><th>Decision</th><th>Reason</th></tr></thead>
+          <tbody>
+            <tr><td>Scans only the incoming text (<code>content</code> or <code>new_string</code>), never the target file</td><td>A file that already contains a stray dash stays editable. Otherwise one old page would wedge every unrelated edit to it.</td></tr>
+            <tr><td>Catches both characters and their entity spellings (<code>&amp;mdash;</code>, <code>&amp;#8212;</code>, <code>&amp;#x2014;</code>)</td><td>HTML makes it trivially easy to smuggle the same character past a naive check.</td></tr>
+            <tr><td>Escape hatch: <code>allow-dash</code> anywhere on the line skips it</td><td>Occasionally a dash is genuinely required, and a guard with no exit is a guard that gets removed.</td></tr>
+            <tr><td><strong>Fails open.</strong> Any internal error exits 0 and permits the write</td><td>A punctuation guard that can block all file edits is worse than the punctuation.</td></tr>
+          </tbody>
+        </table>
+        <p class="note note-caution">It is scoped to paths under <code>~/Documents/AUTOMATION</code>, so it covers the wiki and everything beside it. <strong>It covers files only.</strong> A commit message goes nowhere near it, so dashes there stay a matter of attention.</p>
+        <p class="note note-verify">The rejection message names the file and line, then tells you to recast the sentence rather than swap in a hyphen, on the grounds that a sentence reaching for a dash usually wants rewording.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>The hook in full</strong>, snapshot of <code>~/Documents/AUTOMATION/.claude/hooks/no-em-dash.py</code>. The dash characters are written as <code>chr()</code> escapes on purpose, so the file does not trip its own rule when edited.</p>
+        <div class="cmd" data-lang="no-em-dash.py">#!/usr/bin/env python3
+"""PreToolUse guard: keep em dashes and en dashes out of Jack's repos.
+
+Blocks Write/Edit calls whose *new* content carries a dash character or its
+HTML entity form. Only the incoming text is scanned, never the target file, so
+a runbook that already contains a stray dash stays editable.
+
+Escape hatch: put "allow-dash" anywhere on the line (in a comment) and that
+line is skipped.
+
+Fails open. Any internal error exits 0 and permits the write, because a
+punctuation guard that can block all file edits is worse than the punctuation.
+
+The dash characters below are written as escapes on purpose, so this file does
+not trip its own rule when edited.
+"""
+
+import json
+import os
+import re
+import sys
+
+GUARDED_ROOT = "/Users/jackwade/Documents/AUTOMATION"
+ESCAPE_MARKER = "allow-dash"
+MAX_REPORTED = 5
+
+<span class="c"># Literal characters, kept as escapes so this source stays self-compatible.</span>
+CHARS = {
+    chr(0x2014): "em dash (U+2014)",
+    chr(0x2013): "en dash (U+2013)",
+}
+
+<span class="c"># Entity spellings of the same two characters.</span>
+ENTITIES = re.compile(
+    r"&amp;(?:mdash|ndash|#8212|#8211|#x2014|#x2013);",
+    re.IGNORECASE,
+)
+
+<span class="c"># Which field carries the text being introduced.</span>
+CONTENT_FIELD = {
+    "Write": "content",
+    "Edit": "new_string",
+}
+
+
+def under_guarded_root(path):
+    if not path:
+        return False
+    resolved = os.path.realpath(path)
+    root = os.path.realpath(GUARDED_ROOT)
+    return resolved == root or resolved.startswith(root + os.sep)
+
+
+def violations(text):
+    """Yield (line_number, description, line) for each offending line."""
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        if ESCAPE_MARKER in line:
+            continue
+        for char, description in CHARS.items():
+            if char in line:
+                yield lineno, description, line
+                break
+        else:
+            match = ENTITIES.search(line)
+            if match:
+                yield lineno, "HTML entity %s" % match.group(0), line
+
+
+def main():
+    payload = json.load(sys.stdin)
+
+    field = CONTENT_FIELD.get(payload.get("tool_name"))
+    if field is None:
+        return 0
+
+    tool_input = payload.get("tool_input") or {}
+    if not under_guarded_root(tool_input.get("file_path")):
+        return 0
+
+    text = tool_input.get(field)
+    if not isinstance(text, str):
+        return 0
+
+    found = list(violations(text))
+    if not found:
+        return 0
+
+    name = os.path.basename(tool_input.get("file_path", "?"))
+    report = ["BLOCKED: dash characters are not allowed in this repo."]
+    for lineno, description, line in found[:MAX_REPORTED]:
+        report.append("  %s line %d: %s" % (name, lineno, description))
+        report.append("    %s" % line.strip()[:120])
+    if len(found) &gt; MAX_REPORTED:
+        report.append("  ... and %d more" % (len(found) - MAX_REPORTED))
+    report.append("")
+    report.append("Recast the sentence with a comma, colon, or parentheses.")
+    report.append("Do not just swap in a hyphen; the phrasing usually wants rework.")
+    report.append('If the dash is genuinely required, add "%s" to that line.' % ESCAPE_MARKER)
+
+    sys.stderr.write("\n".join(report) + "\n")
+    return 2
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except Exception:
+        sys.exit(0)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 02 ════ -->
+  <div class="phase-label"><span>02</span> The permission model</div>
+  <div class="steps">
+    <div class="step ph-perm">
+      <div class="step-header">
+        <span class="step-num">02</span>
+        <span class="step-title">Broad allow list, prompt only for real damage</span>
+        <span class="step-tag tag-info">PERMISSIONS</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The allow list in <code>.claude/settings.local.json</code> is deliberately broad. A permission prompt on every <code>git status</code> trains you to approve without reading, which costs more safety than it buys. The prompts are reserved for operations that could actually lose work.</p>
+        <table class="ref-table">
+          <thead><tr><th>Allowed without prompting</th><th>Covers</th></tr></thead>
+          <tbody>
+            <tr><td>File and process basics</td><td><code>cd</code>, <code>cp</code>, <code>mv</code>, <code>mkdir</code>, <code>rm</code>, <code>touch</code>, <code>chmod</code>, <code>kill</code>, <code>pkill</code>, <code>open</code>, <code>osascript</code></td></tr>
+            <tr><td>The actual work</td><td><code>git</code>, <code>gh</code>, <code>python3</code>, <code>node</code>, <code>curl</code>, <code>./serve.sh</code></td></tr>
+            <tr><td>Reads outside the project</td><td><code>~/.cache</code>, <code>~/Downloads</code>, <code>/opt/homebrew/bin</code>, <code>/tmp</code></td></tr>
+            <tr><td>Network and GitHub</td><td>WebSearch, fetches from github.com and ibm.com, and the GitHub MCP calls for PRs and commits</td></tr>
+          </tbody>
+        </table>
+        <p class="note note-critical"><strong>The deny list is the guardrail, and it is not a sandbox.</strong> It stops the specific commands that destroy work irrecoverably or execute something unreviewed. It is not an attempt to contain a determined process, and treating it as one would be a mistake.</p>
+        <div class="cmd" data-lang="settings.local.json">"deny": [
+  "Bash(sudo *)",
+  "Bash(rm -rf *)",
+  "Bash(rm -fr *)",
+  "Bash(rm -r *)",
+  "Bash(git push --force *)",
+  "Bash(git push -f *)",
+  "Bash(git reset --hard *)",
+  "Bash(git clean -fd *)",
+  "Bash(curl * | sh)",
+  "Bash(curl * | bash)"
+]</div>
+        <p class="note">The pattern behind the list: recursive deletion, history rewriting, and piping a download straight into a shell. Everything on it either cannot be undone or runs code nobody read.</p>
+        <p class="note note-caution">The allow list also accumulates entries automatically as prompts get approved, and some are one off noise from a single session (a scratchpad path, a fragment of a <code>grep</code>). Worth pruning occasionally so the file stays readable. <code>/fewer-permission-prompts</code> is the tool for looking at it.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 03 ════ -->
+  <div class="phase-label"><span>03</span> The GitHub token</div>
+  <div class="steps">
+    <div class="step ph-sec">
+      <div class="step-header">
+        <span class="step-num">03</span>
+        <span class="step-title">Passed through a helper, never printed</span>
+        <span class="step-tag tag-critical">SECRET</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The token lives in <code>~/.claude/settings.json</code> as <code>env.GITHUB_PERSONAL_ACCESS_TOKEN</code> and stays there. The git remote deliberately carries no token in its URL, and the osxkeychain entry was cleared, so a plain push fails with <code>could not read Username for 'https://github.com'</code>. That failure is the design working, not a fault.</p>
+        <div class="cmd" data-lang="bash">git -c credential.helper='!f(){ echo username=triippiing; echo "password=$GITHUB_PERSONAL_ACCESS_TOKEN"; };f' push origin main</div>
+        <p class="note note-critical"><strong>Never echo, print, or interpolate that variable anywhere its value would be displayed.</strong> It lands in the session transcript if you do, and the transcript then needs scrubbing. Reference it only inside the helper above, where the shell expands it without it ever being rendered.</p>
+        <p class="note note-verify">Keeping it out of the remote URL matters for the same reason: a URL with a token in it shows up in <code>git remote -v</code>, in <code>.git/config</code>, and in the output of half the commands anyone might run while screen sharing.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 04 ════ -->
+  <div class="phase-label"><span>04</span> What is not installed here</div>
+  <div class="steps">
+    <div class="step ph-perm">
+      <div class="step-header">
+        <span class="step-num">04</span>
+        <span class="step-title">Four absences, and what to use instead</span>
+        <span class="step-tag tag-caution">GOTCHA</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Each of these has already been assumed present and cost time. <code>gh</code> is on the permission allow list, which makes the absence more confusing rather than less: permitted is not the same as installed.</p>
+        <table class="ref-table">
+          <thead><tr><th>Missing</th><th>Instead</th></tr></thead>
+          <tbody>
+            <tr><td><code>gh</code></td><td>Query the Actions API with <code>curl</code> and a bearer token. <code>gh run watch</code> is not available.</td></tr>
+            <tr><td><code>node</code>, <code>deno</code>, <code>bun</code></td><td>Nothing on PATH runs JavaScript. Anything scripted here is Python 3.</td></tr>
+            <tr><td><code>jsc</code></td><td>To syntax check <code>chrome.js</code>, use <code>osascript</code> with <code>new Function(src)</code>.</td></tr>
+            <tr><td>Cached git credentials</td><td>The inline credential helper above. See phase 03.</td></tr>
+          </tbody>
+        </table>
+        <div class="cmd" data-lang="bash"><span class="c"># syntax check chrome.js without a JS runtime on PATH</span>
+osascript -l JavaScript -e 'new Function(ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError("assets/js/chrome.js", $.NSUTF8StringEncoding, null)))' \
+  &amp;&amp; echo "parsed OK"</div>
+        <p class="note note-info">The wiki itself is built to survive this: <code>build_index.py</code> is pure Python stdlib and <code>serve.sh</code> wraps <code>python3 -m http.server</code>, so the whole toolchain is macOS default Python and a browser. No dependency here is an accident.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ 05 ════ -->
+  <div class="phase-label"><span>05</span> Two things that will fool you</div>
+  <div class="steps">
+    <div class="step ph-sec">
+      <div class="step-header">
+        <span class="step-num">05</span>
+        <span class="step-title">Unstyled pages and stale JavaScript</span>
+        <span class="step-tag tag-caution">PREVIEW</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-critical" style="margin-top:0"><strong>Never open a runbook from Finder.</strong> Under <code>file://</code> the browser blocks the shared stylesheets in <code>assets/css/</code>, because they sit in a parent directory. The page renders completely unstyled and you will report a working change as broken.</p>
+        <div class="cmd" data-lang="bash">./serve.sh                     <span class="c"># python3 -m http.server on :8765</span>
+open http://localhost:8765/</div>
+        <p class="note note-caution"><strong><code>assets/js/chrome.js</code> caches hard.</strong> It is a stable URL that keeps gaining behaviour, so Safari will happily serve a cached copy and you will conclude a change is broken when it is not. Check in a private window, use Cmd+Option+R to reload from origin, or add a cache busting query string.</p>
+        <p class="note note-verify">This is what <a href="commands.html"><code>/wiki-check</code></a> exists for. It requests every shared asset over http and reports the status codes, which is the only way to prove the assets resolve. A visual check cannot distinguish a broken stylesheet from a broken page.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ KEY NOTES ════ -->
+  <div class="warn-box">
+    <div class="warn-title">⚠ Key Notes</div>
+    <ul>
+      <li>None of this config is version controlled. This page is the only record, and it is a hand copy taken on the date in the identity strip.</li>
+      <li>The dash hook fails open on purpose. If it ever seems to have stopped working, that is the designed behaviour on error, not a silent pass.</li>
+      <li>The deny list is a guardrail against irrecoverable commands, not a sandbox. Do not reason about it as containment.</li>
+      <li>The token is referenced only inside the credential helper. Printing it contaminates the transcript.</li>
+      <li><code>gh</code> is allowed by the permission list and absent from the machine. Permitted is not installed.</li>
+      <li>Serve over http and verify in a private window before believing anything about how a page looks.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <span>DOC-ENV-001 · Environment and Guardrails · hooks, permissions, token, tooling</span>
+  <span>claude · ~/.claude · Claude Code</span>
+</footer>
+
+</body>
+</html>

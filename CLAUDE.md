@@ -86,9 +86,25 @@ pilots never reach the index or the sidebar.
 | `<category>/<subtag>/*.html` | The runbooks. Two folders deep, so assets link via `../../` |
 | `assets/css/` | `tokens.css` (palette, fonts, dark theme), `runbook.css`, `sidebar.css` |
 | `assets/js/` | `chrome.js` (page chrome, built at load), `nav-data.js` (generated) |
-| `scripts/` | `build_index.py`, `mark_reviewed.py`, `runbook_meta.py`, `migrate_meta.py` |
+| `scripts/` | `build_index.py`, `mark_reviewed.py`, `runbook_meta.py`, `migrate_meta.py`, `sync_source_blocks.py` |
 | `meta/` | Pages about the wiki itself: contributing, design system, architecture |
+| `claude/` | Pages about the tooling: repo conventions, slash commands, environment |
 | `reference/` | Cheatsheets on a deliberately different design system. See CONTRIBUTING.md |
 
 `scripts/runbook_meta.py` is a record of allocated RB-IDs, not a live source. The
 migration that used it has already run, so editing a string there changes nothing.
+
+## Pages under `claude/` reproduce real files
+
+Those pages explain a file and then show it in full. The copies are generated, not
+pasted: a `<!--SRC:path-->` marker is filled in by `scripts/sync_source_blocks.py`.
+**After editing anything reproduced on one of those pages, re-run it**, or the wiki
+publishes a stale copy of a file that lives two directories away.
+
+```sh
+python3 scripts/sync_source_blocks.py           # refresh every block
+python3 scripts/sync_source_blocks.py --check   # read only, exit 1 if stale
+```
+
+It refuses to read outside the repo, so the machine level Claude config on
+`claude/environment.html` is a hand copy and is labelled on the page as one.

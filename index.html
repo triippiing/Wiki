@@ -28,6 +28,7 @@
     --ochre-bd:   #E6D8B8;
     --rust:       #A35A35;
     --sage:       #5F7038;
+    --brass:      #C9A44F;
     --shadow:     0 2px 10px rgba(43, 38, 32, .07);
     --header-h:   56px;
   }
@@ -51,6 +52,7 @@
     --rust-tint:  #38271C;
     --rust-bd:    #543829;
     --sage:       #A9BE7E;
+    --brass:      #C9A44F;
     --shadow:     0 2px 14px rgba(0, 0, 0, .5);
     color-scheme: dark;
   }
@@ -60,6 +62,7 @@
       --ink:#ECE4D5; --ink-2:#D3CAB8; --muted:#A79C88; --faint:#7C725F;
       --ochre:#D9B87C; --ochre-tint:#322818; --ochre-bd:#4A3B22;
       --rust:#E0975E; --rust-tint:#38271C; --rust-bd:#543829; --sage:#A9BE7E;
+      --brass:#C9A44F;
       --shadow:0 2px 14px rgba(0,0,0,.5); color-scheme:dark;
     }
   }
@@ -285,6 +288,7 @@
   .accent-cohesity { background: var(--faint); }
   .accent-sec      { background: var(--border); }
   .accent-meta     { background: var(--ink-2); }
+  .accent-claude   { background: var(--brass);  }
 
   .grid {
     display: grid;
@@ -433,7 +437,7 @@
   <span class="logo-dot"></span>
   <h1>WIKI &nbsp;/&nbsp; KNOWLEDGE BASE</h1>
   <div class="header-meta">
-    <span id="total-count">26 RUNBOOKS</span>
+    <span id="total-count">29 RUNBOOKS</span>
     <a href="https://github.com/triippiing/Wiki" target="_blank" rel="noopener">GITHUB ↗</a>
   </div>
   <button class="theme-btn" id="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle light / dark">
@@ -680,6 +684,34 @@
         <h4>Design System</h4>
         <p>A live, interactable reference for the wiki&#x27;s design language: colour tokens, the four-font stack, and every shared component rendered as it actually renders.</p>
         <div class="card-foot"><span class="card-rev">19 Jul 2026</span><span class="arrow">→</span></div>
+      </a>
+    </div>
+  </section>
+
+  <section class="section" data-cat="claude">
+    <div class="section-head">
+      <span class="accent accent-claude"></span>
+      <h3>Claude</h3>
+      <span class="count">03 runbooks</span>
+    </div>
+    <div class="grid">
+      <a class="card card-claude" href="claude/environment.html" data-search="environment and guardrails claude claude code hooks pretooluse permissions allow deny settings.json github token pat gh not installed serve.sh file protocol environment">
+        <div class="card-tag">claude</div>
+        <h4>Environment and Guardrails</h4>
+        <p>The Claude Code setup around this repo: the PreToolUse hook that blocks dashes, the permission allow and deny model, how the GitHub token is handled, and what is simply not installed on this machine.</p>
+        <div class="card-foot"><span class="card-rev">25 Jul 2026</span><span class="arrow">→</span></div>
+      </a>
+      <a class="card card-claude" href="claude/conventions.html" data-search="repo conventions claude claude code claude.md conventions generated files reviewed dates pilot sandbox writing style em dash context conventions">
+        <div class="card-tag">claude</div>
+        <h4>Repo Conventions</h4>
+        <p>What CLAUDE.md tells Claude Code about this repo: which files are generated, why review dates are never derived from git, the pilot rule for bulk edits, and the house writing style.</p>
+        <div class="card-foot"><span class="card-rev">25 Jul 2026</span><span class="arrow">→</span></div>
+      </a>
+      <a class="card card-claude" href="claude/commands.html" data-search="slash commands claude claude code slash command wiki-new wiki-check wiki-ship wiki-reviewed wiki-pilot project commands prompt commands">
+        <div class="card-tag">claude</div>
+        <h4>Slash Commands</h4>
+        <p>The five /wiki project commands that drive this repo: scaffolding a runbook, piloting a bulk change, preflighting the assets, stamping a review date, and shipping to Pages.</p>
+        <div class="card-foot"><span class="card-rev">25 Jul 2026</span><span class="arrow">→</span></div>
       </a>
     </div>
   </section>

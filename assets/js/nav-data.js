@@ -171,5 +171,26 @@ window.WIKI_NAV = [
         "sub": ""
       }
     ]
+  },
+  {
+    "key": "claude",
+    "name": "Claude",
+    "pages": [
+      {
+        "title": "Environment and Guardrails",
+        "href": "claude/environment.html",
+        "sub": ""
+      },
+      {
+        "title": "Repo Conventions",
+        "href": "claude/conventions.html",
+        "sub": ""
+      },
+      {
+        "title": "Slash Commands",
+        "href": "claude/commands.html",
+        "sub": ""
+      }
+    ]
   }
 ];
