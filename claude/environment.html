@@ -263,12 +263,12 @@ if __name__ == "__main__":
     <div class="step ph-sec">
       <div class="step-header">
         <span class="step-num">03</span>
-        <span class="step-title">Passed through a helper, never printed</span>
+        <span class="step-title">Keychain first, helper as fallback, never printed</span>
         <span class="step-tag tag-critical">SECRET</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">The token lives in <code>~/.claude/settings.json</code> as <code>env.GITHUB_PERSONAL_ACCESS_TOKEN</code> and stays there. The git remote deliberately carries no token in its URL, and the osxkeychain entry was cleared, so a plain push fails with <code>could not read Username for 'https://github.com'</code>. That failure is the design working, not a fault.</p>
+        <p class="note" style="margin-top:0">The token lives in <code>~/.claude/settings.json</code> as <code>env.GITHUB_PERSONAL_ACCESS_TOKEN</code> and stays there. The git remote deliberately carries no token in its URL. Since September 2026 the macOS keychain holds a GitHub credential again (git's <code>osxkeychain</code> helper), so a plain <code>git push</code> just works. If that entry is ever cleared or expires, a push fails with <code>could not read Username for 'https://github.com'</code>; push through the inline helper instead:</p>
         <div class="cmd" data-lang="bash">git -c credential.helper='!f(){ echo username=triippiing; echo "password=$GITHUB_PERSONAL_ACCESS_TOKEN"; };f' push origin main</div>
         <p class="note note-critical"><strong>Never echo, print, or interpolate that variable anywhere its value would be displayed.</strong> It lands in the session transcript if you do, and the transcript then needs scrubbing. Reference it only inside the helper above, where the shell expands it without it ever being rendered.</p>
         <p class="note note-verify">Keeping it out of the remote URL matters for the same reason: a URL with a token in it shows up in <code>git remote -v</code>, in <code>.git/config</code>, and in the output of half the commands anyone might run while screen sharing.</p>
@@ -282,7 +282,7 @@ if __name__ == "__main__":
     <div class="step ph-perm">
       <div class="step-header">
         <span class="step-num">04</span>
-        <span class="step-title">Four absences, and what to use instead</span>
+        <span class="step-title">Three absences, and what to use instead</span>
         <span class="step-tag tag-caution">GOTCHA</span>
         <span class="step-chevron">▶</span>
       </div>
@@ -294,7 +294,6 @@ if __name__ == "__main__":
             <tr><td><code>gh</code></td><td>Query the Actions API with <code>curl</code> and a bearer token. <code>gh run watch</code> is not available.</td></tr>
             <tr><td><code>deno</code>, <code>bun</code></td><td>Not installed. Node 24 is now present through nvm (the motion kit needs it), and <code>node --check assets/js/chrome.js</code> also syntax checks the chrome, but the wiki itself still needs only Python 3, so keep anything scripted here in Python.</td></tr>
             <tr><td><code>jsc</code></td><td>To syntax check <code>chrome.js</code>, use <code>osascript</code> with <code>new Function(src)</code>.</td></tr>
-            <tr><td>Cached git credentials</td><td>The inline credential helper above. See phase 03.</td></tr>
           </tbody>
         </table>
         <div class="cmd" data-lang="bash"><span class="c"># syntax check chrome.js without a JS runtime on PATH</span>
