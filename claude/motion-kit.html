@@ -6,7 +6,7 @@
 <title>Motion Kit</title>
 <meta name="description" content="Three Claude Code skills that turn any project's UI into beat-synced motion videos and springy in-app motion, all in code.">
 <meta name="reviewed" content="2026-09-30">
-<meta name="keywords" content="motion design video springs playwright ffmpeg bpm beat promo animation skill">
+<meta name="keywords" content="motion design video springs playwright ffmpeg bpm beat promo animation skill components catalog planner brief">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
@@ -35,7 +35,8 @@
 
   <div class="badges">
     <span class="badge badge-accent">3 skills</span>
-    <span class="badge">3 demos</span>
+    <span class="badge">4 demos</span>
+    <span class="badge">28 components</span>
     <span class="badge">Playwright + ffmpeg</span>
     <span class="badge">Claude Code</span>
   </div>
@@ -207,11 +208,56 @@ function track(t, o) {
     </div>
   </div>
 
-  <div class="phase-label"><span>06</span> Any project</div>
+  <div class="phase-label"><span>06</span> Components</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
         <span class="step-num">06</span>
+        <span class="step-title">Build from the library instead of custom code</span>
+        <span class="step-tag tag-ok">LIBRARY</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The kit ships 28 components in four groups: controls, feedback, data and content, and app chrome. Each one is a state the one shape morphs into, with its own motion, sounds and hotspots already built: button, toggle, tabs, slider, toast, line chart, calendar, command bar, player and so on. A <code>states()</code> row names a component with <code>use:</code> and passes its props as keys. A <code>cursor()</code> row aims at one of its hotspots with <code>target:</code>. No custom layers, CSS or drawing code.</p>
+        <div class="cmd" data-lang="js">const states = () =&gt; [
+  { at: 0,  use: 'button', label: 'Create account' },
+  { at: 7,  use: 'toggle', on: false, label: 'Notifications' },
+  { at: 10, use: 'toggle', on: true, label: 'Notifications' },   <span class="c">// continuation: same toggle, now on</span>
+  { at: 18, use: 'toast', text: 'Welcome, Sam', action: 'Later' },
+];
+const cursor = () =&gt; [
+  { at: 2,  target: 'button', press: true },
+  { at: 8,  target: 'knob', press: true },                          <span class="c">// the press flips it</span>
+  { at: 20, target: 'action', press: true },
+];</div>
+        <p class="note"><strong>Continuations.</strong> Two consecutive rows of the same component are one component changing, not a cut. The second row starts from where the first left off and animates the difference: tabs sliding from Day to Month, a progress bar filling in steps, a line chart morphing to new points. After a press, write the pressed result into the next row (a toggle pressed on is written <code>on: true</code>).</p>
+        <p class="note">The planner (<code>motion-design</code>) now works from the library:</p>
+        <ol>
+          <li><strong>Route.</strong> Says which path the request takes: a looping promo, a launch video, in-app motion (handed to motion-ui) or a re-time.</li>
+          <li><strong>Ask.</strong> One question per message: goal, size and length, product, song, then 3 to 6 moments with one component proposed for each.</li>
+          <li><strong>Assess.</strong> Runs the doctor, scaffolds and measures the song, turns seconds into bars, checks the theme and the state budget.</li>
+          <li><strong>Brief.</strong> Writes <code>MOTION-BRIEF.md</code> with real <code>use:</code> and <code>target:</code> tables, and runs <code>check_brief.mjs</code> until it passes.</li>
+          <li><strong>Approval gate.</strong> Stops. Nothing is built until you approve; then motion-video pastes the tables into <code>index.html</code>.</li>
+        </ol>
+        <figure class="demo">
+          <video controls loop playsinline preload="metadata" poster="../assets/media/motion-kit/05-component-gallery.jpg" src="../assets/media/motion-kit/05-component-gallery.mp4"></video>
+          <figcaption>The component gallery, made by <code>gallery.mjs</code>. Every component plays its catalog example in catalog order, then each of its edge cases, two beats apiece, from a neutral rest shape and back. 118 s at 120 BPM over a synthetic click track, 720x720 half-size preview render.</figcaption>
+        </figure>
+        <figure class="demo">
+          <video controls loop playsinline preload="metadata" poster="../assets/media/motion-kit/04-library-reference.jpg" src="../assets/media/motion-kit/04-library-reference.mp4"></video>
+          <figcaption>Demo 4, the demo 1 sequence rebuilt from library components only. The planner wrote its <code>MOTION-BRIEF.md</code>, which was approved as written and built by pasting its tables into the template. The project code is 45 lines of tables (60 non-blank lines with comments) against 269 lines of custom code for demo 1 (290 with comments), with no custom layers (<a href="https://github.com/triippiing/motion-kit/blob/main/demos/04-library-reference/README.md">how they were counted</a>). "Tints" by Anderson .Paak featuring Kendrick Lamar, 109.00 BPM, 7-bar loop of 15.4 s, 1080x1080 web copy.</figcaption>
+        </figure>
+        <p class="note note-caution">Demo 4 keeps the Tints audio too, for viewing here only. Re-time it to a licensed track before posting it anywhere else.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>Docs.</strong> <a href="https://github.com/triippiing/motion-kit/blob/main/skills/motion-video/components/CATALOG.md">CATALOG.md</a> lists every component with its props, hotspots, motion and an example row. <a href="https://github.com/triippiing/motion-kit/blob/main/skills/motion-video/components/RECIPES.md">RECIPES.md</a> has five complete sequences (onboarding, checkout and more) that pass <code>check_brief.mjs</code> as written. <a href="https://github.com/triippiing/motion-kit/blob/main/skills/motion-video/components/WRITING-A-COMPONENT.md">WRITING-A-COMPONENT.md</a> covers adding a new one.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>07</span> Any project</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">07</span>
         <span class="step-title">Re-theme and re-size to fit the project</span>
         <span class="step-tag tag-ok">THEME</span>
         <span class="step-chevron">▶</span>
@@ -239,11 +285,11 @@ function track(t, o) {
     </div>
   </div>
 
-  <div class="phase-label"><span>07</span> Song rules</div>
+  <div class="phase-label"><span>08</span> Song rules</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">07</span>
+        <span class="step-num">08</span>
         <span class="step-title">What song.json tells you</span>
         <span class="step-tag tag-caution">RULES</span>
         <span class="step-chevron">▶</span>
@@ -261,11 +307,11 @@ function track(t, o) {
     </div>
   </div>
 
-  <div class="phase-label"><span>08</span> In-app motion</div>
+  <div class="phase-label"><span>09</span> In-app motion</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">08</span>
+        <span class="step-num">09</span>
         <span class="step-title">The project's motion spec wins</span>
         <span class="step-tag tag-info">MOTION-UI</span>
         <span class="step-chevron">▶</span>
@@ -283,11 +329,11 @@ function indicatorEdges(from, changes, t, settle, n, lead = 0.7) {
     </div>
   </div>
 
-  <div class="phase-label"><span>09</span> Troubleshooting</div>
+  <div class="phase-label"><span>10</span> Troubleshooting</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">09</span>
+        <span class="step-num">10</span>
         <span class="step-title">Common failures</span>
         <span class="step-tag tag-caution">FIXES</span>
         <span class="step-chevron">▶</span>
