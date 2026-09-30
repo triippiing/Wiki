@@ -230,7 +230,8 @@ function track(t, o) {
         <p class="note" style="margin-top:12px">When a role is picked wrongly, override it and check the printed theme:</p>
         <div class="cmd" data-lang="bash">python3 $S/extract_theme.py app/style.css --out ~/promo --map accent=--brand</div>
         <p class="note">Pages then use the roles (<code>canvas surface ink muted accent</code>) or <code>var(--accent)</code>, never a hex value, so the piece re-themes with the project. Use <code>var(--pos)</code> and <code>var(--neg)</code> only when the theme has them.</p>
-        <p class="note note-info" style="margin-bottom:0"><strong>Sizes.</strong> <code>--size square</code> is 1440x1440 (the default), <code>vertical</code> is 1080x1920 for Reels, TikTok and Shorts, <code>landscape</code> is 1920x1080, or pass <code>WxH</code> with even numbers of at least 64.</p>
+        <p class="note note-info"><strong>Sizes.</strong> <code>--size square</code> is 1440x1440 (the default), <code>vertical</code> is 1080x1920 for Reels, TikTok and Shorts, <code>landscape</code> is 1920x1080, or pass <code>WxH</code> with even numbers of at least 64.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>Long pieces and 4K.</strong> There is no hard limit: <code>--bars 28</code> is about a minute at 109 BPM and <code>--size 3840x2160</code> is 4K. Above roughly 1440 px, scale the camera zoom and the cursor by <code>K = min(W, H) / 1440</code> so the design keeps its proportions and renders sharper, not smaller (<a href="https://github.com/triippiing/motion-kit/blob/ad7dc58/CLAUDE.md#long-pieces-and-4k">exact lines</a>). Full quality 4K renders at about 19 seconds per second of video on an Apple M5, so a minute takes 20 to 30 minutes: time a 5 second section with <code>--from 0 --to 5</code> first, iterate with <code>--preview</code>, and plan a minute as 3 or 4 chapters.</p>
       </div>
     </div>
   </div>
