@@ -50,10 +50,10 @@
   <div class="env">
     <div class="env-head">Where it lives</div>
     <div class="env-grid">
-      <div class="env-cell"><div class="env-label">Path</div><div class="env-val mono">~/motion-kit</div></div>
+      <div class="env-cell"><div class="env-label">Repo</div><div class="env-val mono"><a href="https://github.com/triippiing/motion-kit">github.com/triippiing/motion-kit</a></div></div>
       <div class="env-cell"><div class="env-label">Skills</div><div class="env-val mono">~/.claude/skills/motion-*</div></div>
-      <div class="env-cell"><div class="env-label">Install</div><div class="env-val mono">~/motion-kit/install.sh</div></div>
-      <div class="env-cell"><div class="env-label">Needs</div><div class="env-val warn">Homebrew, ffmpeg, Node</div></div>
+      <div class="env-cell"><div class="env-label">Install</div><div class="env-val mono">clone, then ./install.sh</div></div>
+      <div class="env-cell"><div class="env-label">Needs</div><div class="env-val warn">Homebrew, Node 20+, Python 3</div></div>
       <div class="env-cell"><div class="env-label">Song</div><div class="env-val info">Tints, 109.00 BPM</div></div>
     </div>
   </div>
@@ -106,15 +106,17 @@
     <div class="step">
       <div class="step-header">
         <span class="step-num">03</span>
-        <span class="step-title">Link the skills, then run the doctor</span>
+        <span class="step-title">Clone, install, check</span>
         <span class="step-tag tag-ok">SETUP</span>
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <div class="cmd" data-lang="bash">~/motion-kit/install.sh
-~/.claude/skills/motion-video/scripts/doctor.sh</div>
-        <p class="note"><code>install.sh</code> symlinks each folder in <code>~/motion-kit/skills/</code> into <code>~/.claude/skills/</code> (it refuses to replace a real folder of the same name), runs <code>npm install</code> for Playwright, then runs the doctor. The doctor lists anything MISSING with the fix.</p>
-        <p class="note note-info" style="margin-bottom:0">Prerequisites: Homebrew, ffmpeg (<code>brew install ffmpeg</code>), Node and Python 3. The scripts put <code>/opt/homebrew/bin</code> on their own PATH, so they work even when Claude's shell has not.</p>
+        <div class="cmd" data-lang="bash">git clone https://github.com/triippiing/motion-kit.git ~/motion-kit
+~/motion-kit/install.sh
+~/.claude/skills/motion-video/scripts/doctor.sh   <span class="c"># re-run any time something fails oddly</span></div>
+        <p class="note"><code>install.sh</code> symlinks each folder in <code>~/motion-kit/skills/</code> into <code>~/.claude/skills/</code> (it refuses to replace a real folder of the same name), installs ffmpeg (Homebrew), numpy and Playwright with its Chromium when they are missing, then runs the doctor. The doctor lists anything still MISSING with the exact fix. Only Homebrew itself needs a manual install, because it asks for a password.</p>
+        <p class="note note-info">Prerequisites: Homebrew, Node 20 or newer and Python 3. Rendering fetches the house font from Google Fonts, so it needs a network connection. The scripts put <code>/opt/homebrew/bin</code> on their own PATH, so they work even when Claude's shell has not.</p>
+        <p class="note note-success" style="margin-bottom:0"><strong>With Claude.</strong> Open Claude Code in the clone, or give it the repo URL. <a href="https://github.com/triippiing/motion-kit/blob/8247624/CLAUDE.md"><code>CLAUDE.md</code></a> explains the whole project: pipeline, page contract, rules, code map and tests. A fresh Claude session with no other context used it to make a working video on the first try.</p>
       </div>
     </div>
   </div>
@@ -177,7 +179,27 @@ $S/new_project.sh ~/promo ~/song.flac --bars 7 --states 12 --size vertical --the
 node $S/beat_stills.mjs ~/promo      # read out/stills/contact-sheet.png
 node $S/render.mjs ~/promo --preview
 node $S/render.mjs ~/promo           # ~/promo/out/video.mp4</div>
-        <p class="note" style="margin-bottom:0"><code>--from</code> and <code>--to</code> are seconds and render a section. <code>--serve</code> prints a URL: open it with <code>?play</code> and click to watch with audio.</p>
+        <p class="note">Everything above rests on one idea: a value that changes target many times is still a pure function of time. This is the heart of <code>shared/springs.js</code> (<a href="https://github.com/triippiing/motion-kit/blob/8247624/shared/springs.js#L46-L63">source, lines 46 to 63 at 8247624</a>):</p>
+        <div class="cmd" data-lang="js">// A value that retargets many times, as a pure function of t: `from` plus one
+// spring per change, each animating only that change's delta. A spring that
+// starts at its change time adds zero displacement and zero velocity at that
+// instant, so the sum is continuous in both -- no state between frames.
+function track(t, o) {
+  const changes = o.changes.slice().sort(function (a, b) { return a.t - b.t; });
+  let prev = o.from, value = o.from, velocity = 0;
+  for (const c of changes) {
+    if (t &lt; c.t) break;
+    const omega = c.omega != null ? c.omega : o.omega;
+    const zeta = c.zeta != null ? c.zeta : o.zeta;
+    const r = response(t - c.t, prev - c.to, 0, omega, zeta);
+    value += (c.to - prev) + r.e;
+    velocity += r.v;
+    prev = c.to;
+  }
+  return { value: value, velocity: velocity };
+}</div>
+        <p class="note">Every project page honours the same contract, which the renderer checks: <code>window.ready</code>, <code>window.STAGE</code>, a pure <code>window.seek(t)</code>, <code>window.inspect(t)</code> for the cursor seam check, and <code>window.SFX</code> for sounds (<a href="https://github.com/triippiing/motion-kit/blob/8247624/CLAUDE.md#rules-that-matter-the-tests-enforce-most-of-them">rules</a>, <a href="https://github.com/triippiing/motion-kit/blob/8247624/skills/motion-video/template/index.html">template</a>).</p>
+        <p class="note" style="margin-bottom:0"><code>--preview</code> renders at half size with one subframe. <code>--from</code> and <code>--to</code> are seconds and render a section. <code>--serve</code> prints a URL: open it with <code>?play</code> and click to watch with audio.</p>
       </div>
     </div>
   </div>
@@ -247,8 +269,11 @@ node $S/render.mjs ~/promo           # ~/promo/out/video.mp4</div>
       <div class="step-body">
         <p class="note" style="margin-top:0">Before proposing anything, motion-ui looks for the project's motion rules and treats them as the spec: docs folders named motion, animation or handoff, CSS tokens such as <code>--t-*</code>, <code>--dur-*</code> and <code>--ease-*</code>, and existing <code>transition:</code>, <code>@keyframes</code> and reduced-motion handling. If the spec bans bounce, every spring is zeta 1, and durations come from the tokens through <code>Springs.fromSettle(tokenSeconds, zeta)</code>.</p>
         <p class="note">The worked example is demo 3. The dock indicator used to slide on a CSS <code>transform</code> transition. It now rides two edges, each on its own critically damped spring (zeta 1). The edge on the side it is heading toward settles in 0.7 of <code>--t-travel</code> (220 ms) and the trailing edge takes the full time, so the pill reaches ahead and gathers up behind. Each edge keeps its position and velocity between navigations and is held between where it was and where it is going, so a quick reversal cannot pass its target. Reduced motion and a missing <code>requestAnimationFrame</code> make the pill jump.</p>
-        <div class="cmd" data-lang="js"><span class="c">// hand copy from ~/motion-kit, may drift</span>
-const trail = Springs.fromSettle(settle, 1), fast = Springs.fromSettle(settle * 0.7, 1);</div>
+        <div class="cmd" data-lang="js"><span class="c">// motion-ui pattern 2, generic form of the dock pill: skills/motion-ui/references/patterns.md at 8247624</span>
+function indicatorEdges(from, changes, t, settle, n, lead = 0.7) {
+  const trail = Springs.fromSettle(settle, 1), fast = Springs.fromSettle(settle * lead, 1);
+  const hold = (x, a, b) =&gt; Math.min(Math.max(x, Math.min(a, b)), Math.max(a, b));</div>
+        <p class="note">Full pattern and its tests: <a href="https://github.com/triippiing/motion-kit/blob/8247624/skills/motion-ui/references/patterns.md#L18-L23">patterns.md</a>, <a href="https://github.com/triippiing/motion-kit/blob/8247624/skills/motion-ui/tests/patterns.test.mjs">patterns.test.mjs</a>.</p>
         <p class="note note-caution" style="margin-bottom:0">The branch <code>motion-demo</code> in the finance app is unmerged and unpushed, and <code>main</code> is untouched. Its tests pin the behaviour: settles on target, never overshoots, retargets stay continuous, and the pill never collapses or leaves the dock.</p>
       </div>
     </div>
@@ -283,7 +308,7 @@ const trail = Springs.fromSettle(settle, 1), fast = Springs.fromSettle(settle * 
 
 <footer>
   <span>DOC-MOTION-001 · Motion Kit · beat-synced motion videos and in-app springs</span>
-  <span>claude · ~/motion-kit · Claude Code</span>
+  <span>claude · github.com/triippiing/motion-kit · Claude Code</span>
 </footer>
 
 </body>
