@@ -137,9 +137,11 @@
             <tr><td>motion-design</td><td>A promo, reel or social clip of UI made with code; "promo video for my app"</td><td>Checks tooling, asks for states, palette, song and size, scaffolds and measures the song, writes a beat-by-beat state plan and stops for approval before any code</td><td>"Make a promo video of this app, cut to this song."</td></tr>
             <tr><td>motion-video</td><td>Building or rendering the approved plan; measuring a song; re-timing; fixing a stuttering loop</td><td>Owns the scripts: scaffold, analyse, theme, stills, preview and final render</td><td>"Re-time the piece to this new song."</td></tr>
             <tr><td>motion-ui</td><td>Animation in a real product UI: indicators, toggles, drags, interruptible transitions</td><td>Follows the project's own motion rules, then builds on the shared springs with a pure, unit-testable function</td><td>"Make the nav indicator feel springier."</td></tr>
+            <tr><td>transitions-dev (companion)</td><td>Standard UI moments: dropdown, modal, toast, tooltip, tabs, accordion, success check and more</td><td>A free catalog of 32 ready-made transitions by Jakub Antalik, with reveal, review, apply and refine commands. motion-ui maps its values onto the project's tokens; motion-design rebuilds its ideas with springs for video</td><td>"transitions review" or "Animate the save toast."</td></tr>
           </table>
         </div>
-        <p class="note" style="margin-top:12px;margin-bottom:0">Videos go through motion-design first, then motion-video. In-app motion never touches the video skills.</p>
+        <p class="note" style="margin-top:12px">Videos go through motion-design first, then motion-video. In-app motion never touches the video skills.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>Companion catalog.</strong> <code>install.sh</code> also installs the free <a href="https://transitions.dev">transitions.dev</a> skills with their own installer (skip with <code>--no-transitions</code>). They are never copied into the motion-kit repo: their terms allow using and modifying the transitions in your projects but not republishing the collection as a kit.</p>
       </div>
     </div>
   </div>
