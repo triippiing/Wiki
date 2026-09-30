@@ -218,7 +218,7 @@ function track(t, o) {
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">The kit ships 28 components in four groups: controls, feedback, data and content, and app chrome. Each one is a state the one shape morphs into, with its own motion, sounds and hotspots already built: button, toggle, tabs, slider, toast, line chart, calendar, command bar, player and so on. A <code>states()</code> row names a component with <code>use:</code> and passes its props as keys. A <code>cursor()</code> row aims at one of its hotspots with <code>target:</code>. No custom layers, CSS or drawing code.</p>
+        <p class="note" style="margin-top:0">The kit ships 28 components in four groups: controls, feedback, data and content, and app chrome. Each one is a state the one shape morphs into, with its own motion and hotspots already built (and sounds where a component has them, such as key taps while typing): button, toggle, tabs, slider, toast, line chart, calendar, command bar, player and so on. A <code>states()</code> row names a component with <code>use:</code> and passes its props as keys. A <code>cursor()</code> row aims at one of its hotspots with <code>target:</code>. No custom layers, CSS or drawing code. The example below (an excerpt of the Onboarding recipe in RECIPES.md; the full recipe passes <code>check_brief.mjs</code>):</p>
         <div class="cmd" data-lang="js">const states = () =&gt; [
   { at: 0,  use: 'button', label: 'Create account' },
   { at: 7,  use: 'toggle', on: false, label: 'Notifications' },
@@ -241,7 +241,7 @@ const cursor = () =&gt; [
         </ol>
         <figure class="demo">
           <video controls loop playsinline preload="metadata" poster="../assets/media/motion-kit/05-component-gallery.jpg" src="../assets/media/motion-kit/05-component-gallery.mp4"></video>
-          <figcaption>The component gallery, made by <code>gallery.mjs</code>. Every component plays its catalog example in catalog order, then each of its edge cases, two beats apiece, from a neutral rest shape and back. 118 s at 120 BPM over a synthetic click track, 720x720 half-size preview render.</figcaption>
+          <figcaption>The component gallery, made by <code>gallery.mjs</code>. Every component's catalog example plays in catalog order, then every edge case, two beats apiece, from a neutral rest shape and back. 118 s at 120 BPM over a synthetic click track, 720x720 half-size preview render.</figcaption>
         </figure>
         <figure class="demo">
           <video controls loop playsinline preload="metadata" poster="../assets/media/motion-kit/04-library-reference.jpg" src="../assets/media/motion-kit/04-library-reference.mp4"></video>
