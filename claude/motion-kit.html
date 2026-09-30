@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion Kit</title>
+<meta name="description" content="Three Claude Code skills that turn any project's UI into beat-synced motion videos and springy in-app motion, all in code.">
+<meta name="keywords" content="motion design video springs playwright ffmpeg bpm beat promo animation skill">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&family=Spectral:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/runbook.css">
+<link rel="stylesheet" href="../assets/css/sidebar.css">
+<script src="../assets/js/nav-data.js" defer></script>
+<script src="../assets/js/chrome.js" defer></script>
+<style>
+  .demo { margin: 0 0 22px; }
+  .demo video { display: block; width: 100%; max-width: 560px; border: 1px solid var(--border); border-radius: 6px; background: var(--ink); }
+  .demo figcaption { margin-top: 8px; font-size: 13px; color: var(--muted, inherit); max-width: 640px; }
+  .step-body ol, .step-body ul { padding-left: 22px; margin: 0 0 12px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumb">
+    <a href="../index.html">Wiki</a><span class="sep">/</span><a href="../index.html#claude">Claude</a><span class="sep">/</span>Motion Kit
+  </nav>
+
+  <h1 class="page-title">Motion Kit</h1>
+  <p class="page-sub">Three Claude Code skills that turn any project's UI into beat-synced motion videos and springy in-app motion, all in code. Every video frame is a pure function of time, so the same page renders the same loop every time and re-times to any song.</p>
+
+  <div class="badges">
+    <span class="badge badge-accent">3 skills</span>
+    <span class="badge">3 demos</span>
+    <span class="badge">Playwright + ffmpeg</span>
+    <span class="badge">Claude Code</span>
+  </div>
+
+  <!-- Meta -->
+  <div class="meta meta-identity">
+    <div class="meta-cell"><div class="meta-label">Doc ID</div><div class="meta-val mono">DOC-MOTION-001</div></div>
+    <div class="meta-cell"><div class="meta-label">Operation</div><div class="meta-val info">Motion videos and in-app springs</div></div>
+    <!-- Last reviewed cell appended at load by chrome.js -->
+  </div>
+
+  <div class="env">
+    <div class="env-head">Where it lives</div>
+    <div class="env-grid">
+      <div class="env-cell"><div class="env-label">Path</div><div class="env-val mono">~/motion-kit</div></div>
+      <div class="env-cell"><div class="env-label">Skills</div><div class="env-val mono">~/.claude/skills/motion-*</div></div>
+      <div class="env-cell"><div class="env-label">Install</div><div class="env-val mono">~/motion-kit/install.sh</div></div>
+      <div class="env-cell"><div class="env-label">Needs</div><div class="env-val warn">Homebrew, ffmpeg, Node</div></div>
+      <div class="env-cell"><div class="env-label">Song</div><div class="env-val info">Tints, 109.00 BPM</div></div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>01</span> What it is</div>
+  <div class="steps">
+    <div class="step open">
+      <div class="step-header">
+        <span class="step-num">01</span>
+        <span class="step-title">Three skills, one idea: every frame is a function of time</span>
+        <span class="step-tag tag-info">OVERVIEW</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Motion Kit is three Claude Code skills that turn a project's UI into motion, all in code. <code>motion-design</code> plans a promo and stops for approval. <code>motion-video</code> builds it as one HTML page whose <code>seek(t)</code> draws any frame from the time alone, then renders that page to MP4 with Playwright and ffmpeg, cut to a song's measured beat grid. <code>motion-ui</code> brings the same closed-form springs into a real product UI. There is no After Effects, Remotion or Lottie in the chain.</p>
+        <p class="note note-info">The look and the build rules adapt the open prompt template from <a href="https://x.com/twoclipping/status/2103273003555402193">@twoclipping</a>: one shape that never cuts, a cursor that drives every change, springs everywhere, and a last frame identical to the first so the clip loops.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>02</span> Demos</div>
+  <div class="steps">
+    <div class="step open">
+      <div class="step-header">
+        <span class="step-num">02</span>
+        <span class="step-title">Three videos made with the kit</span>
+        <span class="step-tag tag-ok">DEMOS</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <figure class="demo">
+          <video controls loop playsinline preload="metadata" poster="../assets/media/motion-kit/01-reference.jpg" src="../assets/media/motion-kit/01-reference.mp4"></video>
+          <figcaption>Demo 1, the reference sequence. One black-and-white shape morphs through 12 UI states (button, loader, check, island, player, toggle, tabs, chart, command bar, toast). Tints (Anderson .Paak ft. Kendrick Lamar), 109.00 BPM, a 7-bar loop of 15.4 s, 1080x1080 web copy.</figcaption>
+        </figure>
+        <figure class="demo">
+          <video controls loop playsinline preload="metadata" poster="../assets/media/motion-kit/02-finance-promo.jpg" src="../assets/media/motion-kit/02-finance-promo.mp4"></video>
+          <figcaption>Demo 2, a promo for the personal finance app. The same method, dressed in the app's own theme pulled from its stylesheet, walking through eleven of its screens. The figures are made up. Tints, 109.00 BPM, 7-bar loop of 15.4 s, 1080x1080 web copy.</figcaption>
+        </figure>
+        <figure class="demo">
+          <video controls loop playsinline preload="metadata" poster="../assets/media/motion-kit/03-dock-springs.jpg" src="../assets/media/motion-kit/03-dock-springs.mp4"></video>
+          <figcaption>Demo 3, live in-app motion rather than a promo. The finance dock pill on two critically damped springs, on the unmerged branch <code>motion-demo</code>. Top: the old CSS transition. Bottom: the springs. The sequence plays at real speed, then 4x slower, and ends with a retarget mid-flight. 960x200, no audio.</figcaption>
+        </figure>
+        <p class="note note-caution" style="margin-bottom:0">Demos 1 and 2 keep the Tints audio. It is a commercial track, so these are for viewing here. Re-time to a licensed track (see step 05) before posting them anywhere else.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>03</span> Install</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">03</span>
+        <span class="step-title">Link the skills, then run the doctor</span>
+        <span class="step-tag tag-ok">SETUP</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="cmd" data-lang="bash">~/motion-kit/install.sh
+~/.claude/skills/motion-video/scripts/doctor.sh</div>
+        <p class="note"><code>install.sh</code> symlinks each folder in <code>~/motion-kit/skills/</code> into <code>~/.claude/skills/</code> (it refuses to replace a real folder of the same name), runs <code>npm install</code> for Playwright, then runs the doctor. The doctor lists anything MISSING with the fix.</p>
+        <p class="note note-info" style="margin-bottom:0">Prerequisites: Homebrew, ffmpeg (<code>brew install ffmpeg</code>), Node and Python 3. The scripts put <code>/opt/homebrew/bin</code> on their own PATH, so they work even when Claude's shell has not.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>04</span> The skills</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">04</span>
+        <span class="step-title">When each one triggers</span>
+        <span class="step-tag tag-info">SKILLS</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <tr><th>Skill</th><th>Triggers on</th><th>What it does</th><th>Say to Claude</th></tr>
+            <tr><td>motion-design</td><td>A promo, reel or social clip of UI made with code; "promo video for my app"</td><td>Checks tooling, asks for states, palette, song and size, scaffolds and measures the song, writes a beat-by-beat state plan and stops for approval before any code</td><td>"Make a promo video of this app, cut to this song."</td></tr>
+            <tr><td>motion-video</td><td>Building or rendering the approved plan; measuring a song; re-timing; fixing a stuttering loop</td><td>Owns the scripts: scaffold, analyse, theme, stills, preview and final render</td><td>"Re-time the piece to this new song."</td></tr>
+            <tr><td>motion-ui</td><td>Animation in a real product UI: indicators, toggles, drags, interruptible transitions</td><td>Follows the project's own motion rules, then builds on the shared springs with a pure, unit-testable function</td><td>"Make the nav indicator feel springier."</td></tr>
+          </table>
+        </div>
+        <p class="note" style="margin-top:12px;margin-bottom:0">Videos go through motion-design first, then motion-video. In-app motion never touches the video skills.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>05</span> Pipeline</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">05</span>
+        <span class="step-title">From a song to a rendered loop</span>
+        <span class="step-tag tag-info">PIPELINE</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The order is fixed: song, then <code>song.json</code>, then a state table, then the approval gate, then the <code>seek(t)</code> page, then beat stills, then the render. Nothing is coded until the table is approved.</p>
+        <ol>
+          <li><code>analyze_song.py</code> measures BPM and the beat grid and writes <code>song.json</code> and <code>clip.wav</code>.</li>
+          <li>Claude writes one row per beat: something happens on every beat, and the last row returns to the first state.</li>
+          <li>You approve or change the table.</li>
+          <li>Claude edits only the tables in <code>index.html</code>: <code>states()</code>, <code>cursor()</code>, <code>content</code>, <code>extraSfx()</code>.</li>
+          <li><code>beat_stills.mjs</code> writes one still per beat, a contact sheet and a loop-seam check. Read the sheet before rendering.</li>
+          <li><code>render.mjs</code> renders 60 fps, 4 subframes per frame, to <code>out/video.mp4</code>.</li>
+        </ol>
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <tr><th>Script</th><th>Flags</th><th>Job</th></tr>
+            <tr><td>doctor.sh</td><td>none</td><td>Check tooling</td></tr>
+            <tr><td>new_project.sh DIR SONG</td><td>--bars N, --states N, --start-bar N, --size, --theme CSS, --map role=--var</td><td>Scaffold a project and measure the song</td></tr>
+            <tr><td>analyze_song.py SONG</td><td>--out DIR, --bars, --states, --start-bar</td><td>Re-time to a new song</td></tr>
+            <tr><td>extract_theme.py [CSS]</td><td>--out DIR, --map role=--var</td><td>Re-theme from a project</td></tr>
+            <tr><td>beat_stills.mjs DIR</td><td>none</td><td>Beat stills, contact sheet, seam check</td></tr>
+            <tr><td>render.mjs DIR</td><td>--preview, --out FILE, --sub N, --workers N, --from S, --to S, --serve</td><td>Preview or final render, or watch live with audio</td></tr>
+          </table>
+        </div>
+        <div class="cmd" data-lang="bash">S=~/.claude/skills/motion-video/scripts
+$S/new_project.sh ~/promo ~/song.flac --bars 7 --states 12 --size vertical --theme app/style.css
+node $S/beat_stills.mjs ~/promo      # read out/stills/contact-sheet.png
+node $S/render.mjs ~/promo --preview
+node $S/render.mjs ~/promo           # ~/promo/out/video.mp4</div>
+        <p class="note" style="margin-bottom:0"><code>--from</code> and <code>--to</code> are seconds and render a section. <code>--serve</code> prints a URL: open it with <code>?play</code> and click to watch with audio.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>06</span> Any project</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">06</span>
+        <span class="step-title">Re-theme and re-size to fit the project</span>
+        <span class="step-tag tag-ok">THEME</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0"><code>extract_theme.py</code> reads the first <code>:root</code> block of a stylesheet (the light theme) plus the <code>body</code> or <code>html</code> font-family, and writes <code>theme.css</code> and <code>theme.json</code> into the project. Colours are normalised to <code>#rrggbb</code> so springs can interpolate them. Without a CSS file it writes the house theme: warm gray, black and white, Geist.</p>
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <tr><th>Role</th><th>Found from these variables</th></tr>
+            <tr><td>canvas</td><td>--bg, --background, --canvas, --color-bg, --bg-color, --page</td></tr>
+            <tr><td>surface</td><td>--panel, --surface, --card, --paper, --bg-elevated, --color-surface</td></tr>
+            <tr><td>ink</td><td>--ink, --text, --fg, --foreground, --color-text, --text-color</td></tr>
+            <tr><td>muted</td><td>--muted, --text-muted, --subtle, --color-muted</td></tr>
+            <tr><td>accent</td><td>--accent, --primary, --brand, --color-primary, --color-accent</td></tr>
+            <tr><td>font</td><td>--font, --font-sans, --font-family, --font-body, or the body font</td></tr>
+            <tr><td>pos, neg (optional)</td><td>Success and danger colours, included only when the CSS defines them</td></tr>
+          </table>
+        </div>
+        <p class="note" style="margin-top:12px">When a role is picked wrongly, override it and check the printed theme:</p>
+        <div class="cmd" data-lang="bash">python3 $S/extract_theme.py app/style.css --out ~/promo --map accent=--brand</div>
+        <p class="note">Pages then use the roles (<code>canvas surface ink muted accent</code>) or <code>var(--accent)</code>, never a hex value, so the piece re-themes with the project. Use <code>var(--pos)</code> and <code>var(--neg)</code> only when the theme has them.</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>Sizes.</strong> <code>--size square</code> is 1440x1440 (the default), <code>vertical</code> is 1080x1920 for Reels, TikTok and Shorts, <code>landscape</code> is 1920x1080, or pass <code>WxH</code> with even numbers of at least 64.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>07</span> Song rules</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">07</span>
+        <span class="step-title">What song.json tells you</span>
+        <span class="step-tag tag-caution">RULES</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <ul>
+          <li><strong>Comfort band.</strong> 100 to 130 BPM. Outside it the analysis warns: below, keep one event per beat; above, consider half-time events or half-beat accents. Say the BPM and any warning out loud before planning.</li>
+          <li><strong>House spring.</strong> <code>rules.spring</code> sets zeta 0.85 and a settle of 0.6 beat (0.33 s at 109 BPM). The template already uses it. Camera and cursor use zeta 1.</li>
+          <li><strong>Hold time.</strong> <code>rules.min_hold_beats</code> is the fewest beats a state may hold, from one second of screen time (2 beats at 109 BPM). <code>rules.max_states</code> follows from it (14 for a 7-bar loop).</li>
+          <li><strong>Cue placement.</strong> Every sound sits on its beat's measured <code>cue_t</code>, not the grid time. Presses use <code>sfx/click.wav</code>, typing uses <code>sfx/key.wav</code>, anything else goes through <code>extraSfx()</code>. Put the biggest changes on the strongest per-beat <code>accent</code> values.</li>
+          <li><strong>Loop start.</strong> Choose <code>--start-bar</code> at a section boundary inside a strong section, and use a different bar for each piece made from one song. Demo 1 starts at bar 21, demo 2 at bar 7.</li>
+          <li><strong>Licence.</strong> A commercial track is for local viewing. Ask for a file and never download music.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>08</span> In-app motion</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">08</span>
+        <span class="step-title">The project's motion spec wins</span>
+        <span class="step-tag tag-info">MOTION-UI</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">Before proposing anything, motion-ui looks for the project's motion rules and treats them as the spec: docs folders named motion, animation or handoff, CSS tokens such as <code>--t-*</code>, <code>--dur-*</code> and <code>--ease-*</code>, and existing <code>transition:</code>, <code>@keyframes</code> and reduced-motion handling. If the spec bans bounce, every spring is zeta 1, and durations come from the tokens through <code>Springs.fromSettle(tokenSeconds, zeta)</code>.</p>
+        <p class="note">The worked example is demo 3. The dock indicator used to slide on a CSS <code>transform</code> transition. It now rides two edges, each on its own critically damped spring (zeta 1). The edge on the side it is heading toward settles in 0.7 of <code>--t-travel</code> (220 ms) and the trailing edge takes the full time, so the pill reaches ahead and gathers up behind. Each edge keeps its position and velocity between navigations and is held between where it was and where it is going, so a quick reversal cannot pass its target. Reduced motion and a missing <code>requestAnimationFrame</code> make the pill jump.</p>
+        <div class="cmd" data-lang="js"><span class="c">// hand copy from ~/motion-kit, may drift</span>
+const trail = Springs.fromSettle(settle, 1), fast = Springs.fromSettle(settle * 0.7, 1);</div>
+        <p class="note note-caution" style="margin-bottom:0">The branch <code>motion-demo</code> in the finance app is unmerged and unpushed, and <code>main</code> is untouched. Its tests pin the behaviour: settles on target, never overshoots, retargets stay continuous, and the pill never collapses or leaves the dock.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>09</span> Troubleshooting</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">09</span>
+        <span class="step-title">Common failures</span>
+        <span class="step-tag tag-caution">FIXES</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <tr><th>Symptom</th><th>Cause and fix</th></tr>
+            <tr><td>Seam check fails on frame</td><td>The last STATES and CURSOR rows must equal the first and sit at least 2 beats before the end.</td></tr>
+            <tr><td>Seam check fails on cursor velocity</td><td>The last cursor move is too late. Finish it earlier so the cursor is at rest across the seam.</td></tr>
+            <tr><td>Blurry text</td><td>Something the camera scales has <code>will-change</code>. Remove it.</td></tr>
+            <tr><td>Page renders unstyled</td><td>It was opened from <code>file://</code>. Use <code>render.mjs DIR --serve</code>.</td></tr>
+            <tr><td>Labels overlap in a morphing box</td><td>Give swapping text its own exit and enter timing.</td></tr>
+            <tr><td>ffmpeg or node not found</td><td>Claude's shell PATH lacks Homebrew. The scripts add it themselves, so run them through the scripts, and run the doctor.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <span>DOC-MOTION-001 · Motion Kit · beat-synced motion videos and in-app springs</span>
+  <span>claude · ~/motion-kit · Claude Code</span>
+</footer>
+
+</body>
+</html>

@@ -182,6 +182,11 @@ window.WIKI_NAV = [
         "sub": ""
       },
       {
+        "title": "Motion Kit",
+        "href": "claude/motion-kit.html",
+        "sub": ""
+      },
+      {
         "title": "Repo Conventions",
         "href": "claude/conventions.html",
         "sub": ""
