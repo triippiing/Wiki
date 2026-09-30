@@ -739,6 +739,16 @@
   opacity: 0;
 }
 
+/* A table inside a collapsible step is display:none at page load, so the
+   entrance animation above cannot run then. Instead it replays, delay and all,
+   every time the step is opened, leaving the panel blank for half a second
+   (and blank for good wherever animations do not run). The step itself has
+   already animated in, so its table shows at once. */
+.step-body .summary-wrap {
+  animation: none;
+  opacity: 1;
+}
+
 
 /* ── footer ── */
 footer {
