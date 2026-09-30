@@ -292,7 +292,7 @@ if __name__ == "__main__":
           <thead><tr><th>Missing</th><th>Instead</th></tr></thead>
           <tbody>
             <tr><td><code>gh</code></td><td>Query the Actions API with <code>curl</code> and a bearer token. <code>gh run watch</code> is not available.</td></tr>
-            <tr><td><code>node</code>, <code>deno</code>, <code>bun</code></td><td>Nothing on PATH runs JavaScript. Anything scripted here is Python 3.</td></tr>
+            <tr><td><code>deno</code>, <code>bun</code></td><td>Not installed. Node 24 is now present through nvm (the motion kit needs it), and <code>node --check assets/js/chrome.js</code> also syntax checks the chrome, but the wiki itself still needs only Python 3, so keep anything scripted here in Python.</td></tr>
             <tr><td><code>jsc</code></td><td>To syntax check <code>chrome.js</code>, use <code>osascript</code> with <code>new Function(src)</code>.</td></tr>
             <tr><td>Cached git credentials</td><td>The inline credential helper above. See phase 03.</td></tr>
           </tbody>
