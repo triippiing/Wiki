@@ -253,11 +253,51 @@ const cursor = () =&gt; [
     </div>
   </div>
 
-  <div class="phase-label"><span>07</span> Any project</div>
+  <div class="phase-label"><span>07</span> Exporting</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
         <span class="step-num">07</span>
+        <span class="step-title">Ready-to-post files for every destination</span>
+        <span class="step-tag tag-ok">EXPORT</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note" style="margin-top:0">The brief names the destinations in one Decisions line, e.g. <code>**Exports:** reels, x, discord, web</code>. After the final render, one command writes a file per destination and a <code>manifest.json</code> into <code>out/exports</code>:</p>
+        <div class="cmd" data-lang="bash">node $S/export.mjs ~/promo --for reels,x,discord,web          # add --silent to drop the audio</div>
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <tr><th>Group</th><th>Presets</th><th>Shape</th></tr>
+            <tr><td>Reels / TikTok / Shorts</td><td>reels, tiktok, shorts</td><td>1080x1920</td></tr>
+            <tr><td>X / LinkedIn</td><td>x, linkedin (square); x-landscape, linkedin-landscape</td><td>1440x1440 or 1920x1080</td></tr>
+            <tr><td>Discord / chat</td><td>discord (20 MB), discord-nitro (1 GB)</td><td>the design size</td></tr>
+            <tr><td>Web / wiki / GitHub</td><td>web (MP4, WebM and a poster JPG), gif (720 wide, 15 fps)</td><td>the design size</td></tr>
+          </table>
+        </div>
+        <p class="note" style="margin-top:12px">Each shape is rendered natively once (60 fps, 4 subframes), so a vertical Reel is laid out for 1080x1920 rather than cropped or letterboxed from the square. A file over its preset's size cap is re-encoded two-pass, then stepped down in resolution if it has to be. Every file with audio aims at -14 LUFS and a -1 dBTP true peak. <code>check_brief.mjs</code> checks the brief against the Reels, TikTok and Shorts safe zones (captions and buttons), and <code>--guides</code> renders a preview with those zones shaded. Platform limits and their sources are in <a href="https://github.com/triippiing/motion-kit/blob/main/skills/motion-video/presets.json">presets.json</a>; the full guide is the Export section of <a href="https://github.com/triippiing/motion-kit/blob/main/skills/motion-video/SKILL.md#export">SKILL.md</a>.</p>
+        <p class="note">Demo 4 exported to <code>reels,x,discord,web,gif</code> with its audio, for local viewing (<a href="https://github.com/triippiing/motion-kit/blob/main/demos/04-library-reference/exports-manifest.json">manifest</a>):</p>
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <tr><th>Preset</th><th>File</th><th>Resolution</th><th>fps</th><th>MB</th><th>Seconds</th><th>LUFS / true peak</th><th>Warnings</th></tr>
+            <tr><td>reels</td><td>reels.mp4</td><td>1080x1920</td><td>30</td><td>0.69</td><td>15.43</td><td>-14.0 / +1.2</td><td>commercial track, true peak</td></tr>
+            <tr><td>x</td><td>x.mp4</td><td>1440x1440</td><td>30</td><td>0.90</td><td>15.43</td><td>-14.1 / +1.1</td><td>commercial track, true peak</td></tr>
+            <tr><td>discord</td><td>discord.mp4</td><td>1440x1440</td><td>60</td><td>0.88</td><td>15.42</td><td>-14.1 / +0.9</td><td>true peak</td></tr>
+            <tr><td>web</td><td>web.mp4</td><td>1440x1440</td><td>60</td><td>0.72</td><td>15.42</td><td>-14.0 / +1.2</td><td>commercial track, true peak</td></tr>
+            <tr><td>web</td><td>web.webm</td><td>1440x1440</td><td>60</td><td>0.96</td><td>15.42</td><td>-14.0 / -1.5</td><td>commercial track</td></tr>
+            <tr><td>web</td><td>web.jpg</td><td>1440x1440</td><td>still</td><td>0.03</td><td></td><td></td><td>poster at beat 1.5</td></tr>
+            <tr><td>gif</td><td>gif.gif</td><td>720x720</td><td>15</td><td>1.35</td><td>15.40</td><td>no audio</td><td>none</td></tr>
+          </table>
+        </div>
+        <p class="note note-caution" style="margin-top:12px;margin-bottom:0">Two renders made all seven files. Every file is inside its size cap and hit -14 LUFS, but the AAC files peak above 0 dBTP: ffmpeg's built-in AAC encoder overshoots on this track, while the Opus WebM stays at -1.5. The commercial track warning is expected, since Tints is for local viewing only; a public post would use <code>--silent</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>08</span> Any project</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">08</span>
         <span class="step-title">Re-theme and re-size to fit the project</span>
         <span class="step-tag tag-ok">THEME</span>
         <span class="step-chevron">▶</span>
@@ -285,11 +325,11 @@ const cursor = () =&gt; [
     </div>
   </div>
 
-  <div class="phase-label"><span>08</span> Song rules</div>
+  <div class="phase-label"><span>09</span> Song rules</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">08</span>
+        <span class="step-num">09</span>
         <span class="step-title">What song.json tells you</span>
         <span class="step-tag tag-caution">RULES</span>
         <span class="step-chevron">▶</span>
@@ -307,11 +347,11 @@ const cursor = () =&gt; [
     </div>
   </div>
 
-  <div class="phase-label"><span>09</span> In-app motion</div>
+  <div class="phase-label"><span>10</span> In-app motion</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">09</span>
+        <span class="step-num">10</span>
         <span class="step-title">The project's motion spec wins</span>
         <span class="step-tag tag-info">MOTION-UI</span>
         <span class="step-chevron">▶</span>
@@ -329,11 +369,11 @@ function indicatorEdges(from, changes, t, settle, n, lead = 0.7) {
     </div>
   </div>
 
-  <div class="phase-label"><span>10</span> Troubleshooting</div>
+  <div class="phase-label"><span>11</span> Troubleshooting</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">10</span>
+        <span class="step-num">11</span>
         <span class="step-title">Common failures</span>
         <span class="step-tag tag-caution">FIXES</span>
         <span class="step-chevron">▶</span>
