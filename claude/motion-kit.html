@@ -269,7 +269,7 @@ const cursor = () =&gt; [
           <table class="summary-table">
             <tr><th>Group</th><th>Presets</th><th>Shape</th></tr>
             <tr><td>Reels / TikTok / Shorts</td><td>reels, tiktok, shorts</td><td>1080x1920</td></tr>
-            <tr><td>X / LinkedIn</td><td>x, linkedin (square); x-landscape, linkedin-landscape</td><td>1440x1440 or 1920x1080</td></tr>
+            <tr><td>X / LinkedIn</td><td>x, linkedin (square); x-landscape, linkedin-landscape</td><td>1440x1440 (x exports it at 1200x1200) or 1920x1080</td></tr>
             <tr><td>Discord / chat</td><td>discord (20 MB), discord-nitro (1 GB)</td><td>the design size</td></tr>
             <tr><td>Web / wiki / GitHub</td><td>web (MP4, WebM and a poster JPG), gif (720 wide, 15 fps)</td><td>the design size</td></tr>
           </table>
@@ -278,17 +278,17 @@ const cursor = () =&gt; [
         <p class="note">Demo 4 exported to <code>reels,x,discord,web,gif</code> with its audio, for local viewing (<a href="https://github.com/triippiing/motion-kit/blob/main/demos/04-library-reference/exports-manifest.json">manifest</a>):</p>
         <div class="summary-wrap">
           <table class="summary-table">
-            <tr><th>Preset</th><th>File</th><th>Resolution</th><th>fps</th><th>MB</th><th>Seconds</th><th>LUFS / true peak</th><th>Warnings</th></tr>
-            <tr><td>reels</td><td>reels.mp4</td><td>1080x1920</td><td>30</td><td>0.69</td><td>15.43</td><td>-14.0 / +1.2</td><td>commercial track, true peak</td></tr>
-            <tr><td>x</td><td>x.mp4</td><td>1440x1440</td><td>30</td><td>0.90</td><td>15.43</td><td>-14.1 / +1.1</td><td>commercial track, true peak</td></tr>
-            <tr><td>discord</td><td>discord.mp4</td><td>1440x1440</td><td>60</td><td>0.88</td><td>15.42</td><td>-14.1 / +0.9</td><td>true peak</td></tr>
-            <tr><td>web</td><td>web.mp4</td><td>1440x1440</td><td>60</td><td>0.72</td><td>15.42</td><td>-14.0 / +1.2</td><td>commercial track, true peak</td></tr>
-            <tr><td>web</td><td>web.webm</td><td>1440x1440</td><td>60</td><td>0.96</td><td>15.42</td><td>-14.0 / -1.5</td><td>commercial track</td></tr>
-            <tr><td>web</td><td>web.jpg</td><td>1440x1440</td><td>still</td><td>0.03</td><td></td><td></td><td>poster at beat 1.5</td></tr>
-            <tr><td>gif</td><td>gif.gif</td><td>720x720</td><td>15</td><td>1.35</td><td>15.40</td><td>no audio</td><td>none</td></tr>
+            <tr><th>Preset</th><th>File</th><th>Resolution</th><th>fps</th><th>MB</th><th>Seconds</th><th>LUFS / true peak</th><th>Audio coder</th><th>Warnings</th><th>Notes</th></tr>
+            <tr><td>reels</td><td>reels.mp4</td><td>1080x1920</td><td>30</td><td>0.68</td><td>15.43</td><td>-14.1 / -1.2</td><td>aac, fast coder</td><td>commercial track</td><td></td></tr>
+            <tr><td>x</td><td>x.mp4</td><td>1200x1200</td><td>30</td><td>0.80</td><td>15.43</td><td>-14.1 / -2.2</td><td>aac, fast coder</td><td>commercial track</td><td></td></tr>
+            <tr><td>discord</td><td>discord.mp4</td><td>1440x1440</td><td>60</td><td>0.87</td><td>15.42</td><td>-14.1 / -1.9</td><td>aac, fast coder</td><td>none</td><td></td></tr>
+            <tr><td>web</td><td>web.mp4</td><td>1440x1440</td><td>60</td><td>0.71</td><td>15.42</td><td>-14.1 / -1.2</td><td>aac, fast coder</td><td>commercial track</td><td></td></tr>
+            <tr><td>web</td><td>web.webm</td><td>1440x1440</td><td>60</td><td>0.96</td><td>15.42</td><td>-14.0 / -1.5</td><td>Opus</td><td>commercial track</td><td></td></tr>
+            <tr><td>web</td><td>web.jpg</td><td>1440x1440</td><td>still</td><td>0.03</td><td></td><td></td><td></td><td>none</td><td>poster at beat 1.5</td></tr>
+            <tr><td>gif</td><td>gif.gif</td><td>720x720</td><td>15</td><td>1.33</td><td>15.40</td><td>no audio</td><td></td><td>none</td><td></td></tr>
           </table>
         </div>
-        <p class="note note-caution" style="margin-top:12px;margin-bottom:0">Two renders made all seven files. Every file is inside its size cap and hit -14 LUFS, but the AAC files peak above 0 dBTP: ffmpeg's built-in AAC encoder overshoots on this track, while the Opus WebM stays at -1.5. The commercial track warning is expected, since Tints is for local viewing only; a public post would use <code>--silent</code>.</p>
+        <p class="note note-caution" style="margin-top:12px;margin-bottom:0">Two renders made all seven files. Every file is inside its size cap, within 1 LU of -14 LUFS and under the -1 dBTP ceiling. ffmpeg's default AAC coder adds about 3.6 dB of true-peak overshoot on the click and key transients, so export re-encoded the audio with its fast coder, which met the ceiling; the Opus WebM never needed it. The commercial track warning is expected, since Tints is for local viewing only; a public post would use <code>--silent</code>. The cursor now rests nearer the centre to clear the Reels safe zones; four small hits remain, each a beat or less (the cursor on the volume knob, and the line chart opening), and are left as they are.</p>
       </div>
     </div>
   </div>
