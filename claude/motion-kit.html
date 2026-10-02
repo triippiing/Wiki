@@ -158,9 +158,10 @@
         <span class="step-chevron">▶</span>
       </div>
       <div class="step-body">
-        <p class="note" style="margin-top:0">The order is fixed: song, then <code>song.json</code>, then a state table, then the approval gate, then the <code>seek(t)</code> page, then beat stills, then the render. Nothing is coded until the table is approved.</p>
+        <p class="note" style="margin-top:0">The order is fixed: song, then <code>song.json</code>, then the sync check by ear, then a state table, then the approval gate, then the <code>seek(t)</code> page, then beat stills, then the render. Nothing is coded until the table is approved.</p>
         <ol>
           <li><code>analyze_song.py</code> measures BPM and the beat grid and writes <code>song.json</code> and <code>clip.wav</code>.</li>
+          <li><code>sync.mjs</code>: you check the grid by ear and mark moments (step 06).</li>
           <li>Claude writes one row per beat: something happens on every beat, and the last row returns to the first state.</li>
           <li>You approve or change the table.</li>
           <li>Claude edits only the tables in <code>index.html</code>: <code>states()</code>, <code>cursor()</code>, <code>content</code>, <code>extraSfx()</code>.</li>
@@ -172,7 +173,8 @@
             <tr><th>Script</th><th>Flags</th><th>Job</th></tr>
             <tr><td>doctor.sh</td><td>none</td><td>Check tooling</td></tr>
             <tr><td>new_project.sh DIR SONG</td><td>--bars N, --states N, --start-bar N, --size, --theme CSS, --map role=--var</td><td>Scaffold a project and measure the song</td></tr>
-            <tr><td>analyze_song.py SONG</td><td>--out DIR, --bars, --states, --start-bar</td><td>Re-time to a new song</td></tr>
+            <tr><td>analyze_song.py SONG</td><td>--out DIR, --bars, --states, --start-bar, --start-near SEC</td><td>Re-time to a new song</td></tr>
+            <tr><td>sync.mjs DIR</td><td>--port N, --no-open, --song PATH</td><td>The sync page: check the grid by ear, mark moments</td></tr>
             <tr><td>extract_theme.py [CSS]</td><td>--out DIR, --map role=--var</td><td>Re-theme from a project</td></tr>
             <tr><td>beat_stills.mjs DIR</td><td>none</td><td>Beat stills, contact sheet, seam check</td></tr>
             <tr><td>render.mjs DIR</td><td>--preview, --out FILE, --sub N, --workers N, --from S, --to S, --serve</td><td>Preview or final render, or watch live with audio</td></tr>
@@ -180,6 +182,7 @@
         </div>
         <div class="cmd" data-lang="bash">S=~/.claude/skills/motion-video/scripts
 $S/new_project.sh ~/promo ~/song.flac --bars 7 --states 12 --size vertical --theme app/style.css
+node $S/sync.mjs ~/promo             # check the grid by ear, mark moments (step 06)
 node $S/beat_stills.mjs ~/promo      # read out/stills/contact-sheet.png
 node $S/render.mjs ~/promo --preview
 node $S/render.mjs ~/promo           # ~/promo/out/video.mp4</div>
@@ -208,11 +211,51 @@ function track(t, o) {
     </div>
   </div>
 
-  <div class="phase-label"><span>06</span> Components</div>
+  <div class="phase-label"><span>06</span> Syncing</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
         <span class="step-num">06</span>
+        <span class="step-title">Check the beat grid by ear and mark moments</span>
+        <span class="step-tag tag-caution">SYNC</span>
+        <span class="step-chevron">▶</span>
+      </div>
+      <div class="step-body">
+        <p class="note note-caution" style="margin-top:0">Only a person can hear whether the beat grid sits on the music. Claude cannot, so it never says the sync is right. After <code>analyze_song.py</code> has written <code>song.json</code>, and before the brief and the tables, open the sync page to check the grid and mark the moments the tables should hit.</p>
+        <div class="cmd" data-lang="bash">node $S/sync.mjs ~/promo                     <span class="c"># prints the URL and opens the browser; keeps running</span>
+node $S/sync.mjs ~/promo --song ~/song.flac  <span class="c"># once, if the song has moved or the project has no .source.json</span></div>
+        <p class="note">The project's own animation plays on the left, driven by the audio clock, next to a zoomed waveform with bar and beat lines and orange marker flags; under it are the whole loop as a strip, the markers list, the buttons (Play, Clicks, Sounds right, Save) and a status line.</p>
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <tr><th>Key or action</th><th>Does</th></tr>
+            <tr><td>← / →</td><td>Scrub the playhead 10 ms; with Shift a quarter beat, with Alt to the previous or next beat line. Stopped, each step plays a short blip of the song there</td></tr>
+            <tr><td>Home</td><td>Playhead to the loop start</td></tr>
+            <tr><td>↑ / ↓</td><td>Nudge the grid 5 ms later or earlier; with Shift, 20 ms</td></tr>
+            <tr><td>Space</td><td>Play or stop the song, clicks and animation together</td></tr>
+            <tr><td>T, then Enter</td><td>Tap the tempo (8 taps), then apply the tapped BPM</td></tr>
+            <tr><td>M</td><td>Drop a marker at the playhead and type its name; Enter keeps it, Esc drops it</td></tr>
+            <tr><td>Click a flag</td><td>Select the marker and write a note in its "add a note" field (at most 200 characters, for people only, never used for timing)</td></tr>
+            <tr><td>N</td><td>Focus the selected marker's note field</td></tr>
+            <tr><td>Delete</td><td>Remove the selected marker (Backspace or right-clicking its flag does the same)</td></tr>
+            <tr><td>C</td><td>Clicks on or off (the downbeat click is higher)</td></tr>
+            <tr><td>Ctrl+S or Cmd+S</td><td>Save</td></tr>
+          </table>
+        </div>
+        <p class="note" style="margin-top:12px"><strong>Save</strong> writes the <code>sync</code> section of <code>song.json</code> (<code>nudge_ms</code>, <code>bpm</code>, <code>meter</code>, <code>swing</code>, <code>markers</code>, <code>checked_by_ear</code>) and keeps the old file as <code>song.json.bak</code>. It then re-runs <code>analyze_song.py</code> on the original song (its path is in the local, git-ignored <code>.source.json</code>) with the same loop window, which rebuilds <code>song.json</code> and re-cuts <code>clip.wav</code>, and the page reloads. If anything fails, the previous <code>song.json</code> is put back. Sounds right records today's date as <code>checked_by_ear</code>; a nudge, tempo or meter change clears it. While it is absent and the BPM confidence is under 0.5, <code>check_brief.mjs</code> warns that the grid has not been checked by ear.</p>
+        <p class="note">A <code>states()</code> or <code>cursor()</code> row can sit on a marker by name, with an optional <code>offset</code> in beats. Put the action on the marker and its result after it:</p>
+        <div class="cmd" data-lang="js">{ at: 'snare', target: 'row:0', press: true }                     <span class="c">// cursor(): the press lands on the snare</span>
+{ at: 'snare', offset: 1, use: 'toast', text: 'Report exported' }  <span class="c">// states(): its result, one beat later</span></div>
+        <p class="note note-success">Demo 4: Jack played Tints with the clicks over it, left the nudge at 0 because the detected grid sounded right, and pressed Sounds right (checked by ear 2026-10-01), which cleared <code>check_brief.mjs</code>'s low confidence warning (0.39). He marked <code>snare</code> at 1:00.02 in the song (beat 23 of the loop) with the note "export report button should be pressed". The command bar's Export report press moved from beat 23.5 onto the snare and the toast follows one beat later. His verdict on the re-render: "genuinely perfect" (<a href="https://github.com/triippiing/motion-kit/blob/main/demos/04-library-reference/README.md#syncing">demo 4 README</a>).</p>
+        <p class="note note-info" style="margin-bottom:0"><strong>Docs.</strong> The full guide (every key, the status line, errors and known limits) is the Sync section of <a href="https://github.com/triippiing/motion-kit/blob/main/skills/motion-video/SKILL.md#sync">SKILL.md</a>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-label"><span>07</span> Components</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-header">
+        <span class="step-num">07</span>
         <span class="step-title">Build from the library instead of custom code</span>
         <span class="step-tag tag-ok">LIBRARY</span>
         <span class="step-chevron">▶</span>
@@ -253,11 +296,11 @@ const cursor = () =&gt; [
     </div>
   </div>
 
-  <div class="phase-label"><span>07</span> Exporting</div>
+  <div class="phase-label"><span>08</span> Exporting</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">07</span>
+        <span class="step-num">08</span>
         <span class="step-title">Ready-to-post files for every destination</span>
         <span class="step-tag tag-ok">EXPORT</span>
         <span class="step-chevron">▶</span>
@@ -293,11 +336,11 @@ const cursor = () =&gt; [
     </div>
   </div>
 
-  <div class="phase-label"><span>08</span> Any project</div>
+  <div class="phase-label"><span>09</span> Any project</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">08</span>
+        <span class="step-num">09</span>
         <span class="step-title">Re-theme and re-size to fit the project</span>
         <span class="step-tag tag-ok">THEME</span>
         <span class="step-chevron">▶</span>
@@ -325,11 +368,11 @@ const cursor = () =&gt; [
     </div>
   </div>
 
-  <div class="phase-label"><span>09</span> Song rules</div>
+  <div class="phase-label"><span>10</span> Song rules</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">09</span>
+        <span class="step-num">10</span>
         <span class="step-title">What song.json tells you</span>
         <span class="step-tag tag-caution">RULES</span>
         <span class="step-chevron">▶</span>
@@ -347,11 +390,11 @@ const cursor = () =&gt; [
     </div>
   </div>
 
-  <div class="phase-label"><span>10</span> In-app motion</div>
+  <div class="phase-label"><span>11</span> In-app motion</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">10</span>
+        <span class="step-num">11</span>
         <span class="step-title">The project's motion spec wins</span>
         <span class="step-tag tag-info">MOTION-UI</span>
         <span class="step-chevron">▶</span>
@@ -369,11 +412,11 @@ function indicatorEdges(from, changes, t, settle, n, lead = 0.7) {
     </div>
   </div>
 
-  <div class="phase-label"><span>11</span> Troubleshooting</div>
+  <div class="phase-label"><span>12</span> Troubleshooting</div>
   <div class="steps">
     <div class="step">
       <div class="step-header">
-        <span class="step-num">11</span>
+        <span class="step-num">12</span>
         <span class="step-title">Common failures</span>
         <span class="step-tag tag-caution">FIXES</span>
         <span class="step-chevron">▶</span>
